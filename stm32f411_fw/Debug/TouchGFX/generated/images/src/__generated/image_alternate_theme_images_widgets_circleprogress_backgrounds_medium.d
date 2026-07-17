@@ -1,0 +1,2 @@
+TouchGFX/generated/images/src/__generated/image_alternate_theme_images_widgets_circleprogress_backgrounds_medium.o: \
+ ../TouchGFX/generated/images/src/__generated/image_alternate_theme_images_widgets_circleprogress_backgrounds_medium.cpp

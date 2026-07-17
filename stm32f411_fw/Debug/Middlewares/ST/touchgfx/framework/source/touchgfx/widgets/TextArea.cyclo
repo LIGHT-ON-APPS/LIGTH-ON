@@ -1,0 +1,67 @@
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:127:5:touchgfx::Rect::Rect()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:140:5:touchgfx::Rect::Rect(int16_t, int16_t, int16_t, int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:192:10:bool touchgfx::Rect::intersect(const touchgfx::Rect&) const	5
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:230:10:void touchgfx::Rect::operator&=(const touchgfx::Rect&)	6
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:346:10:bool touchgfx::Rect::isEmpty() const	3
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:62:13:touchgfx::Drawable::~Drawable()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:62:13:virtual touchgfx::Drawable::~Drawable()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:121:18:virtual void touchgfx::Drawable::invalidateContent() const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:147:23:virtual touchgfx::Drawable* touchgfx::Drawable::getFirstChild()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:273:13:int16_t touchgfx::Drawable::getX() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:283:13:int16_t touchgfx::Drawable::getY() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:293:13:int16_t touchgfx::Drawable::getWidth() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:303:13:int16_t touchgfx::Drawable::getHeight() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:315:18:virtual void touchgfx::Drawable::setX(int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:327:18:virtual void touchgfx::Drawable::setY(int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:356:18:virtual void touchgfx::Drawable::setWidth(int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:368:18:virtual void touchgfx::Drawable::setHeight(int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:378:18:virtual void touchgfx::Drawable::childGeometryChanged()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:389:18:virtual void touchgfx::Drawable::handleClickEvent(const touchgfx::ClickEvent&)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:401:18:virtual void touchgfx::Drawable::handleGestureEvent(const touchgfx::GestureEvent&)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:413:10:void touchgfx::Drawable::setWidthHeight(int16_t, int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:490:18:virtual void touchgfx::Drawable::handleDragEvent(const touchgfx::DragEvent&)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:501:18:virtual void touchgfx::Drawable::handleTickEvent()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:537:10:bool touchgfx::Drawable::isVisible() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:549:10:bool touchgfx::Drawable::isTouchable() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:588:18:virtual void touchgfx::Drawable::moveTo(int16_t, int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:625:10:void touchgfx::Drawable::resetDrawChainCache()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:703:18:virtual void touchgfx::Drawable::setupDrawChain(const touchgfx::Rect&, touchgfx::Drawable**)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:45:18:virtual void touchgfx::Widget::getLastChild(int16_t, int16_t, touchgfx::Drawable**)	4
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/lcd/LCD.hpp:286:9:touchgfx::LCD::StringVisuals::StringVisuals(const touchgfx::Font*, touchgfx::colortype, uint8_t, touchgfx::Alignment, int16_t, touchgfx::TextRotation, touchgfx::TextDirection, uint8_t, touchgfx::WideTextAction)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/lcd/LCD.hpp:893:9:touchgfx::LCD::WideTextInternalStruct::WideTextInternalStruct(touchgfx::TextProvider&, uint16_t, uint16_t, touchgfx::TextDirection, const touchgfx::Font*, int16_t, touchgfx::WideTextAction)	5
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/lcd/LCD.hpp:938:30:touchgfx::Unicode::UnicodeChar touchgfx::LCD::WideTextInternalStruct::getCurrChar() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/lcd/LCD.hpp:948:18:uint16_t touchgfx::LCD::WideTextInternalStruct::getLineWidth() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/lcd/LCD.hpp:968:14:bool touchgfx::LCD::WideTextInternalStruct::ellipsisAtEndOfLine() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/HAL.hpp:310:17:static touchgfx::LCD& touchgfx::HAL::lcd()	3
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/TypedText.hpp:65:13:touchgfx::TypedText::~TypedText()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/TypedText.hpp:65:13:virtual touchgfx::TypedText::~TypedText()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:36:7:touchgfx::Widget::~Widget()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:36:7:virtual touchgfx::Widget::~Widget()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:48:18:virtual void touchgfx::TextArea::setWidth(int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:54:18:virtual void touchgfx::TextArea::setHeight(int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:60:18:virtual touchgfx::Rect touchgfx::TextArea::getSolidRect() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:89:18:virtual void touchgfx::TextArea::setAlpha(uint8_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:111:18:virtual void touchgfx::TextArea::setBaselineY(int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:127:18:virtual void touchgfx::TextArea::setXBaselineY(int16_t, int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:246:22:const touchgfx::TypedText& touchgfx::TextArea::getTypedText() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:391:41:virtual const touchgfx::Unicode::UnicodeChar* touchgfx::TextArea::getWildcard1() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:403:41:virtual const touchgfx::Unicode::UnicodeChar* touchgfx::TextArea::getWildcard2() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:421:9:touchgfx::TextArea::BoundingArea::BoundingArea(const touchgfx::Rect&, const touchgfx::Unicode::UnicodeChar*)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:429:9:touchgfx::TextArea::BoundingArea::BoundingArea()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:440:14:touchgfx::Rect touchgfx::TextArea::BoundingArea::getRect() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:452:14:bool touchgfx::TextArea::BoundingArea::isValid(const touchgfx::Unicode::UnicodeChar*) const	4
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:21:11:virtual touchgfx::Alignment touchgfx::TextArea::getAlignment() const	2
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:30:9:virtual int16_t touchgfx::TextArea::getTextHeight() const	2
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:35:10:virtual uint16_t touchgfx::TextArea::getTextWidth() const	2
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:40:6:virtual void touchgfx::TextArea::draw(const touchgfx::Rect&) const	7
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/TypedText.hpp:41:7:constexpr touchgfx::TypedText& touchgfx::TypedText::operator=(const touchgfx::TypedText&)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:61:6:void touchgfx::TextArea::setTypedText(const touchgfx::TypedText&)	4
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:73:6:void touchgfx::TextArea::resizeToCurrentText()	4
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:90:6:void touchgfx::TextArea::resizeToCurrentTextWithAlignment()	16
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:148:6:void touchgfx::TextArea::resizeHeightToCurrentText()	4
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:164:6:void touchgfx::TextArea::resizeHeightToCurrentTextWithRotation()	6
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:189:9:) const	4
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:211:6:virtual void touchgfx::TextArea::invalidateContent() const	6
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/TextArea.cpp:226:24:virtual touchgfx::TextArea::BoundingArea touchgfx::TextArea::calculateBoundingArea() const	24
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:40:7:touchgfx::TextArea::~TextArea()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextArea.hpp:40:7:virtual touchgfx::TextArea::~TextArea()	1

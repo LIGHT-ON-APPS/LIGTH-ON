@@ -1,0 +1,18 @@
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:114:5:touchgfx::colortype::operator uint32_t() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterColor.hpp:48:13:touchgfx::AbstractPainterColor::~AbstractPainterColor()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterColor.hpp:48:13:virtual touchgfx::AbstractPainterColor::~AbstractPainterColor()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterColor.hpp:57:18:virtual void touchgfx::AbstractPainterColor::setColor(touchgfx::colortype)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/HAL.hpp:117:17:static touchgfx::HAL* touchgfx::HAL::getInstance()	4	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:50:13:touchgfx::AbstractPainter::~AbstractPainter()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:50:13:virtual touchgfx::AbstractPainter::~AbstractPainter()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:61:34:virtual touchgfx::HAL::RenderingMethod touchgfx::AbstractPainter::getRenderingMethod() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:78:18:virtual bool touchgfx::AbstractPainter::setup(const touchgfx::Rect&) const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:90:18:virtual void touchgfx::AbstractPainter::tearDown() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterRGB888.hpp:33:7:touchgfx::AbstractPainterRGB888::~AbstractPainterRGB888()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterRGB888.hpp:33:7:virtual touchgfx::AbstractPainterRGB888::~AbstractPainterRGB888()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/PainterRGB888.hpp:47:18:virtual void touchgfx::PainterRGB888::setColor(touchgfx::colortype)	32	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/PainterRGB888.hpp:59:34:virtual touchgfx::HAL::RenderingMethod touchgfx::PainterRGB888::getRenderingMethod() const	16	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/PainterRGB888.cpp:19:6:virtual void touchgfx::PainterRGB888::paint(uint8_t*, int16_t, int16_t, int16_t, int16_t, uint8_t) const	40	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/PainterRGB888.cpp:25:6:virtual void touchgfx::PainterRGB888::tearDown() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/PainterRGB888.hpp:34:7:touchgfx::PainterRGB888::~PainterRGB888()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/PainterRGB888.hpp:34:7:virtual touchgfx::PainterRGB888::~PainterRGB888()	16	static

@@ -1,0 +1,47 @@
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:91:5:touchgfx::colortype::colortype(uint32_t)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:114:5:touchgfx::colortype::operator uint32_t() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:127:5:touchgfx::Rect::Rect()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:140:5:touchgfx::Rect::Rect(int16_t, int16_t, int16_t, int16_t)	24	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:48:5:touchgfx::Drawable::Drawable()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:62:13:touchgfx::Drawable::~Drawable()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:62:13:virtual touchgfx::Drawable::~Drawable()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:121:18:virtual void touchgfx::Drawable::invalidateContent() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:147:23:virtual touchgfx::Drawable* touchgfx::Drawable::getFirstChild()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:293:13:int16_t touchgfx::Drawable::getWidth() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:303:13:int16_t touchgfx::Drawable::getHeight() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:315:18:virtual void touchgfx::Drawable::setX(int16_t)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:327:18:virtual void touchgfx::Drawable::setY(int16_t)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:356:18:virtual void touchgfx::Drawable::setWidth(int16_t)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:368:18:virtual void touchgfx::Drawable::setHeight(int16_t)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:378:18:virtual void touchgfx::Drawable::childGeometryChanged()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:389:18:virtual void touchgfx::Drawable::handleClickEvent(const touchgfx::ClickEvent&)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:401:18:virtual void touchgfx::Drawable::handleGestureEvent(const touchgfx::GestureEvent&)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:490:18:virtual void touchgfx::Drawable::handleDragEvent(const touchgfx::DragEvent&)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:501:18:virtual void touchgfx::Drawable::handleTickEvent()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:537:10:bool touchgfx::Drawable::isVisible() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:549:10:bool touchgfx::Drawable::isTouchable() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:588:18:virtual void touchgfx::Drawable::moveTo(int16_t, int16_t)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:625:10:void touchgfx::Drawable::resetDrawChainCache()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:703:18:virtual void touchgfx::Drawable::setupDrawChain(const touchgfx::Rect&, touchgfx::Drawable**)	24	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:45:18:virtual void touchgfx::Widget::getLastChild(int16_t, int16_t, touchgfx::Drawable**)	24	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/HAL.hpp:117:17:static touchgfx::HAL* touchgfx::HAL::getInstance()	4	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/HAL.hpp:310:17:static touchgfx::LCD& touchgfx::HAL::lcd()	4	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/QRCode.hpp:221:10:void touchgfx::QRCode::setColors(touchgfx::colortype, touchgfx::colortype)	64	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/QRCode.hpp:249:10:void touchgfx::QRCode::multiplyAlphaColors()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:36:7:touchgfx::Widget::Widget()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:36:7:touchgfx::Widget::~Widget()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:36:7:virtual touchgfx::Widget::~Widget()	16	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:20:1:touchgfx::QRCode::QRCode()	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:32:6:bool touchgfx::QRCode::convertStringToQRCode(const char*)	48	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:47:6:bool touchgfx::QRCode::convertBinaryDataToQRCode(const uint8_t*, size_t)	56	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:69:10:uint8_t* touchgfx::QRCode::drawBitRGB565(uint8_t*, bool, int) const	40	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:81:10:uint8_t* touchgfx::QRCode::drawBitRGB565Blend(uint8_t*, bool, int) const	64	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:102:10:uint8_t* touchgfx::QRCode::drawBitRGB888(uint8_t*, bool, int) const	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:119:10:uint8_t* touchgfx::QRCode::drawBitRGB888Blend(uint8_t*, bool, int) const	40	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:138:10:uint8_t* touchgfx::QRCode::drawBitARGB8888(uint8_t*, bool, int) const	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:156:10:uint8_t* touchgfx::QRCode::drawBitARGB8888Blend(uint8_t*, bool, int) const	64	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:204:6:virtual void touchgfx::QRCode::draw(const touchgfx::Rect&) const	176	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:295:6:virtual touchgfx::Rect touchgfx::QRCode::getSolidRect() const	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/QRCode.cpp:306:6:void touchgfx::QRCode::updateWidthAndHeight()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/QRCode.hpp:45:7:touchgfx::QRCode::~QRCode()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/QRCode.hpp:45:7:virtual touchgfx::QRCode::~QRCode()	16	static

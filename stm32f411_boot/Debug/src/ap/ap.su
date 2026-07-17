@@ -1,0 +1,7 @@
+../src/ap/ap.c:54:13:bootIsAppValid	0	static
+../src/ap/ap.c:118:13:bootStartApp	0	static,ignoring_inline_asm
+../src/ap/ap.c:81:13:bootJumpToApp	16	static,ignoring_inline_asm
+../src/ap/ap.c:131:13:bootDownload.isra	1272	static
+../src/ap/ap.c:276:13:cliBoot	16	static
+../src/ap/ap.c:24:6:apInit	8	static
+../src/ap/ap.c:37:6:apMain	8	static

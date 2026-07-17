@@ -1,0 +1,4 @@
+../src/ap/apps/bamocar_can.c:11:6:bamocarCanMakeReg16	32	static
+../src/ap/apps/bamocar_can.c:27:6:bamocarCanMakeTorqueCmd	24	static
+../src/ap/apps/bamocar_can.c:32:6:bamocarCanMakeReadRequest	24	static
+../src/ap/apps/bamocar_can.c:46:6:bamocarCanSendTorqueCmd	56	static

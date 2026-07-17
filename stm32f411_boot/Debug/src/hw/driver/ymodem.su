@@ -1,0 +1,9 @@
+../src/hw/driver/ymodem.c:59:6:ymodemInit	8	static
+../src/hw/driver/ymodem.c:68:6:ymodemOpen	16	static
+../src/hw/driver/ymodem.c:91:6:ymodemPutch	16	static
+../src/hw/driver/ymodem.c:101:6:ymodemGetFileInfo	16	static
+../src/hw/driver/ymodem.c:165:6:ymodemAck	16	static
+../src/hw/driver/ymodem.c:206:6:ymodemCancel	16	static
+../src/hw/driver/ymodem.c:222:6:ymodemReceive	24	static
+../src/hw/driver/ymodem.c:558:6:cliYmodem.part.0	1240	static
+../src/hw/driver/ymodem.c:558:6:cliYmodem	8	static

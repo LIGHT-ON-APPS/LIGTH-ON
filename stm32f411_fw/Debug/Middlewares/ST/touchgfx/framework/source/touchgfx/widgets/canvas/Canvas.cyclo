@@ -1,0 +1,30 @@
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:127:5:touchgfx::Rect::Rect()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:140:5:touchgfx::Rect::Rect(int16_t, int16_t, int16_t, int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/canvas_widget_renderer/Outline.hpp:73:14:unsigned int touchgfx::Outline::getNumCells() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/canvas_widget_renderer/Outline.hpp:92:10:void touchgfx::Outline::setMaxRender(int, int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/HAL.hpp:117:17:static touchgfx::HAL* touchgfx::HAL::getInstance()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/HAL.hpp:310:17:static touchgfx::LCD& touchgfx::HAL::lcd()	3
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/canvas_widget_renderer/Rasterizer.hpp:91:5:touchgfx::Rasterizer::Rasterizer()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/canvas_widget_renderer/Rasterizer.hpp:97:10:void touchgfx::Rasterizer::reset(int16_t, int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/canvas_widget_renderer/Rasterizer.hpp:134:10:void touchgfx::Rasterizer::moveTo(int, int)	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/canvas_widget_renderer/Rasterizer.hpp:150:10:void touchgfx::Rasterizer::lineTo(int, int)	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/canvas_widget_renderer/Rasterizer.hpp:167:14:unsigned int touchgfx::Rasterizer::calculateAlpha(int) const	5
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/canvas_widget_renderer/Rasterizer.hpp:196:10:bool touchgfx::Rasterizer::render(const touchgfx::AbstractPainter*, uint8_t*, int16_t, uint8_t, uint8_t)	18
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/canvas_widget_renderer/Rasterizer.hpp:297:10:void touchgfx::Rasterizer::setMaxRender(int16_t, int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:70:18:touchgfx::CWRUtil::Q5::Q5(int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:93:9:touchgfx::CWRUtil::Q5::operator int() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:140:12:touchgfx::CWRUtil::Q5 touchgfx::CWRUtil::Q5::operator-(const touchgfx::CWRUtil::Q5&) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:152:13:touchgfx::CWRUtil::Q5& touchgfx::CWRUtil::Q5::operator-=(const touchgfx::CWRUtil::Q5&)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/canvas_widget_renderer/Rasterizer.hpp:56:7:touchgfx::Rasterizer::~Rasterizer()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/Canvas.hpp:58:13:touchgfx::Canvas::~Canvas()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/Canvas.hpp:58:13:virtual touchgfx::Canvas::~Canvas()	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/Canvas.cpp:24:1:touchgfx::Canvas::Canvas(const touchgfx::AbstractPainter*, const touchgfx::Rect&, const touchgfx::Rect&, uint8_t)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/Canvas.cpp:67:6:void touchgfx::Canvas::moveTo(touchgfx::CWRUtil::Q5, touchgfx::CWRUtil::Q5)	8
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/Canvas.cpp:103:6:virtual void touchgfx::Canvas::lineTo(touchgfx::CWRUtil::Q5, touchgfx::CWRUtil::Q5)	9
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/Canvas.cpp:144:6:bool touchgfx::Canvas::close()	4
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/Canvas.cpp:167:6:bool touchgfx::Canvas::render(uint8_t)	13
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/Canvas.cpp:232:6:void touchgfx::Canvas::transformFrameBufferToDisplay(touchgfx::CWRUtil::Q5&, touchgfx::CWRUtil::Q5&) const	2
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/Canvas.cpp:250:6:void touchgfx::Canvas::recursiveQuadraticBezier(float, float, float, float, float, float, unsigned int)	7
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/Canvas.cpp:324:6:void touchgfx::Canvas::recursiveCubicBezier(float, float, float, float, float, float, float, float, unsigned int)	18
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Utils.hpp:105:3:T touchgfx::abs(T) [with T = float]	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/Canvas.hpp:173:10:void touchgfx::Canvas::lineTo(T, T) [with T = float]	1

@@ -1,0 +1,30 @@
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:140:5:touchgfx::Rect::Rect(int16_t, int16_t, int16_t, int16_t)	24	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Bitmap.hpp:146:14:touchgfx::BitmapId touchgfx::Bitmap::getId() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Bitmap.hpp:210:10:touchgfx::Rect touchgfx::Bitmap::getRect() const	32	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/HAL.hpp:117:17:static touchgfx::HAL* touchgfx::HAL::getInstance()	4	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/platform/driver/lcd/LCD1bpp.hpp:192:9:touchgfx::LCD1bpp::bwRLEdata::bwRLEdata(const uint8_t*)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/platform/driver/lcd/LCD1bpp.hpp:198:14:void touchgfx::LCD1bpp::bwRLEdata::init(const uint8_t*)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/platform/driver/lcd/LCD1bpp.hpp:213:14:void touchgfx::LCD1bpp::bwRLEdata::skipNext(int32_t)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/platform/driver/lcd/LCD1bpp.hpp:231:17:uint8_t touchgfx::LCD1bpp::bwRLEdata::getColor() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/platform/driver/lcd/LCD1bpp.hpp:236:17:int32_t touchgfx::LCD1bpp::bwRLEdata::getLength() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/platform/driver/lcd/LCD1bpp.hpp:242:14:void touchgfx::LCD1bpp::bwRLEdata::getNextLength()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/platform/driver/lcd/LCD1bpp.hpp:264:17:uint8_t touchgfx::LCD1bpp::bwRLEdata::getNextHalfByte()	24	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:50:13:touchgfx::AbstractPainter::~AbstractPainter()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:50:13:virtual touchgfx::AbstractPainter::~AbstractPainter()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:61:34:virtual touchgfx::HAL::RenderingMethod touchgfx::AbstractPainter::getRenderingMethod() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:78:18:virtual bool touchgfx::AbstractPainter::setup(const touchgfx::Rect&) const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:90:18:virtual void touchgfx::AbstractPainter::tearDown() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterBitmap.hpp:52:13:touchgfx::AbstractPainterBitmap::~AbstractPainterBitmap()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterBitmap.hpp:52:13:virtual touchgfx::AbstractPainterBitmap::~AbstractPainterBitmap()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterBitmap.hpp:61:18:virtual void touchgfx::AbstractPainterBitmap::setBitmap(const touchgfx::Bitmap&)	32	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterBitmap.hpp:88:18:virtual void touchgfx::AbstractPainterBitmap::setTiled(bool)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterBitmap.hpp:112:18:virtual void touchgfx::AbstractPainterBitmap::setOffset(int16_t, int16_t)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterBitmap.hpp:145:10:void touchgfx::AbstractPainterBitmap::updateBitmapOffsets(int16_t) const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterBitmap.hpp:165:10:bool touchgfx::AbstractPainterBitmap::adjustBitmapXY(int16_t&, int16_t&, int16_t&, int16_t&) const	24	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterBW.hpp:33:7:touchgfx::AbstractPainterBW::~AbstractPainterBW()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterBW.hpp:33:7:virtual touchgfx::AbstractPainterBW::~AbstractPainterBW()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/PainterBWBitmap.hpp:52:18:virtual bool touchgfx::PainterBWBitmap::setup(const touchgfx::Rect&) const	16	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/PainterBWBitmap.cpp:19:6:virtual void touchgfx::PainterBWBitmap::setBitmap(const touchgfx::Bitmap&)	16	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/PainterBWBitmap.cpp:29:6:virtual void touchgfx::PainterBWBitmap::paint(uint8_t*, int16_t, int16_t, int16_t, int16_t, uint8_t) const	120	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/PainterBWBitmap.hpp:37:7:touchgfx::PainterBWBitmap::~PainterBWBitmap()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/PainterBWBitmap.hpp:37:7:virtual touchgfx::PainterBWBitmap::~PainterBWBitmap()	16	static

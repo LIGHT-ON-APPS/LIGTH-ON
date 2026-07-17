@@ -1,0 +1,38 @@
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:152:6:bool qrcodegen_encodeText(const char*, uint8_t*, uint8_t*, qrcodegen_Ecc, int, int, qrcodegen_Mask, bool)	104	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:206:6:bool qrcodegen_encodeBinary(uint8_t*, size_t, uint8_t*, qrcodegen_Ecc, int, int, qrcodegen_Mask, bool)	64	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:224:15:void appendBitsToBuffer(unsigned int, int, uint8_t*, int*)	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:236:6:bool qrcodegen_encodeSegments(const qrcodegen_Segment*, size_t, qrcodegen_Ecc, uint8_t*, uint8_t*)	48	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:244:6:bool qrcodegen_encodeSegmentsAdvanced(const qrcodegen_Segment*, size_t, qrcodegen_Ecc, int, int, qrcodegen_Mask, bool, uint8_t*, uint8_t*)	96	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:348:15:void addEccAndInterleave(uint8_t*, int, qrcodegen_Ecc, uint8_t*)	120	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:386:14:int getNumDataCodewords(int, qrcodegen_Ecc)	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:396:14:int getNumRawDataModules(int)	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:417:15:void reedSolomonComputeDivisor(int, uint8_t*)	40	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:447:15:void reedSolomonComputeRemainder(const uint8_t*, int, const uint8_t*, int, uint8_t*)	40	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:468:18:uint8_t reedSolomonMultiply(uint8_t, uint8_t)	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:484:15:void initializeFunctionModules(int, uint8_t*)	48	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:526:13:void drawLightFunctionModules(uint8_t*, int)	88	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:605:13:void drawFormatBits(qrcodegen_Ecc, qrcodegen_Mask, uint8_t*)	64	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:649:14:int getAlignmentPatternPositions(int, uint8_t*)	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:666:13:void fillRectangle(int, int, int, int, uint8_t*)	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:681:13:void drawCodewords(const uint8_t*, int, uint8_t*)	64	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:718:13:void applyMask(const uint8_t*, uint8_t*, qrcodegen_Mask)	48	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:769:13:long int getPenaltyScore(const uint8_t*)	144	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:879:12:int finderPenaltyCountPatterns(const int*, int)	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:891:12:int finderPenaltyTerminateAndCount(bool, int, int*, int)	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:904:13:void finderPenaltyAddHistory(int, int*, int)	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:917:5:int qrcodegen_getSize(const uint8_t*)	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:926:6:bool qrcodegen_getModule(const uint8_t*, int, int)	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:934:15:bool getModuleBounded(const uint8_t*, int, int)	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:943:15:void setModuleBounded(uint8_t*, int, int, bool)	40	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:961:15:void setModuleUnbounded(uint8_t*, int, int, bool)	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:971:13:bool getBit(int, int)	16	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:979:6:bool qrcodegen_isNumeric(const char*)	16	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:993:6:bool qrcodegen_isAlphanumeric(const char*)	16	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:1007:8:size_t qrcodegen_calcSegmentBufferSize(qrcodegen_Mode, size_t)	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:1026:14:int calcSegmentBitLength(qrcodegen_Mode, size_t)	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:1068:26:qrcodegen_Segment qrcodegen_makeBytes(const uint8_t*, size_t, uint8_t*)	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:1085:26:qrcodegen_Segment qrcodegen_makeNumeric(const char*, uint8_t*)	48	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:1125:26:qrcodegen_Segment qrcodegen_makeAlphanumeric(const char*, uint8_t*)	48	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:1165:26:qrcodegen_Segment qrcodegen_makeEci(long int, uint8_t*)	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:1204:14:int getTotalBits(const qrcodegen_Segment*, size_t, int)	48	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/utils/qrcodegen.cpp:1232:12:int numCharCountBits(qrcodegen_Mode, int)	24	static

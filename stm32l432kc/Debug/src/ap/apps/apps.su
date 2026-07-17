@@ -1,0 +1,15 @@
+../src/ap/apps/apps.c:60:13:appsCalibrationIsValid	16	static
+../src/ap/apps/apps.c:73:13:appsClearFaultTimer	4	static
+../src/ap/apps/apps.c:84:13:appsClearLastResult	8	static
+../src/ap/apps/apps.c:99:17:appsRawToPerMille	40	static
+../src/ap/apps/apps.c:133:13:appsAdcCallback	32	static
+../src/ap/apps/apps.c:198:13:appsUpdateFaultTimer	24	static
+../src/ap/apps/apps.c:244:13:appsEvaluateRawPair	32	static
+../src/ap/apps/apps.c:327:6:appsInit	8	static
+../src/ap/apps/apps.c:353:6:appsSetConfig	24	static
+../src/ap/apps/apps.c:369:6:appsClearFault	8	static
+../src/ap/apps/apps.c:382:13:appsUpdate	24	static
+../src/ap/apps/apps.c:418:13:appsSendCommand	32	static
+../src/ap/apps/apps.c:469:16:appsMakePedalCommand	16	static
+../src/ap/apps/apps.c:485:6:appsRunPedalCommand	16	static
+../src/ap/apps/apps.c:496:13:appsCli	64	static

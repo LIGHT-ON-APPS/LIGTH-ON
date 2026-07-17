@@ -1,0 +1,17 @@
+../src/hw/driver/cli.c:573:6:cliToUpper	4
+../src/hw/driver/cli.c:632:7:cliArgsGetStr	2
+../src/hw/driver/cli.c:648:6:cliArgsIsStr	2
+../src/hw/driver/cli.c:616:7:cliArgsGetFloat	2
+../src/hw/driver/cli.c:600:9:cliArgsGetData	2
+../src/hw/driver/cli.c:445:6:cliLineChange.constprop	6
+../src/hw/driver/cli.c:137:6:cliOpen	1
+../src/hw/driver/cli.c:147:6:cliOpenLog	2
+../src/hw/driver/cli.c:163:6:cliLogClose	1
+../src/hw/driver/cli.c:169:6:cliShowLog	3
+../src/hw/driver/cli.c:545:6:cliPrintf	3
+../src/hw/driver/cli.c:713:6:cliShowList	2
+../src/hw/driver/cli.c:730:6:cliMemoryDump	9
+../src/hw/driver/cli.c:195:6:cliMain	39
+../src/hw/driver/cli.c:667:6:cliKeepLoop	1
+../src/hw/driver/cli.c:682:6:cliAdd	5
+../src/hw/driver/cli.c:112:6:cliInit	1

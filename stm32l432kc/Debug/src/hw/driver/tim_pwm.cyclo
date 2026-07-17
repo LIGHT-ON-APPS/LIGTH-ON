@@ -1,0 +1,17 @@
+../src/hw/driver/tim_pwm.c:66:13:timPwmIsValidCh	1
+../src/hw/driver/tim_pwm.c:71:17:timPwmGetPolarity	2
+../src/hw/driver/tim_pwm.c:81:13:timPwmConfigGpio	3
+../src/hw/driver/tim_pwm.c:111:13:timPwmConfigChannel	3
+../src/hw/driver/tim_pwm.c:136:13:timPwmHwInit	7
+../src/hw/driver/tim_pwm.c:191:6:timPwmInit	3
+../src/hw/driver/tim_pwm.c:215:6:timPwmOpen	8
+../src/hw/driver/tim_pwm.c:256:6:timPwmSetPulse	11
+../src/hw/driver/tim_pwm.c:288:6:timPwmStart	3
+../src/hw/driver/tim_pwm.c:313:6:timPwmStartCount	4
+../src/hw/driver/tim_pwm.c:338:6:timPwmStop	2
+../src/hw/driver/tim_pwm.c:359:6:timPwmIsBusy	2
+../src/hw/driver/tim_pwm.c:369:10:timPwmGetRemainCount	2
+../src/hw/driver/tim_pwm.c:379:6:timPwmCallback	7
+../src/hw/driver/tim_pwm.c:409:6:TIM1_UP_TIM16_IRQHandler	1
+../src/hw/driver/tim_pwm.c:414:6:HAL_TIM_PWM_PulseFinishedCallback	1
+../src/hw/driver/tim_pwm.c:420:13:cliTimPwm	28

@@ -1,0 +1,11 @@
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:50:13:touchgfx::AbstractPainter::~AbstractPainter()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:50:13:virtual touchgfx::AbstractPainter::~AbstractPainter()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:61:34:virtual touchgfx::HAL::RenderingMethod touchgfx::AbstractPainter::getRenderingMethod() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:78:18:virtual bool touchgfx::AbstractPainter::setup(const touchgfx::Rect&) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainter.hpp:90:18:virtual void touchgfx::AbstractPainter::tearDown() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterLinearGradient.hpp:44:13:touchgfx::AbstractPainterLinearGradient::~AbstractPainterLinearGradient()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/AbstractPainterLinearGradient.hpp:44:13:virtual touchgfx::AbstractPainterLinearGradient::~AbstractPainterLinearGradient()	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/PainterARGB8888LinearGradient.cpp:18:6:virtual void touchgfx::PainterARGB8888LinearGradient::paint(uint8_t*, int16_t, int16_t, int16_t, int16_t, uint8_t) const	38
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/canvas/PainterARGB8888LinearGradient.cpp:254:6:virtual void touchgfx::PainterARGB8888LinearGradient::tearDown() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/PainterARGB8888LinearGradient.hpp:32:7:touchgfx::PainterARGB8888LinearGradient::~PainterARGB8888LinearGradient()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/PainterARGB8888LinearGradient.hpp:32:7:virtual touchgfx::PainterARGB8888LinearGradient::~PainterARGB8888LinearGradient()	1

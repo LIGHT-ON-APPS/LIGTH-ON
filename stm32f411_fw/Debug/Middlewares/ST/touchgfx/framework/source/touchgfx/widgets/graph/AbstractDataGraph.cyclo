@@ -1,0 +1,138 @@
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/Types.hpp:127:5:touchgfx::Rect::Rect()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/events/ClickEvent.hpp:73:13:int16_t touchgfx::ClickEvent::getX() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/events/ClickEvent.hpp:123:20:touchgfx::ClickEvent::ClickEventType touchgfx::ClickEvent::getType() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/events/DragEvent.hpp:92:13:int16_t touchgfx::DragEvent::getNewX() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/events/DragEvent.hpp:112:19:touchgfx::DragEvent::DragEventType touchgfx::DragEvent::getType() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:48:5:touchgfx::Drawable::Drawable()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:121:18:virtual void touchgfx::Drawable::invalidateContent() const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:136:15:touchgfx::Drawable* touchgfx::Drawable::getNextSibling()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:233:10:void touchgfx::Drawable::setPosition(int16_t, int16_t, int16_t, int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:273:13:int16_t touchgfx::Drawable::getX() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:293:13:int16_t touchgfx::Drawable::getWidth() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:303:13:int16_t touchgfx::Drawable::getHeight() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:315:18:virtual void touchgfx::Drawable::setX(int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:327:18:virtual void touchgfx::Drawable::setY(int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:343:10:void touchgfx::Drawable::setXY(int16_t, int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:356:18:virtual void touchgfx::Drawable::setWidth(int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:368:18:virtual void touchgfx::Drawable::setHeight(int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:378:18:virtual void touchgfx::Drawable::childGeometryChanged()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:401:18:virtual void touchgfx::Drawable::handleGestureEvent(const touchgfx::GestureEvent&)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:413:10:void touchgfx::Drawable::setWidthHeight(int16_t, int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:501:18:virtual void touchgfx::Drawable::handleTickEvent()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:525:10:void touchgfx::Drawable::setTouchable(bool)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:588:18:virtual void touchgfx::Drawable::moveTo(int16_t, int16_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/Container.hpp:43:5:touchgfx::Container::Container()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/Container.hpp:165:23:virtual touchgfx::Drawable* touchgfx::Container::getFirstChild()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:70:18:touchgfx::CWRUtil::Q5::Q5(int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:93:9:touchgfx::CWRUtil::Q5::operator int() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:115:12:touchgfx::CWRUtil::Q5 touchgfx::CWRUtil::Q5::operator+(const touchgfx::CWRUtil::Q5&) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:140:12:touchgfx::CWRUtil::Q5 touchgfx::CWRUtil::Q5::operator-(const touchgfx::CWRUtil::Q5&) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:290:13:int touchgfx::CWRUtil::Q5::ceil() const	3
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:300:13:int touchgfx::CWRUtil::Q5::round() const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:813:15:static touchgfx::CWRUtil::Q5 touchgfx::CWRUtil::muldivQ5(Q5, Q5, Q5)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:828:15:static touchgfx::CWRUtil::Q5 touchgfx::CWRUtil::muldiv_toQ5(int32_t, int32_t, int32_t)	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:56:9:touchgfx::AbstractDataGraph::GraphClickEvent::GraphClickEvent(int16_t, const touchgfx::ClickEvent&)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:81:9:touchgfx::AbstractDataGraph::GraphDragEvent::GraphDragEvent(int16_t, const touchgfx::DragEvent&)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:113:18:virtual void touchgfx::AbstractDataGraph::setScaleX(int, bool)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:127:17:virtual int touchgfx::AbstractDataGraph::getScaleX() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:148:18:virtual void touchgfx::AbstractDataGraph::setScaleY(int, bool)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:162:17:virtual int touchgfx::AbstractDataGraph::getScaleY() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:172:18:virtual void touchgfx::AbstractDataGraph::setAlpha(uint8_t)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:440:18:virtual void touchgfx::AbstractDataGraph::setGraphRangeX(int, int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:446:18:virtual void touchgfx::AbstractDataGraph::setGraphRangeX(float, float)	3
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:478:18:virtual void touchgfx::AbstractDataGraph::setGraphRangeXAuto(bool, int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:484:18:virtual void touchgfx::AbstractDataGraph::setGraphRangeXAuto(bool, float)	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:507:18:virtual void touchgfx::AbstractDataGraph::setGraphRangeY(int, int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:515:18:virtual void touchgfx::AbstractDataGraph::setGraphRangeY(float, float)	3
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:543:18:virtual void touchgfx::AbstractDataGraph::setGraphRangeYAuto(bool, int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:549:18:virtual void touchgfx::AbstractDataGraph::setGraphRangeYAuto(bool, float)	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:559:17:virtual int touchgfx::AbstractDataGraph::getGraphRangeXMinAsInt() const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:569:19:virtual float touchgfx::AbstractDataGraph::getGraphRangeXMinAsFloat() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:583:17:virtual int touchgfx::AbstractDataGraph::getGraphRangeXMinScaled() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:593:17:virtual int touchgfx::AbstractDataGraph::getGraphRangeXMaxAsInt() const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:603:19:virtual float touchgfx::AbstractDataGraph::getGraphRangeXMaxAsFloat() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:617:17:virtual int touchgfx::AbstractDataGraph::getGraphRangeXMaxScaled() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:627:17:virtual int touchgfx::AbstractDataGraph::getGraphRangeYMinAsInt() const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:637:19:virtual float touchgfx::AbstractDataGraph::getGraphRangeYMinAsFloat() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:649:17:virtual int touchgfx::AbstractDataGraph::getGraphRangeYMinScaled() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:659:17:virtual int touchgfx::AbstractDataGraph::getGraphRangeYMaxAsInt() const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:669:19:virtual float touchgfx::AbstractDataGraph::getGraphRangeYMaxAsFloat() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:681:17:virtual int touchgfx::AbstractDataGraph::getGraphRangeYMaxScaled() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1176:18:virtual void touchgfx::AbstractDataGraph::invalidateContent() const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1270:25:virtual touchgfx::CWRUtil::Q5 touchgfx::AbstractDataGraph::valueToScreenXQ5(int) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1282:25:virtual touchgfx::CWRUtil::Q5 touchgfx::AbstractDataGraph::valueToScreenYQ5(int) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1360:18:virtual void touchgfx::DynamicDataGraph::setScale(int, bool)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1373:17:virtual int touchgfx::DynamicDataGraph::getScale() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1411:17:virtual int touchgfx::DynamicDataGraph::getGraphRangeXMin() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1421:17:virtual int touchgfx::DynamicDataGraph::getGraphRangeXMax() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1428:18:virtual void touchgfx::DynamicDataGraph::setGraphRangeXAutoScaled(bool, int)	3
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1434:5:virtual void touchgfx::DynamicDataGraph::setXAxisScale(int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1447:18:virtual void touchgfx::DynamicDataGraph::setXAxisFactor(int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1453:5:virtual void touchgfx::DynamicDataGraph::setXAxisScale(float)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1461:18:virtual void touchgfx::DynamicDataGraph::setXAxisFactor(float)	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1474:18:virtual void touchgfx::DynamicDataGraph::setXAxisFactorScaled(int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1480:5:virtual int touchgfx::DynamicDataGraph::getXAxisScaleAsInt() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1493:17:virtual int touchgfx::DynamicDataGraph::getXAxisFactorAsInt() const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1499:5:virtual float touchgfx::DynamicDataGraph::getXAxisScaleAsFloat() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1507:19:virtual float touchgfx::DynamicDataGraph::getXAxisFactorAsFloat() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1519:17:virtual int touchgfx::DynamicDataGraph::getXAxisFactorScaled() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1530:18:virtual void touchgfx::DynamicDataGraph::setXAxisOffset(int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1536:18:virtual void touchgfx::DynamicDataGraph::setXAxisOffset(float)	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1551:18:virtual void touchgfx::DynamicDataGraph::setXAxisOffsetScaled(int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1562:17:virtual int touchgfx::DynamicDataGraph::getXAxisOffsetAsInt() const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1568:19:virtual float touchgfx::DynamicDataGraph::getXAxisOffsetAsFloat() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1580:17:virtual int touchgfx::DynamicDataGraph::getXAxisOffsetScaled() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1585:17:virtual int touchgfx::DynamicDataGraph::indexToDataPointXScaled(int16_t) const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1591:17:virtual int touchgfx::DynamicDataGraph::indexToDataPointYScaled(int16_t) const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1608:18:virtual void touchgfx::DynamicDataGraph::beforeAddValue()	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1630:21:virtual int16_t touchgfx::DynamicDataGraph::dataIndex(int16_t) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1643:21:virtual int32_t touchgfx::DynamicDataGraph::indexToGlobalIndex(int16_t) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1648:17:virtual int touchgfx::DynamicDataGraph::indexToXAxis(int, int) const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1658:17:virtual int touchgfx::DynamicDataGraph::getScaleX() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1665:17:virtual int touchgfx::DynamicDataGraph::getScaleY() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1671:5:virtual void touchgfx::DynamicDataGraph::setXAxisScaleScaled(int)	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1679:5:virtual int touchgfx::DynamicDataGraph::getXAxisScaleScaled() const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1686:25:virtual touchgfx::CWRUtil::Q5 touchgfx::DynamicDataGraph::indexToScreenXQ5(int16_t) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1691:25:virtual touchgfx::CWRUtil::Q5 touchgfx::DynamicDataGraph::indexToScreenYQ5(int16_t) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1763:17:virtual int touchgfx::StaticDataGraph::indexToDataPointXScaled(int16_t) const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1779:17:virtual int touchgfx::StaticDataGraph::indexToDataPointYScaled(int16_t) const	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1880:17:virtual int touchgfx::StaticDataGraph::indexToXAxis(int, int) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1887:25:virtual touchgfx::CWRUtil::Q5 touchgfx::StaticDataGraph::indexToScreenXQ5(int16_t) const	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/graph/AbstractDataGraph.hpp:1892:25:virtual touchgfx::CWRUtil::Q5 touchgfx::StaticDataGraph::indexToScreenYQ5(int16_t) const	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:21:1:touchgfx::AbstractDataGraph::AbstractDataGraph(int16_t)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:40:6:virtual void touchgfx::AbstractDataGraph::setWidth(int16_t)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:50:6:virtual void touchgfx::AbstractDataGraph::setHeight(int16_t)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:60:6:void touchgfx::AbstractDataGraph::setGraphAreaMargin(int16_t, int16_t, int16_t, int16_t)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:70:6:void touchgfx::AbstractDataGraph::setGraphAreaPadding(int16_t, int16_t, int16_t, int16_t)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:78:6:virtual void touchgfx::AbstractDataGraph::clear()	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:84:6:void touchgfx::AbstractDataGraph::addGraphElement(touchgfx::AbstractGraphElement&)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:90:6:void touchgfx::AbstractDataGraph::addTopElement(touchgfx::AbstractGraphDecoration&)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:96:6:void touchgfx::AbstractDataGraph::addLeftElement(touchgfx::AbstractGraphDecoration&)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:102:6:void touchgfx::AbstractDataGraph::addRightElement(touchgfx::AbstractGraphDecoration&)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:108:6:void touchgfx::AbstractDataGraph::addBottomElement(touchgfx::AbstractGraphDecoration&)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:114:6:virtual bool touchgfx::AbstractDataGraph::getNearestIndexForScreenXY(int16_t, int16_t, int16_t&)	4
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:135:6:virtual bool touchgfx::AbstractDataGraph::getNearestIndexForScreenX(int16_t, int16_t&) const	4
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:155:6:virtual void touchgfx::AbstractDataGraph::handleClickEvent(const touchgfx::ClickEvent&)	9
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:176:6:virtual void touchgfx::AbstractDataGraph::handleDragEvent(const touchgfx::DragEvent&)	6
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:193:6:void touchgfx::AbstractDataGraph::invalidateGraphPointAt(int16_t)	3
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:206:6:void touchgfx::AbstractDataGraph::invalidateXAxisPointAt(int16_t)	3
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:222:6:void touchgfx::AbstractDataGraph::invalidateAllXAxisPoints()	2
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:232:6:void touchgfx::AbstractDataGraph::updateAreasPosition()	6
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:272:6:virtual void touchgfx::AbstractDataGraph::setGraphRangeXScaled(int, int)	4
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:291:6:virtual void touchgfx::AbstractDataGraph::setGraphRangeYScaled(int, int)	4
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:310:5:static int touchgfx::AbstractDataGraph::convertToNewScale(int, int, int)	2
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:319:9:int16_t touchgfx::DynamicDataGraph::addDataPointScaled(int)	1
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:326:6:virtual void touchgfx::DynamicDataGraph::setGraphRangeYAutoScaled(bool, int)	12
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:367:6:virtual bool touchgfx::DynamicDataGraph::xScreenRangeToIndexRange(int16_t, int16_t, int16_t&, int16_t&) const	11
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:405:6:virtual void touchgfx::DynamicDataGraph::setScaleX(int, bool)	2
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:417:6:virtual void touchgfx::DynamicDataGraph::setScaleY(int, bool)	3
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:430:6:virtual void touchgfx::StaticDataGraph::setScaleX(int, bool)	3
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:443:6:virtual void touchgfx::StaticDataGraph::setScaleY(int, bool)	3
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:456:6:virtual void touchgfx::StaticDataGraph::setGraphRangeXAutoScaled(bool, int)	5
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:478:6:virtual void touchgfx::StaticDataGraph::setGraphRangeYAutoScaled(bool, int)	13
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:527:9:virtual int16_t touchgfx::StaticDataGraph::deleteValue(int)	3
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:539:9:virtual int16_t touchgfx::StaticDataGraph::deleteIndex(int)	3
+../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/graph/AbstractDataGraph.cpp:552:6:virtual bool touchgfx::StaticDataGraph::xScreenRangeToIndexRange(int16_t, int16_t, int16_t&, int16_t&) const	11
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:264:11:T touchgfx::CWRUtil::Q5::to() const [with T = int]	2
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Utils.hpp:105:3:T touchgfx::abs(T) [with T = int]	1
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/canvas/CWRUtil.hpp:264:11:T touchgfx::CWRUtil::Q5::to() const [with T = short int]	2

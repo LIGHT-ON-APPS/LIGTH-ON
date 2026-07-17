@@ -1,0 +1,9 @@
+../src/hw/driver/ymodem.c:59:6:ymodemInit	1
+../src/hw/driver/ymodem.c:68:6:ymodemOpen	3
+../src/hw/driver/ymodem.c:91:6:ymodemPutch	3
+../src/hw/driver/ymodem.c:101:6:ymodemGetFileInfo	11
+../src/hw/driver/ymodem.c:165:6:ymodemAck	10
+../src/hw/driver/ymodem.c:206:6:ymodemCancel	3
+../src/hw/driver/ymodem.c:222:6:ymodemReceive	50
+../src/hw/driver/ymodem.c:558:6:cliYmodem.part.0	10
+../src/hw/driver/ymodem.c:558:6:cliYmodem	4

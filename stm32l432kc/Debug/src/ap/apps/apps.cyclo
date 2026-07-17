@@ -1,0 +1,15 @@
+../src/ap/apps/apps.c:60:13:appsCalibrationIsValid	3
+../src/ap/apps/apps.c:73:13:appsClearFaultTimer	1
+../src/ap/apps/apps.c:84:13:appsClearLastResult	1
+../src/ap/apps/apps.c:99:17:appsRawToPerMille	5
+../src/ap/apps/apps.c:133:13:appsAdcCallback	11
+../src/ap/apps/apps.c:198:13:appsUpdateFaultTimer	6
+../src/ap/apps/apps.c:244:13:appsEvaluateRawPair	10
+../src/ap/apps/apps.c:327:6:appsInit	2
+../src/ap/apps/apps.c:353:6:appsSetConfig	1
+../src/ap/apps/apps.c:369:6:appsClearFault	1
+../src/ap/apps/apps.c:382:13:appsUpdate	8
+../src/ap/apps/apps.c:418:13:appsSendCommand	5
+../src/ap/apps/apps.c:469:16:appsMakePedalCommand	2
+../src/ap/apps/apps.c:485:6:appsRunPedalCommand	3
+../src/ap/apps/apps.c:496:13:appsCli	30

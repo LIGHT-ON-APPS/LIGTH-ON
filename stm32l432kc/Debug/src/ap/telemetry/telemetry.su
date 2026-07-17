@@ -1,0 +1,12 @@
+../src/ap/telemetry/telemetry.c:163:17:telemetryReadU16Le	16	static
+../src/ap/telemetry/telemetry.c:168:17:telemetryReadU32Le	16	static
+../src/ap/telemetry/telemetry.c:176:17:telemetryReadU16Be	16	static
+../src/ap/telemetry/telemetry.c:181:16:telemetryBamocarTempRawToDeciC	40	static
+../src/ap/telemetry/telemetry.c:477:13:telemetryDecodeOrion	24	static
+../src/ap/telemetry/telemetry.c:513:13:telemetryDecodeBamocar	24	static
+../src/ap/telemetry/telemetry.c:601:13:telemetryDecodeCan	24	static
+../src/ap/telemetry/telemetry.c:692:6:telemetryInit	8	static
+../src/ap/telemetry/telemetry.c:913:6:telemetryLogCan	24	static
+../src/ap/telemetry/telemetry.c:952:6:telemetryUpdate	40	static
+../src/ap/telemetry/telemetry.c:1043:6:telemetryGetSignalSnapshot	16	static
+../src/ap/telemetry/telemetry.c:1109:13:cliTelemetry	72	static

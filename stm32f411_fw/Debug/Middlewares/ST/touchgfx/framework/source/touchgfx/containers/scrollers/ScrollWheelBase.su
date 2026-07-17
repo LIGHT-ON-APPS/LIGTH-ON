@@ -1,0 +1,37 @@
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/events/ClickEvent.hpp:73:13:int16_t touchgfx::ClickEvent::getX() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/events/ClickEvent.hpp:83:13:int16_t touchgfx::ClickEvent::getY() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/events/ClickEvent.hpp:123:20:touchgfx::ClickEvent::ClickEventType touchgfx::ClickEvent::getType() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/events/DragEvent.hpp:122:13:int16_t touchgfx::DragEvent::getDeltaX() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/events/DragEvent.hpp:132:13:int16_t touchgfx::DragEvent::getDeltaY() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/events/GestureEvent.hpp:74:13:int16_t touchgfx::GestureEvent::getVelocity() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/events/GestureEvent.hpp:84:22:touchgfx::GestureEvent::GestureEventType touchgfx::GestureEvent::getType() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:62:13:touchgfx::Drawable::~Drawable()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:62:13:virtual touchgfx::Drawable::~Drawable()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:121:18:virtual void touchgfx::Drawable::invalidateContent() const	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:315:18:virtual void touchgfx::Drawable::setX(int16_t)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:327:18:virtual void touchgfx::Drawable::setY(int16_t)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:378:18:virtual void touchgfx::Drawable::childGeometryChanged()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:525:10:void touchgfx::Drawable::setTouchable(bool)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:588:18:virtual void touchgfx::Drawable::moveTo(int16_t, int16_t)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/Container.hpp:165:23:virtual touchgfx::Drawable* touchgfx::Container::getFirstChild()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/scrollers/ScrollBase.hpp:381:18:virtual void touchgfx::ScrollBase::initialize()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/Container.hpp:40:7:touchgfx::Container::~Container()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/Container.hpp:40:7:virtual touchgfx::Container::~Container()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/scrollers/DrawableList.hpp:117:7:touchgfx::DrawableList::~DrawableList()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/scrollers/DrawableList.hpp:117:7:virtual touchgfx::DrawableList::~DrawableList()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/scrollers/ScrollBase.hpp:43:7:touchgfx::ScrollBase::~ScrollBase()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/scrollers/ScrollBase.hpp:43:7:virtual touchgfx::ScrollBase::~ScrollBase()	16	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/containers/scrollers/ScrollWheelBase.cpp:19:1:touchgfx::ScrollWheelBase::ScrollWheelBase()	16	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/containers/scrollers/ScrollWheelBase.cpp:27:6:virtual void touchgfx::ScrollWheelBase::setSelectedItemOffset(int16_t)	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/containers/scrollers/ScrollWheelBase.cpp:34:9:virtual int16_t touchgfx::ScrollWheelBase::getSelectedItemOffset() const	16	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/containers/scrollers/ScrollWheelBase.cpp:39:9:virtual int32_t touchgfx::ScrollWheelBase::getPositionForItem(int16_t)	40	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/containers/scrollers/ScrollWheelBase.cpp:55:6:virtual void touchgfx::ScrollWheelBase::animateToPosition(int32_t, int16_t)	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/containers/scrollers/ScrollWheelBase.cpp:70:5:int touchgfx::ScrollWheelBase::getSelectedItem() const	24	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/containers/scrollers/ScrollWheelBase.cpp:84:9:virtual int32_t touchgfx::ScrollWheelBase::keepOffsetInsideLimits(int32_t, int16_t) const	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/containers/scrollers/ScrollWheelBase.cpp:95:6:virtual void touchgfx::ScrollWheelBase::handleClickEvent(const touchgfx::ClickEvent&)	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/containers/scrollers/ScrollWheelBase.cpp:148:6:virtual void touchgfx::ScrollWheelBase::handleDragEvent(const touchgfx::DragEvent&)	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/containers/scrollers/ScrollWheelBase.cpp:157:6:virtual void touchgfx::ScrollWheelBase::handleGestureEvent(const touchgfx::GestureEvent&)	32	static
+../Middlewares/ST/touchgfx/framework/source/touchgfx/containers/scrollers/ScrollWheelBase.cpp:173:6:void touchgfx::ScrollWheelBase::setAnimateToCallback(touchgfx::GenericCallback<short int>&)	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Utils.hpp:105:3:T touchgfx::abs(T) [with T = long int]	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/scrollers/ScrollWheelBase.hpp:41:7:touchgfx::ScrollWheelBase::~ScrollWheelBase()	16	static
+C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/containers/scrollers/ScrollWheelBase.hpp:41:7:virtual touchgfx::ScrollWheelBase::~ScrollWheelBase()	16	static

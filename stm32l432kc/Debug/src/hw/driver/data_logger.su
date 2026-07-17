@@ -1,0 +1,14 @@
+../src/hw/driver/data_logger.c:40:13:dataLoggerWriteString	24	static
+../src/hw/driver/data_logger.c:65:13:dataLoggerSyncIfNeeded	24	static
+../src/hw/driver/data_logger.c:97:13:dataLoggerMakeAutoPath	48	static
+../src/hw/driver/data_logger.c:126:13:dataLoggerWriteHeaderIfEmpty	8	static
+../src/hw/driver/data_logger.c:136:6:dataLoggerInit	8	static
+../src/hw/driver/data_logger.c:150:6:dataLoggerMount	8	static
+../src/hw/driver/data_logger.c:168:6:dataLoggerStart	40	static
+../src/hw/driver/data_logger.c:218:6:dataLoggerStop	8	static
+../src/hw/driver/data_logger.c:229:6:dataLoggerLogCan	192	static
+../src/hw/driver/data_logger.c:300:6:dataLoggerUpdate	40	static
+../src/hw/driver/data_logger.c:330:6:dataLoggerIsLogging	4	static
+../src/hw/driver/data_logger.c:335:6:dataLoggerGetInfo	16	static
+../src/hw/driver/data_logger.c:370:13:dataLoggerResultToString	16	static
+../src/hw/driver/data_logger.c:399:13:cliDataLogger	96	static
