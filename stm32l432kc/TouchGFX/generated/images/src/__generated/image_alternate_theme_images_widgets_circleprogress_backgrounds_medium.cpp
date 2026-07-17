@@ -1,1 +1,0 @@
-// Stale generated bitmap removed for the 320x480 dashboard.

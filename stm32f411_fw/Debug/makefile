@@ -122,8 +122,8 @@ all: main-build
 main-build: stm32f411_fw.elf secondary-outputs
 
 # Tool invocations
-stm32f411_fw.elf stm32f411_fw.map: $(OBJS) $(USER_OBJS) C:\project\LIGHTON_LCD\STM32F411\stm32f411_fw\src\bsp\ldscript\STM32F411CEUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-g++ -o "stm32f411_fw.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\project\LIGHTON_LCD\STM32F411\stm32f411_fw\src\bsp\ldscript\STM32F411CEUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32f411_fw.map" -Wl,--gc-sections -static -L"C:\project\LIGHTON_LCD\STM32F411\stm32f411_fw\Middlewares\ST\touchgfx\lib\core\cortex_m4f\gcc" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+stm32f411_fw.elf stm32f411_fw.map: $(OBJS) $(USER_OBJS) C:\project\LIGHT_ON\stm32f411_fw\src\bsp\ldscript\STM32F411CEUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-g++ -o "stm32f411_fw.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\project\LIGHT_ON\stm32f411_fw\src\bsp\ldscript\STM32F411CEUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32f411_fw.map" -Wl,--gc-sections -static -L"C:\project\LIGHT_ON\stm32f411_fw\Middlewares\ST\touchgfx\lib\core\cortex_m4f\gcc" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

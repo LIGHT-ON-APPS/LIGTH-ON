@@ -1,4 +1,3 @@
-"./TouchGFX/App/app_touchgfx.o"
 "./src/ap/ap.o"
 "./src/ap/apps/apps.o"
 "./src/ap/apps/bamocar_can.o"

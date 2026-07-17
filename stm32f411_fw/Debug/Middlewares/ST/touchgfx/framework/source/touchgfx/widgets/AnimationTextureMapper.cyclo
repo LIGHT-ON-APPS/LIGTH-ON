@@ -1,70 +1,70 @@
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Bitmap.hpp:136:5:touchgfx::Bitmap::Bitmap(touchgfx::BitmapId)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:62:13:touchgfx::Drawable::~Drawable()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:62:13:virtual touchgfx::Drawable::~Drawable()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:121:18:virtual void touchgfx::Drawable::invalidateContent() const	2
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:147:23:virtual touchgfx::Drawable* touchgfx::Drawable::getFirstChild()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:315:18:virtual void touchgfx::Drawable::setX(int16_t)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:327:18:virtual void touchgfx::Drawable::setY(int16_t)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:356:18:virtual void touchgfx::Drawable::setWidth(int16_t)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:368:18:virtual void touchgfx::Drawable::setHeight(int16_t)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:378:18:virtual void touchgfx::Drawable::childGeometryChanged()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:389:18:virtual void touchgfx::Drawable::handleClickEvent(const touchgfx::ClickEvent&)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:401:18:virtual void touchgfx::Drawable::handleGestureEvent(const touchgfx::GestureEvent&)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:490:18:virtual void touchgfx::Drawable::handleDragEvent(const touchgfx::DragEvent&)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:501:18:virtual void touchgfx::Drawable::handleTickEvent()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:537:10:bool touchgfx::Drawable::isVisible() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:549:10:bool touchgfx::Drawable::isTouchable() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:588:18:virtual void touchgfx::Drawable::moveTo(int16_t, int16_t)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:625:10:void touchgfx::Drawable::resetDrawChainCache()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:703:18:virtual void touchgfx::Drawable::setupDrawChain(const touchgfx::Rect&, touchgfx::Drawable**)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:45:18:virtual void touchgfx::Widget::getLastChild(int16_t, int16_t, touchgfx::Drawable**)	4
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Application.hpp:187:10:void touchgfx::Application::registerTimerWidget(touchgfx::Drawable*)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Application.hpp:208:10:void touchgfx::Application::unregisterTimerWidget(const touchgfx::Drawable*)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:36:7:touchgfx::Widget::~Widget()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:36:7:virtual touchgfx::Widget::~Widget()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:91:18:virtual void touchgfx::TextureMapper::setRenderingAlgorithm(RenderingAlgorithm)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:101:32:virtual touchgfx::TextureMapper::RenderingAlgorithm touchgfx::TextureMapper::getRenderingAlgorithm() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:130:18:virtual void touchgfx::TextureMapper::setXAngle(float)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:145:18:virtual void touchgfx::TextureMapper::setYAngle(float)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:160:18:virtual void touchgfx::TextureMapper::setZAngle(float)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:188:18:virtual void touchgfx::TextureMapper::updateXAngle(float)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:202:18:virtual void touchgfx::TextureMapper::updateYAngle(float)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:216:18:virtual void touchgfx::TextureMapper::updateZAngle(float)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:230:19:virtual float touchgfx::TextureMapper::getXAngle() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:244:19:virtual float touchgfx::TextureMapper::getYAngle() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:258:19:virtual float touchgfx::TextureMapper::getZAngle() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:289:19:virtual float touchgfx::TextureMapper::getScale() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:303:18:virtual void touchgfx::TextureMapper::setOrigo(float, float, float)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:320:18:virtual void touchgfx::TextureMapper::setOrigo(float, float)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:334:19:virtual float touchgfx::TextureMapper::getOrigoX() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:346:19:virtual float touchgfx::TextureMapper::getOrigoY() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:358:19:virtual float touchgfx::TextureMapper::getOrigoZ() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:371:18:virtual void touchgfx::TextureMapper::setCamera(float, float)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:385:19:virtual float touchgfx::TextureMapper::getCameraX() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:397:19:virtual float touchgfx::TextureMapper::getCameraY() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:411:18:virtual void touchgfx::TextureMapper::setCameraDistance(float)	2
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:424:19:virtual float touchgfx::TextureMapper::getCameraDistance() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:438:18:virtual void touchgfx::TextureMapper::setBitmapPosition(float, float)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:454:18:virtual void touchgfx::TextureMapper::setBitmapPosition(int, int)	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:466:19:virtual float touchgfx::TextureMapper::getBitmapPositionX() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:478:19:virtual float touchgfx::TextureMapper::getBitmapPositionY() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:488:19:virtual float touchgfx::TextureMapper::getX0() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:498:19:virtual float touchgfx::TextureMapper::getX1() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:508:19:virtual float touchgfx::TextureMapper::getX2() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:518:19:virtual float touchgfx::TextureMapper::getX3() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:528:19:virtual float touchgfx::TextureMapper::getY0() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:538:19:virtual float touchgfx::TextureMapper::getY1() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:548:19:virtual float touchgfx::TextureMapper::getY2() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:558:19:virtual float touchgfx::TextureMapper::getY3() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:568:19:virtual float touchgfx::TextureMapper::getZ0() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:578:19:virtual float touchgfx::TextureMapper::getZ1() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:588:19:virtual float touchgfx::TextureMapper::getZ2() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:598:19:virtual float touchgfx::TextureMapper::getZ3() const	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:612:18:virtual void touchgfx::TextureMapper::invalidateContent() const	2
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Image.hpp:38:7:touchgfx::Image::~Image()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Image.hpp:38:7:virtual touchgfx::Image::~Image()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:46:7:touchgfx::TextureMapper::~TextureMapper()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:46:7:virtual touchgfx::TextureMapper::~TextureMapper()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Bitmap.hpp:136:5:touchgfx::Bitmap::Bitmap(touchgfx::BitmapId)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:62:13:touchgfx::Drawable::~Drawable()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:62:13:virtual touchgfx::Drawable::~Drawable()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:121:18:virtual void touchgfx::Drawable::invalidateContent() const	2
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:147:23:virtual touchgfx::Drawable* touchgfx::Drawable::getFirstChild()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:315:18:virtual void touchgfx::Drawable::setX(int16_t)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:327:18:virtual void touchgfx::Drawable::setY(int16_t)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:356:18:virtual void touchgfx::Drawable::setWidth(int16_t)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:368:18:virtual void touchgfx::Drawable::setHeight(int16_t)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:378:18:virtual void touchgfx::Drawable::childGeometryChanged()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:389:18:virtual void touchgfx::Drawable::handleClickEvent(const touchgfx::ClickEvent&)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:401:18:virtual void touchgfx::Drawable::handleGestureEvent(const touchgfx::GestureEvent&)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:490:18:virtual void touchgfx::Drawable::handleDragEvent(const touchgfx::DragEvent&)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:501:18:virtual void touchgfx::Drawable::handleTickEvent()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:537:10:bool touchgfx::Drawable::isVisible() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:549:10:bool touchgfx::Drawable::isTouchable() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:588:18:virtual void touchgfx::Drawable::moveTo(int16_t, int16_t)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:625:10:void touchgfx::Drawable::resetDrawChainCache()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Drawable.hpp:703:18:virtual void touchgfx::Drawable::setupDrawChain(const touchgfx::Rect&, touchgfx::Drawable**)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:45:18:virtual void touchgfx::Widget::getLastChild(int16_t, int16_t, touchgfx::Drawable**)	4
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Application.hpp:187:10:void touchgfx::Application::registerTimerWidget(touchgfx::Drawable*)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/Application.hpp:208:10:void touchgfx::Application::unregisterTimerWidget(const touchgfx::Drawable*)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:36:7:touchgfx::Widget::~Widget()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Widget.hpp:36:7:virtual touchgfx::Widget::~Widget()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:91:18:virtual void touchgfx::TextureMapper::setRenderingAlgorithm(RenderingAlgorithm)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:101:32:virtual touchgfx::TextureMapper::RenderingAlgorithm touchgfx::TextureMapper::getRenderingAlgorithm() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:130:18:virtual void touchgfx::TextureMapper::setXAngle(float)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:145:18:virtual void touchgfx::TextureMapper::setYAngle(float)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:160:18:virtual void touchgfx::TextureMapper::setZAngle(float)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:188:18:virtual void touchgfx::TextureMapper::updateXAngle(float)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:202:18:virtual void touchgfx::TextureMapper::updateYAngle(float)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:216:18:virtual void touchgfx::TextureMapper::updateZAngle(float)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:230:19:virtual float touchgfx::TextureMapper::getXAngle() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:244:19:virtual float touchgfx::TextureMapper::getYAngle() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:258:19:virtual float touchgfx::TextureMapper::getZAngle() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:289:19:virtual float touchgfx::TextureMapper::getScale() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:303:18:virtual void touchgfx::TextureMapper::setOrigo(float, float, float)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:320:18:virtual void touchgfx::TextureMapper::setOrigo(float, float)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:334:19:virtual float touchgfx::TextureMapper::getOrigoX() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:346:19:virtual float touchgfx::TextureMapper::getOrigoY() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:358:19:virtual float touchgfx::TextureMapper::getOrigoZ() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:371:18:virtual void touchgfx::TextureMapper::setCamera(float, float)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:385:19:virtual float touchgfx::TextureMapper::getCameraX() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:397:19:virtual float touchgfx::TextureMapper::getCameraY() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:411:18:virtual void touchgfx::TextureMapper::setCameraDistance(float)	2
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:424:19:virtual float touchgfx::TextureMapper::getCameraDistance() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:438:18:virtual void touchgfx::TextureMapper::setBitmapPosition(float, float)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:454:18:virtual void touchgfx::TextureMapper::setBitmapPosition(int, int)	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:466:19:virtual float touchgfx::TextureMapper::getBitmapPositionX() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:478:19:virtual float touchgfx::TextureMapper::getBitmapPositionY() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:488:19:virtual float touchgfx::TextureMapper::getX0() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:498:19:virtual float touchgfx::TextureMapper::getX1() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:508:19:virtual float touchgfx::TextureMapper::getX2() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:518:19:virtual float touchgfx::TextureMapper::getX3() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:528:19:virtual float touchgfx::TextureMapper::getY0() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:538:19:virtual float touchgfx::TextureMapper::getY1() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:548:19:virtual float touchgfx::TextureMapper::getY2() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:558:19:virtual float touchgfx::TextureMapper::getY3() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:568:19:virtual float touchgfx::TextureMapper::getZ0() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:578:19:virtual float touchgfx::TextureMapper::getZ1() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:588:19:virtual float touchgfx::TextureMapper::getZ2() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:598:19:virtual float touchgfx::TextureMapper::getZ3() const	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:612:18:virtual void touchgfx::TextureMapper::invalidateContent() const	2
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Image.hpp:38:7:touchgfx::Image::~Image()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/Image.hpp:38:7:virtual touchgfx::Image::~Image()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:46:7:touchgfx::TextureMapper::~TextureMapper()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/TextureMapper.hpp:46:7:virtual touchgfx::TextureMapper::~TextureMapper()	1
 ../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/AnimationTextureMapper.cpp:18:1:touchgfx::AnimationTextureMapper::AnimationTextureMapper()	2
 ../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/AnimationTextureMapper.cpp:31:6:void touchgfx::AnimationTextureMapper::setTextureMapperAnimationStepAction(touchgfx::GenericCallback<const touchgfx::AnimationTextureMapper&>&)	1
 ../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/AnimationTextureMapper.cpp:36:6:void touchgfx::AnimationTextureMapper::setTextureMapperAnimationEndedAction(touchgfx::GenericCallback<const touchgfx::AnimationTextureMapper&>&)	1
@@ -74,5 +74,5 @@ C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/
 ../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/AnimationTextureMapper.cpp:82:6:virtual void touchgfx::AnimationTextureMapper::cancelAnimationTextureMapperAnimation()	2
 ../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/AnimationTextureMapper.cpp:93:10:virtual uint16_t touchgfx::AnimationTextureMapper::getAnimationStep()	1
 ../Middlewares/ST/touchgfx/framework/source/touchgfx/widgets/AnimationTextureMapper.cpp:98:6:virtual void touchgfx::AnimationTextureMapper::handleTickEvent()	22
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/AnimationTextureMapper.hpp:34:7:touchgfx::AnimationTextureMapper::~AnimationTextureMapper()	1
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/AnimationTextureMapper.hpp:34:7:virtual touchgfx::AnimationTextureMapper::~AnimationTextureMapper()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/AnimationTextureMapper.hpp:34:7:touchgfx::AnimationTextureMapper::~AnimationTextureMapper()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/widgets/AnimationTextureMapper.hpp:34:7:virtual touchgfx::AnimationTextureMapper::~AnimationTextureMapper()	1

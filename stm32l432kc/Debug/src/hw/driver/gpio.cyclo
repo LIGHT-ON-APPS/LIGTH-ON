@@ -1,8 +1,8 @@
-../src/hw/driver/gpio.c:35:6:gpioInit	2
-../src/hw/driver/gpio.c:52:6:gpioPinMode	9
-../src/hw/driver/gpio.c:103:6:gpioPinWrite	3
-../src/hw/driver/gpio.c:119:6:gpioPinRead	3
-../src/hw/driver/gpio.c:133:6:gpioPinToggle	2
-../src/hw/driver/gpio.c:143:6:gpioPinToggleCount	4
-../src/hw/driver/gpio.c:161:6:gpioPinPulseCount	5
-../src/hw/driver/gpio.c:187:13:cliGpio	31
+../src/hw/driver/gpio.c:33:6:gpioInit	2
+../src/hw/driver/gpio.c:50:6:gpioPinMode	9
+../src/hw/driver/gpio.c:101:6:gpioPinWrite	3
+../src/hw/driver/gpio.c:117:6:gpioPinRead	3
+../src/hw/driver/gpio.c:131:6:gpioPinToggle	2
+../src/hw/driver/gpio.c:141:6:gpioPinToggleCount	4
+../src/hw/driver/gpio.c:159:6:gpioPinPulseCount	5
+../src/hw/driver/gpio.c:185:13:cliGpio	31

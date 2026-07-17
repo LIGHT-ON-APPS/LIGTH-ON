@@ -1,4 +1,4 @@
-C:/project/LIGHTON_LCD/STM32F411/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/HAL.hpp:117:17:static touchgfx::HAL* touchgfx::HAL::getInstance()	1
+C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/hal/HAL.hpp:117:17:static touchgfx::HAL* touchgfx::HAL::getInstance()	1
 ../TouchGFX/target/generated/OSWrappers.cpp:33:6:static void touchgfx::OSWrappers::initialize()	1
 ../TouchGFX/target/generated/OSWrappers.cpp:42:6:static void touchgfx::OSWrappers::takeFrameBufferSemaphore()	2
 ../TouchGFX/target/generated/OSWrappers.cpp:51:6:static void touchgfx::OSWrappers::giveFrameBufferSemaphore()	1

@@ -1,0 +1,23 @@
+# STM32CubeIDE build output
+Debug/
+Release/
+Debug_RAM/
+Release_RAM/
+Debug_FLASH/
+Release_FLASH/
+
+# TouchGFX simulator/build output (generated source under TouchGFX/generated is kept)
+**/TouchGFX/build/
+
+# Eclipse / STM32CubeIDE workspace cache
+.metadata/
+**/.settings/language.settings.xml
+*.pdom
+
+# Local editor and operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~

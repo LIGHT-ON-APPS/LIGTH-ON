@@ -45,10 +45,6 @@
 #define		HW_LCD_WIDTH			320
 #define 	HW_LCD_HEIGHT        	480
 
-#define      HW_USE_TOUCHGFX         1
-
-#if HW_USE_TOUCHGFX == 1
 #define _USE_HW_TOUCHGFX
-#endif
 
 #endif /* SRC_HW_HW_DEF_H_ */
