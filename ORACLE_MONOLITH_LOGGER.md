@@ -34,25 +34,28 @@ Monolith 공식 문서도 TMA-1과 Control Hub 사이에 MQTT 서버가 필요�
 | 용도 | 논리 채널 | 실제 주변장치 | 핀 | 송신 방식 |
 |---|---|---|---|---|
 | 개발용 CLI | `_DEF_UART1` | USART2 | PA2 TX, PA15 RX | blocking |
-| F411 표시 | `_DEF_UART2` | USART1 | PA9 TX, PA10 RX | TX DMA |
+| F411 표시 | `_DEF_UART2` | USART1 | PA9 TX | TX DMA |
 
-F411도 USART1의 PA9/PA10으로 설정되어 있으므로 배선은 교차한다.
+F411은 `_DEF_UART1`을 USART1 RX 전용 PA10으로 사용한다.
 
 | L432 | F411 | 필수 여부 |
 |---|---|---|
 | PA9 / USART1_TX | PA10 / USART1_RX | 필수 |
-| PA10 / USART1_RX | PA9 / USART1_TX | ACK·명령을 쓸 때 필요 |
 | GND | GND | 필수 |
 
 양쪽 모두 3.3 V 로직이며 두 보드의 GND를 반드시 공통으로 연결한다. L432에서 표시 데이터만 단방향으로 보낼 때도 GND와 `L432 TX → F411 RX`는 필요하다.
 
-현재 `uart.c`의 DMA 기반 송신 드라이버는 준비되어 있지만, 다음 애플리케이션 계층은 아직 별도 작업이다.
+L432의 PA2는 service mode에서 CLI를 열 때만 USART2 TX로 전환된다. 현재 펌웨어는 service mode를 기본적으로 끄며 진입 호출자도 연결하지 않았으므로 정상 운전 부팅에서는 PA2를 점유하지 않는다. PCB에서 PA2를 GPIO로 써야 한다면 GPIO의 입력/출력과 안전 초기값을 확정해 별도로 초기화하고, 그 구성을 확정하기 전에는 `apSetServiceMode(true)`를 호출하지 않는다.
+
+표시 UART 애플리케이션 계층은 현재 다음 범위까지 구현되어 있다.
 
 1. L432 시작 시 `uartOpen(_DEF_UART2, 115200)` 호출
-2. 고정 표시 패킷 정의: magic, version, length, sequence, payload, CRC
-3. 10~20 Hz 표시 스냅샷 생성과 `uartWrite(_DEF_UART2, ...)` 호출
-4. F411의 USART1 수신 프레이밍·CRC·sequence 검사
-5. 일정 시간 새 패킷이 없을 때 LCD에 `DATA LOST` 표시
+2. magic, version, sequence, APPS1/2, 최종 페달값, 상태/fault, CRC16을 포함한 34바이트 v1 패킷
+3. 50 ms(20 Hz) 주기의 `uartWrite(_DEF_UART2, ...)` TX DMA 송신
+4. F411 `_DEF_UART1` USART1 RX Circular DMA 수신과 프레이밍·CRC·sequence 검사
+5. CRC 오류, 중복 sequence, 과거 sequence의 TouchGFX 값 갱신 차단
+6. 정상 패킷이 300 ms 이상 없거나 RX DMA가 overrun되면 `DATA LOST` 표시
+7. F411 USB CDC CLI의 `display info`로 수신값과 오류 카운터 확인
 
 DMA를 MCU에 추가하는 정확한 절차는 `stm32l432kc/DMA_SETUP_CHECKLIST.md`에 정리되어 있다.
 
@@ -357,7 +360,7 @@ OCI Agent의 기본 compute metric에 다음 application metric을 추가한다.
 ### A. 책상 위 UART 시험
 
 1. L432 USART1 TX와 F411 USART1 RX, GND만 연결한다.
-2. 10 Hz 고정 패킷에 증가 sequence와 CRC를 넣는다.
+2. 20 Hz 고정 패킷의 증가 sequence와 CRC가 정상인지 확인한다.
 3. logic analyzer로 115200 8-N-1과 프레임 간격을 확인한다.
 4. L432 APPS 10 ms loop 주기 min/max를 측정해 DMA 송신 전후 jitter를 비교한다.
 5. F411 전원을 껐다 켜고 L432 제어 루프가 영향을 받지 않는지 확인한다.

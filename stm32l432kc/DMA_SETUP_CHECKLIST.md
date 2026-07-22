@@ -9,7 +9,10 @@
 
 - 논리 채널 `_DEF_UART1`: 실제 USART2, CLI, blocking TX 유지
 - 논리 채널 `_DEF_UART2`: 실제 USART1, F411 표시 패킷, DMA TX 사용
-- 두 UART의 RX: 기존 `HAL_UART_Receive_IT()` 방식 유지
+- USART2 CLI RX만 기존 `HAL_UART_Receive_IT()` 방식 유지
+- USART1 표시 링크는 단방향 TX 전용이며 RX 핀과 RX DMA를 사용하지 않음
+
+주의: `_DEF_UART1` service CLI를 열면 PA2가 USART2 TX alternate function으로 바뀐다. PA2를 PCB GPIO로 사용하는 하드웨어에서는 GPIO 방향과 초기값을 확정하기 전까지 service mode를 활성화하지 않는다. 현재 애플리케이션은 service mode 기본값이 `false`이고 외부 진입 호출자를 아직 연결하지 않았다.
 
 아래 순서는 CubeMX에서 USART1 TX DMA를 새로 추가했다고 가정한 실제 작업 순서다.
 
@@ -20,7 +23,7 @@
 3. `Mode`를 `Asynchronous`로 설정한다.
 4. Pinout에서 다음 핀이 잡혔는지 확인한다.
    - `PA9 = USART1_TX`
-   - `PA10 = USART1_RX`
+   - `PA10`은 USART1 RX로 할당하지 않음
 5. `Parameter Settings`에서 양쪽 MCU와 동일하게 설정한다.
    - Baud rate: `115200`
    - Word length: `8 Bits`
@@ -245,7 +248,6 @@ main과 callback이 같은 상태 변수를 수정하므로 `tx_busy`, `tx_pendi
 
 - ADC1: DMA1 Channel 1, Circular
 - USART1 TX 표시 송신: DMA1 Channel 4 / Request 2, Normal
-- USART1 RX: DMA1 Channel 5 / Request 2로 설정만 보존, 현재 미사용
 - USART2 RX: DMA1 Channel 6 / Request 2로 설정만 보존, 현재 미사용
 
 ## 2. Generate Code 뒤 확인할 참고 파일
@@ -328,7 +330,7 @@ CubeMX는 DMA를 사용할 준비까지만 한다. 실제 동작은 아래 API�
 
 따라서 USART1 표시 TX는 DMA IRQ와 USART1 IRQ가 모두 필요하다.
 
-현재 USART1/USART2 RX DMA handle은 CubeMX 설정을 보존한 준비 코드일 뿐이다. 실제 RX는 양쪽 모두 `HAL_UART_Receive_IT()` 1바이트 재등록 방식이다. RX를 DMA로 바꾸려면 시작 API, persistent RX buffer, Normal 재등록 또는 Circular/Idle 소비 정책까지 함께 구현해야 한다.
+현재 USART1은 `UART_MODE_TX`이며 PA9와 TX DMA만 사용한다. USART2 RX DMA handle은 CubeMX 설정을 보존한 준비 코드이고, 실제 CLI RX는 `HAL_UART_Receive_IT()` 1바이트 재등록 방식이다. 이후 다른 UART RX를 DMA로 바꾸려면 시작 API, persistent RX buffer, Normal 재등록 또는 Circular/Idle 소비 정책까지 함께 구현해야 한다.
 
 ## 추가 후 검증
 
