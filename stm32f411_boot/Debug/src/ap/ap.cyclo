@@ -1,7 +1,0 @@
-../src/ap/ap.c:54:13:bootIsAppValid	4
-../src/ap/ap.c:118:13:bootStartApp	1
-../src/ap/ap.c:81:13:bootJumpToApp	2
-../src/ap/ap.c:131:13:bootDownload.isra	27
-../src/ap/ap.c:276:13:cliBoot	10
-../src/ap/ap.c:24:6:apInit	3
-../src/ap/ap.c:37:6:apMain	2

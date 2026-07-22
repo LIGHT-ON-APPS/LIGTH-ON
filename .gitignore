@@ -9,10 +9,17 @@ Release_FLASH/
 # TouchGFX simulator/build output (generated source under TouchGFX/generated is kept)
 **/TouchGFX/build/
 
+# TouchGFX incremental generator cache and tool backups
+**/TouchGFX/generated/**/cache/
+*.bak
+
 # Eclipse / STM32CubeIDE workspace cache
 .metadata/
 **/.settings/language.settings.xml
 *.pdom
+
+# Local headless STM32CubeIDE workspaces
+/.cubeide_*/
 
 # Local editor and operating-system files
 .DS_Store

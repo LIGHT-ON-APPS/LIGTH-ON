@@ -1,5 +1,0 @@
-C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/FontManager.hpp:43:13:touchgfx::FontProvider::~FontProvider()	16	static
-C:/project/LIGHT_ON/stm32f411_fw/Middlewares/ST/touchgfx/framework/include/touchgfx/FontManager.hpp:43:13:virtual touchgfx::FontProvider::~FontProvider()	16	static
-../TouchGFX/generated/fonts/src/ApplicationFontProvider.cpp:10:17:virtual touchgfx::Font* ApplicationFontProvider::getFont(touchgfx::FontId)	16	static
-C:/project/LIGHT_ON/stm32f411_fw/TouchGFX/generated/fonts/include/fonts/ApplicationFontProvider.hpp:33:7:ApplicationFontProvider::~ApplicationFontProvider()	16	static
-C:/project/LIGHT_ON/stm32f411_fw/TouchGFX/generated/fonts/include/fonts/ApplicationFontProvider.hpp:33:7:virtual ApplicationFontProvider::~ApplicationFontProvider()	16	static

@@ -1,3 +1,0 @@
-../src/lib/cube_l432/Core/Src/spi.c:31:6:MX_SPI1_Init	2
-../src/lib/cube_l432/Core/Src/spi.c:65:6:HAL_SPI_MspInit	3
-../src/lib/cube_l432/Core/Src/spi.c:114:6:HAL_SPI_MspDeInit	2
