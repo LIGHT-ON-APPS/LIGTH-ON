@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../../shared/display_protocol/display_protocol.h"
+#include "display_protocol.h"
 
 
 static void testCrcKnownVector(void)

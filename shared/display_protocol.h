@@ -1,5 +1,5 @@
-#ifndef SHARED_DISPLAY_PROTOCOL_DISPLAY_PROTOCOL_H_
-#define SHARED_DISPLAY_PROTOCOL_DISPLAY_PROTOCOL_H_
+#ifndef SHARED_DISPLAY_PROTOCOL_H_
+#define SHARED_DISPLAY_PROTOCOL_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -291,4 +291,4 @@ displayProtocolClassifySequence(bool has_previous,
 }
 #endif
 
-#endif /* SHARED_DISPLAY_PROTOCOL_DISPLAY_PROTOCOL_H_ */
+#endif /* SHARED_DISPLAY_PROTOCOL_H_ */

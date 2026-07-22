@@ -23,6 +23,7 @@
                 "${workspaceFolder}/src/ap",
                 "${workspaceFolder}/src/bsp",
                 "${workspaceFolder}/src/common",
+                "${workspaceFolder}/../shared",
                 "${workspaceFolder}/src/common/core",
                 "${workspaceFolder}/src/common/hw/include",
                 "${workspaceFolder}/src/hw",
