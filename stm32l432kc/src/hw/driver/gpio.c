@@ -22,12 +22,63 @@ typedef struct
 
 button_tbl_t gpio_tbl[GPIO_MAX_CH] =
 {
-    {GPIOA, GPIO_PIN_8, _DEF_OUTPUT , GPIO_PIN_SET, GPIO_PIN_RESET, _DEF_LOW},                  // 1. 아날로그 사용시
+    {GPIOA, GPIO_PIN_7, _DEF_OUTPUT , GPIO_PIN_SET, GPIO_PIN_RESET, _DEF_LOW},                  // 1. 아날로그 사용시
     {GPIOB, GPIO_PIN_0, _DEF_OUTPUT , GPIO_PIN_SET, GPIO_PIN_RESET, _DEF_LOW},                  // 2. Reserved GPIO
 };
 
 #ifdef _USE_HW_CLI
 static void cliGpio(cli_args_t *args);
+
+static bool cliGpioDelay(uint32_t delay_ms)
+{
+	while(delay_ms > 0U)
+	{
+		if(cliKeepLoop() != true)
+		{
+			return false;
+		}
+
+		delay(1);
+		delay_ms--;
+	}
+
+	return true;
+}
+
+static void cliGpioToggleCount(uint8_t ch,
+								uint32_t count,
+								uint32_t delay_ms)
+{
+	for(uint32_t i = 0U; (i < count) && (cliKeepLoop() == true); i++)
+	{
+		gpioPinToggle(ch);
+		if(cliGpioDelay(delay_ms) != true)
+		{
+			break;
+		}
+	}
+}
+
+static void cliGpioPulseCount(uint8_t ch,
+							 uint32_t count,
+							 uint32_t delay_ms)
+{
+	for(uint32_t i = 0U; (i < count) && (cliKeepLoop() == true); i++)
+	{
+		gpioPinWrite(ch, true);
+		if(cliGpioDelay(delay_ms) != true)
+		{
+			gpioPinWrite(ch, false);
+			break;
+		}
+
+		gpioPinWrite(ch, false);
+		if(cliGpioDelay(delay_ms) != true)
+		{
+			break;
+		}
+	}
+}
 #endif
 
 bool gpioInit(void)
@@ -195,7 +246,10 @@ static void cliGpio(cli_args_t *args)
 				cliPrintf("%d", gpioPinRead(i));
 			}
 			cliPrintf("\n");
-			delay(100);
+			if(cliGpioDelay(100U) != true)
+			{
+				break;
+			}
 		}
 
 		ret = true;
@@ -295,7 +349,7 @@ static void cliGpio(cli_args_t *args)
 
 		if(ch < GPIO_MAX_CH)
 		{
-			gpioPinToggleCount(ch, count, delay_ms);
+			cliGpioToggleCount(ch, count, delay_ms);
 			cliPrintf("gpio toggle %d count %d delay %dms\n", ch, (int)count, (int)delay_ms);
 		}
 		else
@@ -326,7 +380,7 @@ static void cliGpio(cli_args_t *args)
 
 		if(ch < GPIO_MAX_CH)
 		{
-			gpioPinPulseCount(ch, count, delay_ms);
+			cliGpioPulseCount(ch, count, delay_ms);
 			cliPrintf("gpio pulse %d count %d delay %dms\n", ch, (int)count, (int)delay_ms);
 		}
 		else

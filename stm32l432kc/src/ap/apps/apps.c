@@ -379,6 +379,33 @@ void appsClearFault(void)
       (apps.configured == true) ? APPS_STATUS_OK : APPS_STATUS_NOT_CONFIGURED;
 }
 
+bool appsGetSnapshot(apps_snapshot_t *p_snapshot)
+{
+  if ((p_snapshot == NULL) || (apps.initialized != true))
+  {
+    return false;
+  }
+
+  p_snapshot->raw[APPS_SIGNAL1] = apps.raw[APPS_SIGNAL1];
+  p_snapshot->raw[APPS_SIGNAL2] = apps.raw[APPS_SIGNAL2];
+  p_snapshot->percent_per_mille[APPS_SIGNAL1] =
+      apps.percent_per_mille[APPS_SIGNAL1];
+  p_snapshot->percent_per_mille[APPS_SIGNAL2] =
+      apps.percent_per_mille[APPS_SIGNAL2];
+  p_snapshot->pedal_per_mille = apps.pedal_per_mille;
+  p_snapshot->command_sent = apps.command_sent;
+  p_snapshot->status = apps.status;
+  p_snapshot->fault_latched_status = apps.fault_latched_status;
+  p_snapshot->adc_ok = apps.adc_ok;
+  p_snapshot->valid = apps.valid;
+  p_snapshot->can_tx_ok = apps.can_tx_ok;
+  p_snapshot->can_tx_muted = apps.can_tx_muted;
+  p_snapshot->fault_latched = apps.fault_latched;
+  p_snapshot->configured = apps.configured;
+
+  return true;
+}
+
 static bool appsUpdate(void)
 {
   int32_t raw_signal1;
@@ -592,7 +619,12 @@ static void appsCli(cli_args_t *args)
         break;
       }
 
-      delay(100);
+      for (uint32_t wait_ms = 0U;
+           (wait_ms < 100U) && (cliKeepLoop() == true);
+           wait_ms++)
+      {
+        delay(1);
+      }
     }
 
     return;

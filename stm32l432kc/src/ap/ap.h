@@ -13,6 +13,8 @@
 
 void apInit(void);
 void apMain(void);
+void apSetServiceMode(bool enabled);
+bool apIsServiceMode(void);
 
 
 #endif /* SRC_AP_AP_H_ */

@@ -19,11 +19,13 @@
 
 bool     uartInit(void);
 bool     uartOpen(uint8_t ch, uint32_t baud);
+bool     uartFlush(uint8_t ch);
 uint32_t uartAvailable(uint8_t ch);
 uint8_t  uartRead(uint8_t ch);
 uint32_t uartWrite(uint8_t ch, uint8_t *p_data, uint32_t length);
 uint32_t uartPrintf(uint8_t ch, char *fmt, ...);
 uint32_t uartGetBaud(uint8_t ch);
+uint32_t uartGetRxOverrunCount(uint8_t ch);
 
 #endif
 

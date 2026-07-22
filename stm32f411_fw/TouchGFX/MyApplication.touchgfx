@@ -10,8 +10,8 @@
                                                                    "Name":  "background",
                                                                    "X":  0,
                                                                    "Y":  0,
-                                                                   "Width":  320,
-                                                                   "Height":  480,
+                                                                   "Width":  480,
+                                                                   "Height":  320,
                                                                    "Color":  {
                                                                                  "Red":  6,
                                                                                  "Green":  10,
@@ -23,7 +23,7 @@
                                                                    "Name":  "topDivider",
                                                                    "X":  0,
                                                                    "Y":  58,
-                                                                   "Width":  320,
+                                                                   "Width":  480,
                                                                    "Height":  2,
                                                                    "Color":  {
                                                                                  "Red":  38,
@@ -60,9 +60,9 @@
                                                                {
                                                                    "Type":  "Box",
                                                                    "Name":  "voutTrack",
-                                                                   "X":  16,
-                                                                   "Y":  332,
-                                                                   "Width":  288,
+                                                                   "X":  270,
+                                                                   "Y":  102,
+                                                                   "Width":  194,
                                                                    "Height":  12,
                                                                    "Color":  {
                                                                                  "Red":  34,
@@ -73,9 +73,9 @@
                                                                {
                                                                    "Type":  "Box",
                                                                    "Name":  "voutFill",
-                                                                   "X":  16,
-                                                                   "Y":  332,
-                                                                   "Width":  184,
+                                                                   "X":  270,
+                                                                   "Y":  102,
+                                                                   "Width":  124,
                                                                    "Height":  12,
                                                                    "Color":  {
                                                                                  "Red":  83,
@@ -86,9 +86,9 @@
                                                                {
                                                                    "Type":  "Box",
                                                                    "Name":  "motorTrack",
-                                                                   "X":  16,
-                                                                   "Y":  384,
-                                                                   "Width":  288,
+                                                                   "X":  270,
+                                                                   "Y":  162,
+                                                                   "Width":  194,
                                                                    "Height":  12,
                                                                    "Color":  {
                                                                                  "Red":  34,
@@ -99,9 +99,9 @@
                                                                {
                                                                    "Type":  "Box",
                                                                    "Name":  "motorFill",
-                                                                   "X":  16,
-                                                                   "Y":  384,
-                                                                   "Width":  163,
+                                                                   "X":  270,
+                                                                   "Y":  162,
+                                                                   "Width":  110,
                                                                    "Height":  12,
                                                                    "Color":  {
                                                                                  "Red":  255,
@@ -112,9 +112,9 @@
                                                                {
                                                                    "Type":  "Box",
                                                                    "Name":  "igbtTrack",
-                                                                   "X":  16,
-                                                                   "Y":  432,
-                                                                   "Width":  288,
+                                                                   "X":  270,
+                                                                   "Y":  222,
+                                                                   "Width":  194,
                                                                    "Height":  12,
                                                                    "Color":  {
                                                                                  "Red":  34,
@@ -125,9 +125,9 @@
                                                                {
                                                                    "Type":  "Box",
                                                                    "Name":  "igbtFill",
-                                                                   "X":  16,
-                                                                   "Y":  432,
-                                                                   "Width":  130,
+                                                                   "X":  270,
+                                                                   "Y":  222,
+                                                                   "Width":  88,
                                                                    "Height":  12,
                                                                    "Color":  {
                                                                                  "Red":  65,
@@ -138,9 +138,9 @@
                                                                {
                                                                    "Type":  "Box",
                                                                    "Name":  "phaseTrack",
-                                                                   "X":  16,
-                                                                   "Y":  470,
-                                                                   "Width":  288,
+                                                                   "X":  270,
+                                                                   "Y":  292,
+                                                                   "Width":  194,
                                                                    "Height":  8,
                                                                    "Color":  {
                                                                                  "Red":  34,
@@ -151,9 +151,9 @@
                                                                {
                                                                    "Type":  "Box",
                                                                    "Name":  "phaseFill",
-                                                                   "X":  16,
-                                                                   "Y":  470,
-                                                                   "Width":  219,
+                                                                   "X":  270,
+                                                                   "Y":  292,
+                                                                   "Width":  148,
                                                                    "Height":  8,
                                                                    "Color":  {
                                                                                  "Red":  130,
@@ -164,7 +164,7 @@
                                                                {
                                                                    "Type":  "CircleProgress",
                                                                    "Name":  "rpmRing",
-                                                                   "X":  55,
+                                                                   "X":  30,
                                                                    "Y":  72,
                                                                    "Width":  210,
                                                                    "Height":  210,
@@ -228,7 +228,7 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "rpmValue",
-                                                                   "X":  55,
+                                                                   "X":  30,
                                                                    "Y":  142,
                                                                    "Width":  210,
                                                                    "Height":  50,
@@ -243,7 +243,7 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "rpmUnit",
-                                                                   "X":  55,
+                                                                   "X":  30,
                                                                    "Y":  192,
                                                                    "Width":  210,
                                                                    "Height":  20,
@@ -258,8 +258,8 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "voutLabel",
-                                                                   "X":  16,
-                                                                   "Y":  300,
+                                                                   "X":  270,
+                                                                   "Y":  72,
                                                                    "Width":  96,
                                                                    "Height":  24,
                                                                    "TextId":  "T_VoutLabel",
@@ -273,8 +273,8 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "voutVal",
-                                                                   "X":  184,
-                                                                   "Y":  296,
+                                                                   "X":  344,
+                                                                   "Y":  68,
                                                                    "Width":  120,
                                                                    "Height":  30,
                                                                    "TextId":  "T_VoutVal",
@@ -288,8 +288,8 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "motorLabel",
-                                                                   "X":  16,
-                                                                   "Y":  352,
+                                                                   "X":  270,
+                                                                   "Y":  132,
                                                                    "Width":  96,
                                                                    "Height":  24,
                                                                    "TextId":  "T_MotorLabel",
@@ -303,8 +303,8 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "motorVal",
-                                                                   "X":  184,
-                                                                   "Y":  348,
+                                                                   "X":  344,
+                                                                   "Y":  128,
                                                                    "Width":  120,
                                                                    "Height":  30,
                                                                    "TextId":  "T_MotorVal",
@@ -318,8 +318,8 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "igbtLabel",
-                                                                   "X":  16,
-                                                                   "Y":  400,
+                                                                   "X":  270,
+                                                                   "Y":  192,
                                                                    "Width":  96,
                                                                    "Height":  24,
                                                                    "TextId":  "T_IgbtLabel",
@@ -333,8 +333,8 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "igbtVal",
-                                                                   "X":  184,
-                                                                   "Y":  396,
+                                                                   "X":  344,
+                                                                   "Y":  188,
                                                                    "Width":  120,
                                                                    "Height":  30,
                                                                    "TextId":  "T_IgbtVal",
@@ -348,8 +348,8 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "torqueLabel",
-                                                                   "X":  16,
-                                                                   "Y":  448,
+                                                                   "X":  270,
+                                                                   "Y":  252,
                                                                    "Width":  96,
                                                                    "Height":  20,
                                                                    "TextId":  "T_TorqueLabel",
@@ -363,8 +363,8 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "torqueVal",
-                                                                   "X":  184,
-                                                                   "Y":  444,
+                                                                   "X":  314,
+                                                                   "Y":  248,
                                                                    "Width":  120,
                                                                    "Height":  24,
                                                                    "TextId":  "T_TorqueVal",
@@ -386,8 +386,8 @@
                                                        ],
                         "Name":  "MyApplication",
                         "Resolution":  {
-                                           "Width":  320,
-                                           "Height":  480
+                                           "Width":  480,
+                                           "Height":  320
                                        },
                         "SelectedColorDepth":  16,
                         "StartupScreenName":  "Screen1",
@@ -405,8 +405,8 @@
                                               ],
                         "AvailableResolutions":  [
                                                      {
-                                                         "Width":  320,
-                                                         "Height":  480
+                                                         "Width":  480,
+                                                         "Height":  320
                                                      }
                                                  ],
                         "PhysicalButtons":  [
@@ -429,7 +429,7 @@
                         "LandscapeSkinY":  0,
                         "PortraitSkinX":  0,
                         "PortraitSkinY":  0,
-                        "DisplayOrientation":  "Portrait",
+                        "DisplayOrientation":  "Landscape",
                         "Family":  "STM32L4",
                         "SubFamily":  "STM32L4x2",
                         "Toolchain":  "STM32CubeIDE",

@@ -113,7 +113,7 @@ bool ili9488Reset(void)
     return false;
   }
 
-  if (ili9488SetRotation(0) != true)
+  if (ili9488SetRotation(1) != true)
   {
     return false;
   }

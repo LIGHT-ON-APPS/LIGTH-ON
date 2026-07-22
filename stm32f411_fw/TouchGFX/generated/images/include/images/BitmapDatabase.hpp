@@ -6,6 +6,7 @@
 #include <touchgfx/hal/Types.hpp>
 #include <touchgfx/Bitmap.hpp>
 
+
 namespace BitmapDatabase
 {
 const touchgfx::Bitmap::BitmapData* getInstance();

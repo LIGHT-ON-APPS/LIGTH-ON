@@ -30,13 +30,17 @@ typedef struct
   int32_t  (*getData)(uint8_t index);
   float    (*getFloat)(uint8_t index);
   char    *(*getStr)(uint8_t index);
-  bool     (*isStr)(uint8_t index, char *p_str);
+  bool     (*isStr)(uint8_t index, const char *p_str);
 } cli_args_t;
+
+typedef bool (*cli_run_check_t)(void);
 
 
 bool cliInit(void);
 bool cliOpen(uint8_t ch, uint32_t baud);
+bool cliClose(void);
 bool cliOpenLog(uint8_t ch, uint32_t baud);
+void cliSetRunCheck(cli_run_check_t run_check);
 bool cliMain(void);
 void cliPrintf(const char *fmt, ...);
 bool cliAdd(const char *cmd_str, void (*p_func)(cli_args_t *));

@@ -14,7 +14,14 @@ public:
     Screen1Presenter(Screen1View& v);
     virtual void activate();
     virtual void deactivate();
-    virtual void updateDash(int rpm, int motorTemp, int igbtTemp, int phaseCurrent, int soc, int vout);
+    virtual void updateApps(bool connected,
+                            uint8_t flags,
+                            uint16_t apps1PerMille,
+                            uint16_t apps2PerMille,
+                            uint16_t pedalPerMille,
+                            int16_t command,
+                            uint32_t status,
+                            uint32_t fault);
     virtual ~Screen1Presenter() {}
 
 private:

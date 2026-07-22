@@ -13,6 +13,8 @@ enum LANGUAGES
 enum TEXTS
 {
     T_T_STATUS,
+    T_T_STATUSFAULT,
+    T_T_DATALOST,
     T_T_SOC,
     T_T_RPM,
     T_T_RPMUNIT,

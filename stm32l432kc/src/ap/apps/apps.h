@@ -66,6 +66,22 @@ typedef enum
   APPS_STATUS_CAN_TX_FAULT        = 0x00000040U,
 } apps_status_t;
 
+typedef struct
+{
+  uint16_t raw[APPS_ADC_MAX];
+  uint16_t percent_per_mille[APPS_ADC_MAX];
+  uint16_t pedal_per_mille;
+  int16_t  command_sent;
+  uint32_t status;
+  uint32_t fault_latched_status;
+  bool     adc_ok;
+  bool     valid;
+  bool     can_tx_ok;
+  bool     can_tx_muted;
+  bool     fault_latched;
+  bool     configured;
+} apps_snapshot_t;
+
 
 bool appsInit(void);
 bool appsSetConfig(uint16_t signal1_raw_min,
@@ -73,6 +89,7 @@ bool appsSetConfig(uint16_t signal1_raw_min,
                    uint16_t signal2_raw_min,
                    uint16_t signal2_raw_max);
 void appsClearFault(void);
+bool appsGetSnapshot(apps_snapshot_t *p_snapshot);
 
 bool appsRunPedalCommand(void);
 

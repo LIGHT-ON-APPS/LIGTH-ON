@@ -7,17 +7,16 @@
 
 
 #include "ap.h"
+#include "display_link.h"
 
 #ifdef _USE_HW_TOUCHGFX
 #include "app_touchgfx.h"
 #endif
 
-
-
-
 void apInit(void)
 {
-  cliOpen(_DEF_UART1, 57600);
+  cliOpen(_DEF_UART2, 57600);
+  (void)displayLinkInit();
 
 #ifdef _USE_HW_TOUCHGFX
   MX_TouchGFX_Init();
@@ -31,6 +30,8 @@ void apMain(void)
   pre_time = millis();
   while(1)
   {
+    displayLinkUpdate();
+
     if (millis()-pre_time >= 500)
     {
       pre_time = millis();

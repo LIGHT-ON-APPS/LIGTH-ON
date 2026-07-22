@@ -1,6 +1,8 @@
 #ifndef MODEL_HPP
 #define MODEL_HPP
 
+#include <stdint.h>
+
 class ModelListener;
 
 class Model
@@ -16,10 +18,10 @@ public:
     void tick();
 protected:
     ModelListener* modelListener;
-
-    // A-stage demo: animates dashboard values in the simulator.
-    // Replace with real CAN / data_logger values during hardware integration (B-stage).
-    int tickCounter;
+    uint32_t tickCounter;
+    uint32_t lastValidPacketCount;
+    bool lastConnected;
+    bool linkStateInitialized;
 };
 
 #endif // MODEL_HPP

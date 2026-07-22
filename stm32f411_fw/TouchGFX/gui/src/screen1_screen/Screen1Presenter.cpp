@@ -14,7 +14,21 @@ void Screen1Presenter::deactivate()
 {
 }
 
-void Screen1Presenter::updateDash(int rpm, int motorTemp, int igbtTemp, int phaseCurrent, int soc, int vout)
+void Screen1Presenter::updateApps(bool connected,
+                                  uint8_t flags,
+                                  uint16_t apps1PerMille,
+                                  uint16_t apps2PerMille,
+                                  uint16_t pedalPerMille,
+                                  int16_t command,
+                                  uint32_t status,
+                                  uint32_t fault)
 {
-    view.updateDash(rpm, motorTemp, igbtTemp, phaseCurrent, soc, vout);
+    view.updateApps(connected,
+                    flags,
+                    apps1PerMille,
+                    apps2PerMille,
+                    pedalPerMille,
+                    command,
+                    status,
+                    fault);
 }

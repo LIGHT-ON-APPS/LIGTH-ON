@@ -2,6 +2,7 @@
 #define MODELLISTENER_HPP
 
 #include <gui/model/Model.hpp>
+#include <stdint.h>
 
 class ModelListener
 {
@@ -14,14 +15,23 @@ public:
         model = m;
     }
 
-    virtual void updateDash(int rpm, int motorTemp, int igbtTemp, int phaseCurrent, int soc, int vout)
+    virtual void updateApps(bool connected,
+                            uint8_t flags,
+                            uint16_t apps1PerMille,
+                            uint16_t apps2PerMille,
+                            uint16_t pedalPerMille,
+                            int16_t command,
+                            uint32_t status,
+                            uint32_t fault)
     {
-        (void)rpm;
-        (void)motorTemp;
-        (void)igbtTemp;
-        (void)phaseCurrent;
-        (void)soc;
-        (void)vout;
+        (void)connected;
+        (void)flags;
+        (void)apps1PerMille;
+        (void)apps2PerMille;
+        (void)pedalPerMille;
+        (void)command;
+        (void)status;
+        (void)fault;
     }
 protected:
     Model* model;

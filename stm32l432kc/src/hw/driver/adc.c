@@ -341,7 +341,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *p_hadc)
 
     __HAL_LINKDMA(p_hadc, DMA_Handle, hdma_adc1);
 
-    HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   }
 }

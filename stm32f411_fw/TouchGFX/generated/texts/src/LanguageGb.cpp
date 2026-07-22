@@ -7,22 +7,25 @@
 TEXT_LOCATION_FLASH_PRAGMA
 KEEP extern const uint32_t indicesGb[] TEXT_LOCATION_FLASH_ATTRIBUTE;
 
+// Remap all strings
 TEXT_LOCATION_FLASH_PRAGMA
 KEEP extern const uint32_t indicesGb[] TEXT_LOCATION_FLASH_ATTRIBUTE = {
-    0,  // T_T_STATUS: "READY"
-    6,  // T_T_SOC: "SOC 78%"
-    14, // T_T_RPM: "4250"
-    19, // T_T_RPMUNIT: "RPM"
-    23, // T_T_PACKVLABEL: "Pack V"
-    30, // T_T_PACKVVAL: "396.2 V"
-    38, // T_T_PACKALABEL: "Pack A"
-    45, // T_T_PACKAVAL: "152.3 A"
-    53, // T_T_MOTORLABEL: "Motor"
-    59, // T_T_MOTORVAL: "68 C"
-    64, // T_T_IGBTLABEL: "IGBT"
-    69, // T_T_IGBTVAL: "54 C"
-    74, // T_T_TORQUELABEL: "Phase I"
-    82, // T_T_TORQUEVAL: "152 A"
-    88, // T_T_VOUTLABEL: "VOUT"
-    93  // T_T_VOUTVAL: "318.6 V"
+    82, // T_T_STATUS: "APPS OK"
+    70, // T_T_STATUSFAULT: "FAULT"
+    0,  // T_T_DATALOST: "DATA LOST"
+    36, // T_T_SOC: "SOC 78%"
+    26, // T_T_RPM: "<>"
+    76, // T_T_RPMUNIT: "PEDAL"
+    51, // T_T_PACKVLABEL: "Pack V"
+    18, // T_T_PACKVVAL: "396.2 V"
+    44, // T_T_PACKALABEL: "Pack A"
+    10, // T_T_PACKAVAL: "152.3 A"
+    64, // T_T_MOTORLABEL: "APPS2"
+    26, // T_T_MOTORVAL: "<>"
+    28, // T_T_IGBTLABEL: "COMMAND"
+    26, // T_T_IGBTVAL: "<>"
+    70, // T_T_TORQUELABEL: "FAULT"
+    26, // T_T_TORQUEVAL: "<>"
+    58, // T_T_VOUTLABEL: "APPS1"
+    26  // T_T_VOUTVAL: "<>"
 };

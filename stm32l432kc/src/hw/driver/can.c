@@ -1372,7 +1372,8 @@ void cliCan(cli_args_t *args)
     }
 
     pre_time = millis();
-    while (millis() - pre_time < CAN_BAMOCAR_STATUS_TIMEOUT)
+    while (((millis() - pre_time) < CAN_BAMOCAR_STATUS_TIMEOUT) &&
+           (cliKeepLoop() == true))
     {
       canUpdate();
 

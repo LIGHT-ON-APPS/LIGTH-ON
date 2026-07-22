@@ -18,7 +18,7 @@
 #define      HW_LED_MAX_CH          1
 
 #define _USE_HW_UART
-#define      HW_UART_MAX_CH         1
+#define      HW_UART_MAX_CH         2
 
 #define _USE_HW_CDC
 #define _USE_HW_USB
@@ -42,8 +42,8 @@
 
 #define _USE_HW_LCD
 #define _USE_HW_ILI9488
-#define		HW_LCD_WIDTH			320
-#define 	HW_LCD_HEIGHT        	480
+#define		HW_LCD_WIDTH			480
+#define 	HW_LCD_HEIGHT        	320
 
 #define _USE_HW_TOUCHGFX
 
