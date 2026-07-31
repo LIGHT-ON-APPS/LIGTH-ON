@@ -5,31 +5,57 @@
   </Languages>
   <Texts>
     <TextGroup Id="Group1">
-      <Text Id="T_Status" Alignment="Left" TypographyId="Default"><Translation Language="GB">APPS OK</Translation></Text>
+      <Text Id="T_Status" Alignment="Left" TypographyId="Default"><Translation Language="GB">READY</Translation></Text>
       <Text Id="T_StatusFault" Alignment="Left" TypographyId="Default"><Translation Language="GB">FAULT</Translation></Text>
-      <Text Id="T_DataLost" Alignment="Left" TypographyId="Default"><Translation Language="GB">DATA LOST</Translation></Text>
-      <Text Id="T_Soc" Alignment="Right" TypographyId="Value"><Translation Language="GB">SOC 78%</Translation></Text>
-      <Text Id="T_Rpm" Alignment="Center" TypographyId="Large"><Translation Language="GB">&lt;value&gt;</Translation></Text>
-      <Text Id="T_RpmUnit" Alignment="Center" TypographyId="Label"><Translation Language="GB">PEDAL</Translation></Text>
-      <Text Id="T_PackVLabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">Pack V</Translation></Text>
-      <Text Id="T_PackVVal" Alignment="Left" TypographyId="Default"><Translation Language="GB">396.2 V</Translation></Text>
-      <Text Id="T_PackALabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">Pack A</Translation></Text>
-      <Text Id="T_PackAVal" Alignment="Left" TypographyId="Default"><Translation Language="GB">152.3 A</Translation></Text>
-      <Text Id="T_MotorLabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">APPS2</Translation></Text>
-      <Text Id="T_MotorVal" Alignment="Right" TypographyId="Value"><Translation Language="GB">&lt;value&gt;</Translation></Text>
-      <Text Id="T_IgbtLabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">COMMAND</Translation></Text>
-      <Text Id="T_IgbtVal" Alignment="Right" TypographyId="Value"><Translation Language="GB">&lt;value&gt;</Translation></Text>
-      <Text Id="T_TorqueLabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">FAULT</Translation></Text>
+      <Text Id="T_DataLost" Alignment="Left" TypographyId="Default"><Translation Language="GB">NO LINK</Translation></Text>
+      <Text Id="T_Soc" Alignment="Right" TypographyId="Default"><Translation Language="GB">&lt;value&gt;</Translation></Text>
+      <Text Id="T_Rpm" Alignment="Center" TypographyId="Huge"><Translation Language="GB">&lt;value&gt;</Translation></Text>
+      <Text Id="T_RpmUnit" Alignment="Center" TypographyId="Label"><Translation Language="GB">RPM</Translation></Text>
+      <Text Id="T_PackVLabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">PACK</Translation></Text>
+      <Text Id="T_PackVVal" Alignment="Right" TypographyId="Value"><Translation Language="GB">&lt;value&gt;</Translation></Text>
+      <Text Id="T_PackALabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">AMP</Translation></Text>
+      <Text Id="T_PackAVal" Alignment="Right" TypographyId="Value"><Translation Language="GB">&lt;value&gt;</Translation></Text>
+      <Text Id="T_MotorLabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">CELL TEMP</Translation></Text>
+      <Text Id="T_MotorVal" Alignment="Right" TypographyId="Tile"><Translation Language="GB">&lt;value&gt;</Translation></Text>
+      <Text Id="T_IgbtLabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">IGBT TEMP</Translation></Text>
+      <Text Id="T_IgbtVal" Alignment="Right" TypographyId="Tile"><Translation Language="GB">&lt;value&gt;</Translation></Text>
+      <Text Id="T_TorqueLabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">PEDAL</Translation></Text>
       <Text Id="T_TorqueVal" Alignment="Right" TypographyId="Value"><Translation Language="GB">&lt;value&gt;</Translation></Text>
-      <Text Id="T_VoutLabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">APPS1</Translation></Text>
-      <Text Id="T_VoutVal" Alignment="Right" TypographyId="Value"><Translation Language="GB">&lt;value&gt;</Translation></Text>
+      <Text Id="T_VoutLabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">SPEED</Translation></Text>
+      <Text Id="T_VoutVal" Alignment="Center" TypographyId="Large"><Translation Language="GB">&lt;value&gt;</Translation></Text>
+      <Text Id="T_Ain1Label" Alignment="Left" TypographyId="Label"><Translation Language="GB">AIN 1</Translation></Text>
+      <Text Id="T_Ain2Label" Alignment="Left" TypographyId="Label"><Translation Language="GB">AIN 2</Translation></Text>
+      <Text Id="T_SocLabel" Alignment="Left" TypographyId="Label"><Translation Language="GB">SOC</Translation></Text>
+      <Text Id="T_SpeedUnit" Alignment="Center" TypographyId="Label"><Translation Language="GB">km/h</Translation></Text>
+      <Text Id="T_DegC" Alignment="Left" TypographyId="Label"><Translation Language="GB">C</Translation></Text>
+      <!-- Unicode::snprintf 의 "%%" 동작을 이 배포본 소스로 확인할 수 없어(라이브러리만
+           제공됨) 단위는 값과 분리된 정적 라벨로 둔다. V/A 와 같은 방식이다. -->
+      <Text Id="T_Percent" Alignment="Left" TypographyId="Label"><Translation Language="GB">%</Translation></Text>
+      <Text Id="T_Volt" Alignment="Left" TypographyId="Label"><Translation Language="GB">V</Translation></Text>
+      <Text Id="T_Amp" Alignment="Left" TypographyId="Label"><Translation Language="GB">A</Translation></Text>
+      <Text Id="T_Ain1Val" Alignment="Right" TypographyId="Value"><Translation Language="GB">&lt;value&gt;</Translation></Text>
+      <Text Id="T_Ain2Val" Alignment="Right" TypographyId="Value"><Translation Language="GB">&lt;value&gt;</Translation></Text>
     </TextGroup>
   </Texts>
   <Typographies>
-    <Typography Id="Default" Font="verdana.ttf" Size="20" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789.%-xabcdef" />
-    <Typography Id="Large" Font="verdana.ttf" Size="40" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789.%" />
+    <!--
+      운전자가 어두운 환경에서 힐끗 보는 화면이다. 주 수치(RPM)는 다른 어떤
+      요소보다 확실히 커야 해서 64 px 을 따로 둔다.
+
+      WildcardCharacters 는 필요한 글자만 남긴다. 폰트 테이블은 크기의 제곱으로
+      커져서(64 px 숫자 한 글자가 약 1.3 kB) 쓰지 않는 문자를 넣으면 F411 플래시를
+      그냥 버리게 된다. 반대로 여기 없는 문자는 화면에 '?' 로 나오므로, 표시
+      코드에서 쓰는 서식 문자를 바꾸면 이 목록도 같이 고쳐야 한다.
+
+      정적 라벨(WildcardCharacters 없는 Label)은 위 Translation 에 실제로 쓰인
+      글자만 폰트에 들어간다. 라벨 문구를 바꾸면 반드시 assets 재생성이 필요하다.
+    -->
+    <Typography Id="Huge" Font="verdana.ttf" Size="64" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789-" />
+    <Typography Id="Large" Font="verdana.ttf" Size="40" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789.-" />
+    <Typography Id="Tile" Font="verdana.ttf" Size="30" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789.-" />
+    <Typography Id="Default" Font="verdana.ttf" Size="20" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789.%-" />
+    <Typography Id="Value" Font="verdana.ttf" Size="18" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789.%-" />
+    <Typography Id="Label" Font="verdana.ttf" Size="14" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" />
     <Typography Id="Small" Font="verdana.ttf" Size="10" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" />
-    <Typography Id="Label" Font="verdana.ttf" Size="13" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" />
-    <Typography Id="Value" Font="verdana.ttf" Size="16" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789.%-xabcdef" />
   </Typographies>
 </TextDatabase>

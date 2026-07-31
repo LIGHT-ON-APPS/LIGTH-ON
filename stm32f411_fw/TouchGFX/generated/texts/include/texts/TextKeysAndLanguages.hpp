@@ -30,6 +30,16 @@ enum TEXTS
     T_T_TORQUEVAL,
     T_T_VOUTLABEL,
     T_T_VOUTVAL,
+    T_T_AIN1LABEL,
+    T_T_AIN2LABEL,
+    T_T_SOCLABEL,
+    T_T_SPEEDUNIT,
+    T_T_DEGC,
+    T_T_PERCENT,
+    T_T_VOLT,
+    T_T_AMP,
+    T_T_AIN1VAL,
+    T_T_AIN2VAL,
     NUMBER_OF_TEXT_KEYS
 };
 

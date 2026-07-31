@@ -11,16 +11,22 @@ extern "C" {
 
 
 /*
- * L432 -> F411 display status packet, protocol version 1.
+ * L432 -> F411 display packets, protocol version 1.
  *
  * All multi-byte fields are little-endian. Never transmit a C struct directly.
- * CRC-16/CCITT-FALSE covers bytes [0, DISPLAY_PROTOCOL_CRC_OFFSET).
+ * CRC-16/CCITT-FALSE covers bytes [0, length - 2).
+ *
+ * Every packet starts with the same 5-byte preamble so a receiver can frame a
+ * stream it does not fully understand:
  *
  *  0  magic[0]             0x4C ('L')
  *  1  magic[1]             0x4F ('O')
  *  2  protocol version     1
- *  3  message type         1 (APPS status)
- *  4  total packet length  34
+ *  3  message type
+ *  4  total packet length  <- always byte 4, for every type
+ *
+ * Type 1 - APPS status (34 bytes):
+ *
  *  5  state flags
  *  6  sequence             uint16
  *  8  source time          uint32 milliseconds
@@ -33,15 +39,55 @@ extern "C" {
  * 24  current status       uint32 bit mask
  * 28  latched fault        uint32 bit mask
  * 32  CRC16                uint16
+ *
+ * Type 2 - vehicle telemetry (36 bytes). Values decoded from the Orion BMS and
+ * the Bamocar inverter by the L432 telemetry module. Any field whose bit is
+ * clear in the valid mask has never been received, or is stale; the display
+ * must show a placeholder rather than the stale number.
+ *
+ *  5  reserved             0
+ *  6  sequence             uint16
+ *  8  source time          uint32 milliseconds
+ * 12  valid mask           uint32 bit mask
+ * 16  motor speed          int32  rpm
+ * 20  road speed           uint16 0.1 km/h
+ * 22  pack voltage         uint16 0.1 V
+ * 24  pack current         int16  0.1 A   (+ = discharge)
+ * 26  pack SOC             uint16 per-mille
+ * 28  highest cell temp    int16  0.1 degC
+ * 30  IGBT temperature     int16  0.1 degC
+ * 32  motor temperature    int16  0.1 degC
+ * 34  CRC16                uint16
  */
 
 #define DISPLAY_PROTOCOL_MAGIC_0                  0x4CU
 #define DISPLAY_PROTOCOL_MAGIC_1                  0x4FU
 #define DISPLAY_PROTOCOL_VERSION                  1U
 #define DISPLAY_PROTOCOL_TYPE_APPS_STATUS         1U
+#define DISPLAY_PROTOCOL_TYPE_TELEMETRY           2U
 #define DISPLAY_PROTOCOL_PACKET_SIZE              34U
 #define DISPLAY_PROTOCOL_CRC_OFFSET               32U
+#define DISPLAY_PROTOCOL_TELEMETRY_SIZE           36U
+#define DISPLAY_PROTOCOL_TELEMETRY_CRC_OFFSET     34U
 #define DISPLAY_PROTOCOL_PER_MILLE_MAX            1000U
+
+/* Longest packet of any type. Receive buffers must be at least this large;
+ * byte 4 tells the parser how many bytes the packet in flight actually has. */
+#define DISPLAY_PROTOCOL_MAX_PACKET_SIZE          DISPLAY_PROTOCOL_TELEMETRY_SIZE
+
+/* Bit layout mirrors TELEMETRY_SIGNAL_* in stm32l432kc telemetry.h so the L432
+ * can forward its mask unchanged. Keep both in step. */
+#define DISPLAY_PROTOCOL_TLM_PACK_V               (1UL << 0)
+#define DISPLAY_PROTOCOL_TLM_PACK_A               (1UL << 1)
+#define DISPLAY_PROTOCOL_TLM_SOC                  (1UL << 2)
+#define DISPLAY_PROTOCOL_TLM_CELL_TEMP            (1UL << 3)
+#define DISPLAY_PROTOCOL_TLM_RPM                  (1UL << 5)
+#define DISPLAY_PROTOCOL_TLM_MOTOR_TEMP           (1UL << 8)
+#define DISPLAY_PROTOCOL_TLM_IGBT_TEMP            (1UL << 9)
+/* Road speed is derived from rpm, so it needs its own bit: the L432 only sets
+ * it when the drivetrain ratio has actually been configured. Showing a
+ * fabricated speed to a driver is worse than showing nothing. */
+#define DISPLAY_PROTOCOL_TLM_SPEED                (1UL << 16)
 
 #define DISPLAY_PROTOCOL_FLAG_VALID               (1U << 0)
 #define DISPLAY_PROTOCOL_FLAG_CONFIGURED          (1U << 1)
@@ -65,6 +111,21 @@ typedef struct
   uint32_t status;
   uint32_t fault;
 } display_protocol_status_t;
+
+typedef struct
+{
+  uint16_t sequence;
+  uint32_t source_time_ms;
+  uint32_t valid_mask;
+  int32_t  motor_rpm;
+  uint16_t road_speed_dkph;      /* 0.1 km/h */
+  uint16_t pack_dv;              /* 0.1 V    */
+  int16_t  pack_da;              /* 0.1 A    */
+  uint16_t soc_per_mille;
+  int16_t  cell_max_temp_decic;  /* 0.1 degC */
+  int16_t  igbt_temp_decic;      /* 0.1 degC */
+  int16_t  motor_temp_decic;     /* 0.1 degC */
+} display_protocol_telemetry_t;
 
 typedef enum
 {
@@ -241,6 +302,132 @@ static inline display_protocol_result_t displayProtocolDecodeStatus(
   if ((p_status->apps1_per_mille > DISPLAY_PROTOCOL_PER_MILLE_MAX) ||
       (p_status->apps2_per_mille > DISPLAY_PROTOCOL_PER_MILLE_MAX) ||
       (p_status->pedal_per_mille > DISPLAY_PROTOCOL_PER_MILLE_MAX))
+  {
+    return DISPLAY_PROTOCOL_RESULT_RANGE;
+  }
+
+  return DISPLAY_PROTOCOL_RESULT_OK;
+}
+
+/*
+ * Expected total length for a message type, or 0 for a type this build does not
+ * know. A receiver uses this to validate byte 4 before trusting it as a length,
+ * so a corrupted length byte cannot make the parser wait for a packet that will
+ * never arrive.
+ */
+static inline uint8_t displayProtocolSizeForType(uint8_t type)
+{
+  if (type == DISPLAY_PROTOCOL_TYPE_APPS_STATUS)
+  {
+    return DISPLAY_PROTOCOL_PACKET_SIZE;
+  }
+  if (type == DISPLAY_PROTOCOL_TYPE_TELEMETRY)
+  {
+    return DISPLAY_PROTOCOL_TELEMETRY_SIZE;
+  }
+
+  return 0U;
+}
+
+static inline bool displayProtocolEncodeTelemetry(
+    uint8_t *p_packet,
+    size_t packet_size,
+    const display_protocol_telemetry_t *p_telemetry)
+{
+  uint16_t crc;
+
+  if ((p_packet == NULL) ||
+      (p_telemetry == NULL) ||
+      (packet_size < DISPLAY_PROTOCOL_TELEMETRY_SIZE) ||
+      (p_telemetry->soc_per_mille > DISPLAY_PROTOCOL_PER_MILLE_MAX))
+  {
+    return false;
+  }
+
+  p_packet[0] = DISPLAY_PROTOCOL_MAGIC_0;
+  p_packet[1] = DISPLAY_PROTOCOL_MAGIC_1;
+  p_packet[2] = DISPLAY_PROTOCOL_VERSION;
+  p_packet[3] = DISPLAY_PROTOCOL_TYPE_TELEMETRY;
+  p_packet[4] = DISPLAY_PROTOCOL_TELEMETRY_SIZE;
+  p_packet[5] = 0U;
+  displayProtocolPutU16Le(&p_packet[6], p_telemetry->sequence);
+  displayProtocolPutU32Le(&p_packet[8], p_telemetry->source_time_ms);
+  displayProtocolPutU32Le(&p_packet[12], p_telemetry->valid_mask);
+  displayProtocolPutU32Le(&p_packet[16], (uint32_t)p_telemetry->motor_rpm);
+  displayProtocolPutU16Le(&p_packet[20], p_telemetry->road_speed_dkph);
+  displayProtocolPutU16Le(&p_packet[22], p_telemetry->pack_dv);
+  displayProtocolPutU16Le(&p_packet[24], (uint16_t)p_telemetry->pack_da);
+  displayProtocolPutU16Le(&p_packet[26], p_telemetry->soc_per_mille);
+  displayProtocolPutU16Le(&p_packet[28],
+                          (uint16_t)p_telemetry->cell_max_temp_decic);
+  displayProtocolPutU16Le(&p_packet[30],
+                          (uint16_t)p_telemetry->igbt_temp_decic);
+  displayProtocolPutU16Le(&p_packet[32],
+                          (uint16_t)p_telemetry->motor_temp_decic);
+
+  crc = displayProtocolCrc16(p_packet, DISPLAY_PROTOCOL_TELEMETRY_CRC_OFFSET);
+  displayProtocolPutU16Le(&p_packet[DISPLAY_PROTOCOL_TELEMETRY_CRC_OFFSET], crc);
+
+  return true;
+}
+
+static inline display_protocol_result_t displayProtocolDecodeTelemetry(
+    const uint8_t *p_packet,
+    size_t packet_size,
+    display_protocol_telemetry_t *p_telemetry)
+{
+  uint16_t received_crc;
+  uint16_t calculated_crc;
+
+  if ((p_packet == NULL) || (p_telemetry == NULL))
+  {
+    return DISPLAY_PROTOCOL_RESULT_ARGUMENT;
+  }
+  if ((packet_size != DISPLAY_PROTOCOL_TELEMETRY_SIZE) ||
+      (p_packet[4] != DISPLAY_PROTOCOL_TELEMETRY_SIZE))
+  {
+    return DISPLAY_PROTOCOL_RESULT_LENGTH;
+  }
+  if ((p_packet[0] != DISPLAY_PROTOCOL_MAGIC_0) ||
+      (p_packet[1] != DISPLAY_PROTOCOL_MAGIC_1))
+  {
+    return DISPLAY_PROTOCOL_RESULT_MAGIC;
+  }
+  if (p_packet[2] != DISPLAY_PROTOCOL_VERSION)
+  {
+    return DISPLAY_PROTOCOL_RESULT_VERSION;
+  }
+  if (p_packet[3] != DISPLAY_PROTOCOL_TYPE_TELEMETRY)
+  {
+    return DISPLAY_PROTOCOL_RESULT_TYPE;
+  }
+
+  received_crc = displayProtocolGetU16Le(
+      &p_packet[DISPLAY_PROTOCOL_TELEMETRY_CRC_OFFSET]);
+  calculated_crc = displayProtocolCrc16(
+      p_packet,
+      DISPLAY_PROTOCOL_TELEMETRY_CRC_OFFSET);
+  if (received_crc != calculated_crc)
+  {
+    return DISPLAY_PROTOCOL_RESULT_CRC;
+  }
+
+  p_telemetry->sequence = displayProtocolGetU16Le(&p_packet[6]);
+  p_telemetry->source_time_ms = displayProtocolGetU32Le(&p_packet[8]);
+  p_telemetry->valid_mask = displayProtocolGetU32Le(&p_packet[12]);
+  p_telemetry->motor_rpm = (int32_t)displayProtocolGetU32Le(&p_packet[16]);
+  p_telemetry->road_speed_dkph = displayProtocolGetU16Le(&p_packet[20]);
+  p_telemetry->pack_dv = displayProtocolGetU16Le(&p_packet[22]);
+  p_telemetry->pack_da = (int16_t)displayProtocolGetU16Le(&p_packet[24]);
+  p_telemetry->soc_per_mille = displayProtocolGetU16Le(&p_packet[26]);
+  p_telemetry->cell_max_temp_decic =
+      (int16_t)displayProtocolGetU16Le(&p_packet[28]);
+  p_telemetry->igbt_temp_decic =
+      (int16_t)displayProtocolGetU16Le(&p_packet[30]);
+  p_telemetry->motor_temp_decic =
+      (int16_t)displayProtocolGetU16Le(&p_packet[32]);
+
+  if (p_telemetry->soc_per_mille > DISPLAY_PROTOCOL_PER_MILLE_MAX)
   {
     return DISPLAY_PROTOCOL_RESULT_RANGE;
   }

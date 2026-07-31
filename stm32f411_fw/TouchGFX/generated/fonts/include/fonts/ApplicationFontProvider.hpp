@@ -13,21 +13,25 @@ class FlashDataReader;
 
 struct Typography
 {
-    static const touchgfx::FontId DEFAULT = 0;
+    static const touchgfx::FontId HUGE = 0;
     static const touchgfx::FontId LARGE = 1;
-    static const touchgfx::FontId SMALL = 2;
-    static const touchgfx::FontId LABEL = 3;
+    static const touchgfx::FontId TILE = 2;
+    static const touchgfx::FontId DEFAULT = 3;
     static const touchgfx::FontId VALUE = 4;
+    static const touchgfx::FontId LABEL = 5;
+    static const touchgfx::FontId SMALL = 6;
 };
 
 struct TypographyFontIndex
 {
-    static const touchgfx::FontId DEFAULT = 0; // verdana_20_4bpp
+    static const touchgfx::FontId HUGE = 0;    // verdana_64_4bpp
     static const touchgfx::FontId LARGE = 1;   // verdana_40_4bpp
-    static const touchgfx::FontId SMALL = 2;   // verdana_10_4bpp
-    static const touchgfx::FontId LABEL = 3;   // verdana_13_4bpp
-    static const touchgfx::FontId VALUE = 4;   // verdana_16_4bpp
-    static const uint16_t NUMBER_OF_FONTS = 5;
+    static const touchgfx::FontId TILE = 2;    // verdana_30_4bpp
+    static const touchgfx::FontId DEFAULT = 3; // verdana_20_4bpp
+    static const touchgfx::FontId VALUE = 4;   // verdana_18_4bpp
+    static const touchgfx::FontId LABEL = 5;   // verdana_14_4bpp
+    static const touchgfx::FontId SMALL = 6;   // verdana_10_4bpp
+    static const uint16_t NUMBER_OF_FONTS = 7;
 };
 
 class ApplicationFontProvider : public touchgfx::FontProvider

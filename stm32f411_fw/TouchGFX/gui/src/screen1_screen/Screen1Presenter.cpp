@@ -16,6 +16,8 @@ void Screen1Presenter::deactivate()
 
 void Screen1Presenter::updateApps(bool connected,
                                   uint8_t flags,
+                                  uint16_t apps1Raw,
+                                  uint16_t apps2Raw,
                                   uint16_t apps1PerMille,
                                   uint16_t apps2PerMille,
                                   uint16_t pedalPerMille,
@@ -25,10 +27,33 @@ void Screen1Presenter::updateApps(bool connected,
 {
     view.updateApps(connected,
                     flags,
+                    apps1Raw,
+                    apps2Raw,
                     apps1PerMille,
                     apps2PerMille,
                     pedalPerMille,
                     command,
                     status,
                     fault);
+}
+
+void Screen1Presenter::updateTelemetry(bool fresh,
+                                       uint32_t validMask,
+                                       int32_t motorRpm,
+                                       uint16_t speedDkph,
+                                       uint16_t packDv,
+                                       int16_t packDa,
+                                       uint16_t socPerMille,
+                                       int16_t cellTempDecic,
+                                       int16_t igbtTempDecic)
+{
+    view.updateTelemetry(fresh,
+                         validMask,
+                         motorRpm,
+                         speedDkph,
+                         packDv,
+                         packDa,
+                         socPerMille,
+                         cellTempDecic,
+                         igbtTempDecic);
 }
