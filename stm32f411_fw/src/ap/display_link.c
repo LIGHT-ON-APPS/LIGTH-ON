@@ -19,7 +19,6 @@ typedef struct
   uint8_t frame_index;
   uint16_t last_sequence;
   bool has_sequence;
-  uint32_t last_poll_ms;
   uint32_t last_uart_overrun_count;
   display_link_snapshot_t snapshot;
 } display_link_state_t;
@@ -212,7 +211,6 @@ bool displayLinkInit(void)
 
   memset(&display_link, 0, sizeof(display_link));
   ret = uartOpen(DISPLAY_LINK_UART_CH, DISPLAY_LINK_UART_BAUD);
-  display_link.last_poll_ms = millis();
   display_link.last_uart_overrun_count =
       uartGetRxOverrunCount(DISPLAY_LINK_UART_CH);
 
@@ -228,19 +226,13 @@ void displayLinkUpdate(void)
   uint32_t now_ms;
   uint32_t uart_overrun_count;
 
-
-  now_ms = millis();
-  if ((now_ms - display_link.last_poll_ms) >= DISPLAY_LINK_TIMEOUT_MS)
-  {
-    (void)uartFlush(DISPLAY_LINK_UART_CH);
-    displayLinkDisconnect();
-    display_link.last_poll_ms = now_ms;
-    display_link.last_uart_overrun_count =
-        uartGetRxOverrunCount(DISPLAY_LINK_UART_CH);
-    return;
-  }
-  display_link.last_poll_ms = now_ms;
-
+  /*
+   * Drain the circular DMA buffer before checking link age. A full-screen
+   * ILI9488 repaint can keep the bare-metal TouchGFX loop busy for more than
+   * DISPLAY_LINK_TIMEOUT_MS, while the 512-byte UART DMA buffer can still
+   * hold the packets received during that interval. Discarding those bytes
+   * solely because the main loop was late creates a false DATA LOST state.
+   */
   while (uartAvailable(DISPLAY_LINK_UART_CH) > 0U)
   {
     displayLinkPushByte(uartRead(DISPLAY_LINK_UART_CH));

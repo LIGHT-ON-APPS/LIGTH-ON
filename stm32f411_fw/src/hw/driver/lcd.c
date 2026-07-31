@@ -34,11 +34,11 @@
 
 
 
-#define LCD_OPT_DEF   __attribute__((optimize("O2")))
-#define _PIN_DEF_BL_CTL       _DEF_GPIO1
-#define LCD_STRIP_BUF_LINES   8U
-#define LCD_STRIP_BUF_PIXELS  (HW_LCD_WIDTH * LCD_STRIP_BUF_LINES)
-#define LCD_LINE_BUF_PIXELS   ((HW_LCD_WIDTH > HW_LCD_HEIGHT) ? HW_LCD_WIDTH : HW_LCD_HEIGHT)
+#define LCD_OPT_DEF   			__attribute__((optimize("O2")))
+#define _PIN_DEF_BL_CTL       	_DEF_GPIO1
+#define LCD_STRIP_BUF_LINES   	8U
+#define LCD_STRIP_BUF_PIXELS  	(HW_LCD_WIDTH * LCD_STRIP_BUF_LINES)
+#define LCD_LINE_BUF_PIXELS   	((HW_LCD_WIDTH > HW_LCD_HEIGHT) ? HW_LCD_WIDTH : HW_LCD_HEIGHT)
 
 
 typedef struct

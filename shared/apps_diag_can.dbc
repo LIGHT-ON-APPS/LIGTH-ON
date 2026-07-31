@@ -1,0 +1,46 @@
+VERSION "LIGHT_ON APPS diagnostic frames, layout version 1"
+
+
+NS_ :
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	BA_DEF_DEF_
+
+BS_:
+
+BU_: L432 TMA1 BAMOCAR
+
+
+BO_ 1952 APPS_DIAG_RAW: 8 L432
+ SG_ apps1_raw : 0|16@1+ (1,0) [0|65535] "adc" TMA1
+ SG_ apps2_raw : 16|16@1+ (1,0) [0|65535] "adc" TMA1
+ SG_ pedal_per_mille : 32|16@1+ (0.1,0) [0|100] "%" TMA1
+ SG_ flags : 48|8@1+ (1,0) [0|255] "" TMA1
+ SG_ counter : 56|8@1+ (1,0) [0|255] "" TMA1
+
+BO_ 1953 APPS_DIAG_SCALED: 8 L432
+ SG_ apps1_per_mille : 0|16@1+ (0.1,0) [0|100] "%" TMA1
+ SG_ apps2_per_mille : 16|16@1+ (0.1,0) [0|100] "%" TMA1
+ SG_ command_sent : 32|16@1- (1,0) [-32768|32767] "" TMA1
+ SG_ reserved_b : 48|8@1+ (1,0) [0|255] "" TMA1
+ SG_ counter : 56|8@1+ (1,0) [0|255] "" TMA1
+
+BO_ 1954 APPS_DIAG_STATUS: 8 L432
+ SG_ status : 0|16@1+ (1,0) [0|65535] "" TMA1
+ SG_ fault_latched : 16|16@1+ (1,0) [0|65535] "" TMA1
+ SG_ diag_tx_fail_count : 32|16@1+ (1,0) [0|65535] "" TMA1
+ SG_ reserved_c : 48|8@1+ (1,0) [0|255] "" TMA1
+ SG_ counter : 56|8@1+ (1,0) [0|255] "" TMA1
+
+
+CM_ "LIGHT_ON APPS 진단 프레임. 기준 정의는 shared/apps_diag_can.h 이며, 이 DBC 는 CAN analyzer 와 Control Hub decoder 설정용 사본이다. 레이아웃을 바꾸면 둘을 함께 고친다.";
+CM_ BO_ 1952 "0x7A0 20Hz. 원시 ADC 와 최종 페달값.";
+CM_ BO_ 1953 "0x7A1 20Hz. 보정된 위치와 Bamocar 로 보낸 토크 명령.";
+CM_ BO_ 1954 "0x7A2 20Hz. 상태/fault 비트마스크와 진단 송신 실패 누적.";
+CM_ SG_ 1952 counter "세 프레임이 같은 값을 공유한다. 주기 누락 감지용 8bit rolling counter.";
+CM_ SG_ 1952 flags "bit0 VALID, bit1 CONFIGURED, bit2 ADC_OK, bit3 CAN_TX_OK, bit4 CAN_TX_MUTED, bit5 FAULT_LATCHED. 표시 UART 프로토콜과 동일한 비트 배치.";
+CM_ SG_ 1953 command_sent "Bamocar raw torque command. 0x7FFF 가 100%.";
+CM_ SG_ 1954 status "apps_status_t 하위 16bit. 0x01 NOT_CONFIGURED, 0x02 ADC_READ_FAULT, 0x04 SIGNAL1_RANGE_FAULT, 0x08 SIGNAL2_RANGE_FAULT, 0x10 DIFF_FAULT, 0x20 FAULT_LATCHED, 0x40 CAN_TX_FAULT.";
+CM_ SG_ 1954 fault_latched "확정된 fault 의 비트마스크. status 와 같은 비트 정의를 쓴다.";

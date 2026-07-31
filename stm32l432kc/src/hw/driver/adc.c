@@ -431,8 +431,7 @@ uint32_t adcConvMillivolts(uint8_t ch, uint32_t adc_value)
     adc_value = ADC_12BIT_FULL_SCALE;
   }
 
-  return ((adc_value * ADC_REFERENCE_MV) + (ADC_12BIT_FULL_SCALE / 2U)) /
-         ADC_12BIT_FULL_SCALE;
+  return ((adc_value * ADC_REFERENCE_MV) + (ADC_12BIT_FULL_SCALE / 2U)) / ADC_12BIT_FULL_SCALE;
 }
 
 

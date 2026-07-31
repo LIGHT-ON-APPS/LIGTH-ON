@@ -94,6 +94,8 @@
                 "port=SWD",
                 "freq=4000",
                 "-w",
+                "..\\stm32f411_boot\\Debug\\stm32f411_boot.elf",
+                "-w",
                 "Debug\\stm32f411_fw.elf",
                 "-v",
                 "--start"

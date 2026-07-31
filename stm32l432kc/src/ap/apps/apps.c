@@ -23,9 +23,7 @@ typedef struct
   uint16_t raw_min[APPS_ADC_MAX];
   uint16_t raw_max[APPS_ADC_MAX];
   uint16_t raw[APPS_ADC_MAX];
-  uint16_t voltage_mv[APPS_ADC_MAX];
   uint16_t percent_per_mille[APPS_ADC_MAX];
-  uint16_t difference_per_mille;
   uint16_t pedal_per_mille;
   int16_t  command_sent;
   uint32_t status;
@@ -49,12 +47,42 @@ typedef struct
 
 static apps_t apps;
 
+/* appsInit()이 정의보다 앞에서 호출하는 내부 함수들. */
+static bool appsCalibrationIsValid(void);
+static void appsClearFaultTimer(void);
+static void appsAdcCallback(void);
+
 #ifdef _USE_HW_CLI
 static bool apps_command_registered = false;
 
 static void appsCli(cli_args_t *args);
 #endif
 
+bool appsInit(void)
+{
+  memset(&apps, 0, sizeof(apps));
+  appsClearFaultTimer();
+
+  apps.raw_min[APPS_SIGNAL1] = APPS_SIGNAL1_RAW_MIN_DEFAULT;
+  apps.raw_max[APPS_SIGNAL1] = APPS_SIGNAL1_RAW_MAX_DEFAULT;
+  apps.raw_min[APPS_SIGNAL2] = APPS_SIGNAL2_RAW_MIN_DEFAULT;
+  apps.raw_max[APPS_SIGNAL2] = APPS_SIGNAL2_RAW_MAX_DEFAULT;
+
+  apps.configured = appsCalibrationIsValid();
+  apps.initialized = true;
+
+  adcSetUpdateCallback(appsAdcCallback);
+  apps.status = (apps.configured == true) ? APPS_STATUS_OK : APPS_STATUS_NOT_CONFIGURED;
+
+#ifdef _USE_HW_CLI
+  if (apps_command_registered != true)
+  {
+    apps_command_registered = cliAdd("apps", appsCli);
+  }
+#endif
+
+  return true;
+}
 
 /* Calibration is invalid if any channel has the same min and max. */
 static bool appsCalibrationIsValid(void)
@@ -72,40 +100,38 @@ static bool appsCalibrationIsValid(void)
 
 static void appsClearFaultTimer(void)
 {
-  apps.fault_started_ms = 0U;
-  apps.fault_elapsed_ms = 0U;
-  apps.fault_pending_status = APPS_STATUS_OK;
-  apps.fault_latched_status = APPS_STATUS_OK;
-  apps.fault_timer_active = false;
-  apps.fault_latched = false;
+  apps.fault_started_ms 			= 0U;
+  apps.fault_elapsed_ms 			= 0U;
+  apps.fault_pending_status 		= APPS_STATUS_OK;
+  apps.fault_latched_status 		= APPS_STATUS_OK;
+  apps.fault_timer_active 			= false;
+  apps.fault_latched 				= false;
 }
 
 /* Clear stale pedal/valid values after an ADC read failure. */
 static void appsClearLastResult(void)
 {
   memset(apps.raw, 0, sizeof(apps.raw));
-  memset(apps.voltage_mv, 0, sizeof(apps.voltage_mv));
   memset(apps.percent_per_mille, 0, sizeof(apps.percent_per_mille));
 
-  apps.difference_per_mille = 0U;
-  apps.pedal_per_mille = 0U;
-  apps.command_sent = 0;
-  apps.adc_ok = false;
-  apps.valid = false;
-  apps.can_tx_ok = false;
-  apps.can_tx_muted = false;
+  apps.pedal_per_mille 		= 0U;
+  apps.command_sent 		= 0;
+  apps.adc_ok 				= false;
+  apps.valid 				= false;
+  apps.can_tx_ok 			= false;
+  apps.can_tx_muted 		= false;
 }
 
-static uint16_t appsRawToPerMille(uint8_t signal, uint16_t raw, bool *p_range_ok)
+static uint16_t appsRawToDigital(uint8_t signal, uint16_t raw, bool *p_range_ok)
 {
-  int32_t raw_min = apps.raw_min[signal];
-  int32_t raw_max = apps.raw_max[signal];
-  int32_t raw_low = (raw_min < raw_max) ? raw_min : raw_max;
-  int32_t raw_high = (raw_min > raw_max) ? raw_min : raw_max;
-  int32_t span = raw_max - raw_min;
+  int32_t raw_min 	= apps.raw_min[signal];
+  int32_t raw_max 	= apps.raw_max[signal];
+  int32_t raw_low 	= (raw_min < raw_max) ? raw_min : raw_max;
+  int32_t raw_high 	= (raw_min > raw_max) ? raw_min : raw_max;
+  int32_t span 		= raw_max - raw_min;
   int32_t scaled;
 
-  *p_range_ok = true;
+  *p_range_ok 		= true;
 
   if ((int32_t)raw < (raw_low - (int32_t)APPS_RAW_LOW_TOL))
   {
@@ -132,16 +158,18 @@ static uint16_t appsRawToPerMille(uint8_t signal, uint16_t raw, bool *p_range_ok
 
 static void appsAdcCallback(void)
 {
-  bool signal1_range_ok = false;
-  bool signal2_range_ok = false;
+  bool signal1_range_ok 	= false;
+  bool signal2_range_ok 	= false;
   uint16_t signal1_per_mille;
   uint16_t signal2_per_mille;
   uint16_t difference_per_mille;
   int32_t raw_signal1;
   int32_t raw_signal2;
-  uint32_t status = APPS_STATUS_OK;
+  uint32_t status 			= APPS_STATUS_OK;
 
-  if ((apps.initialized != true) || (apps.configured != true))
+  /* Callback is registered only after apps.initialized is set, so it is
+   * always true here; only calibration validity can still be missing. */
+  if (apps.configured != true)
   {
     apps.isr_fault_status = APPS_STATUS_NOT_CONFIGURED;
     apps.isr_fault_active = true;
@@ -159,14 +187,8 @@ static void appsAdcCallback(void)
     return;
   }
 
-  signal1_per_mille =
-      appsRawToPerMille(APPS_SIGNAL1,
-                        (uint16_t)raw_signal1,
-                        &signal1_range_ok);
-  signal2_per_mille =
-      appsRawToPerMille(APPS_SIGNAL2,
-                        (uint16_t)raw_signal2,
-                        &signal2_range_ok);
+  signal1_per_mille 		= appsRawToDigital(APPS_SIGNAL1, (uint16_t)raw_signal1, &signal1_range_ok);
+  signal2_per_mille 		= appsRawToDigital(APPS_SIGNAL2, (uint16_t)raw_signal2, &signal2_range_ok);
 
   if (signal1_range_ok != true)
   {
@@ -241,21 +263,20 @@ static void appsUpdateFaultTimer(uint32_t instant_status)
   }
 }
 
-static bool appsEvaluateRawPair(uint16_t raw_signal1, uint16_t raw_signal2)
+static bool appsEvaluate(uint16_t raw_signal1, uint16_t raw_signal2)
 {
-  bool range_ok[APPS_ADC_MAX] = {false, false};
-  uint32_t instant_status = APPS_STATUS_OK;
-  uint32_t isr_fault_status = apps.isr_fault_status;
-  bool isr_fault_active = apps.isr_fault_active;
+  bool range_ok[APPS_ADC_MAX] 	= {false, false};
+  uint32_t instant_status 		= APPS_STATUS_OK;
+  uint32_t isr_fault_status 	= apps.isr_fault_status;
+  bool 		isr_fault_active 	= apps.isr_fault_active;
+  uint16_t difference_per_mille;
 
-  apps.raw[APPS_SIGNAL1] = raw_signal1;
-  apps.raw[APPS_SIGNAL2] = raw_signal2;
-  apps.voltage_mv[APPS_SIGNAL1] = (uint16_t)adcConvMillivolts(APPS_SIGNAL1_ADC_CH, raw_signal1);
-  apps.voltage_mv[APPS_SIGNAL2] = (uint16_t)adcConvMillivolts(APPS_SIGNAL2_ADC_CH, raw_signal2);
+  apps.raw[APPS_SIGNAL1] 		= raw_signal1;
+  apps.raw[APPS_SIGNAL2] 		= raw_signal2;
 
   apps.percent_per_mille[APPS_SIGNAL1] = 0U;
   apps.percent_per_mille[APPS_SIGNAL2] = 0U;
-  apps.difference_per_mille = 0U;
+
   apps.pedal_per_mille = 0U;
   apps.command_sent = 0;
   apps.adc_ok = true;
@@ -269,10 +290,8 @@ static bool appsEvaluateRawPair(uint16_t raw_signal1, uint16_t raw_signal2)
     return false;
   }
 
-  apps.percent_per_mille[APPS_SIGNAL1] =
-      appsRawToPerMille(APPS_SIGNAL1, raw_signal1, &range_ok[APPS_SIGNAL1]);
-  apps.percent_per_mille[APPS_SIGNAL2] =
-      appsRawToPerMille(APPS_SIGNAL2, raw_signal2, &range_ok[APPS_SIGNAL2]);
+  apps.percent_per_mille[APPS_SIGNAL1] = appsRawToDigital(APPS_SIGNAL1, raw_signal1, &range_ok[APPS_SIGNAL1]);
+  apps.percent_per_mille[APPS_SIGNAL2] = appsRawToDigital(APPS_SIGNAL2, raw_signal2, &range_ok[APPS_SIGNAL2]);
 
   if (range_ok[APPS_SIGNAL1] != true)
   {
@@ -283,21 +302,16 @@ static bool appsEvaluateRawPair(uint16_t raw_signal1, uint16_t raw_signal2)
     instant_status |= APPS_STATUS_SIGNAL2_RANGE_FAULT;
   }
 
-  if (apps.percent_per_mille[APPS_SIGNAL1] >
-      apps.percent_per_mille[APPS_SIGNAL2])
+  if (apps.percent_per_mille[APPS_SIGNAL1] > apps.percent_per_mille[APPS_SIGNAL2])
   {
-    apps.difference_per_mille =
-        apps.percent_per_mille[APPS_SIGNAL1] -
-        apps.percent_per_mille[APPS_SIGNAL2];
+    difference_per_mille = apps.percent_per_mille[APPS_SIGNAL1] - apps.percent_per_mille[APPS_SIGNAL2];
   }
   else
   {
-    apps.difference_per_mille =
-        apps.percent_per_mille[APPS_SIGNAL2] -
-        apps.percent_per_mille[APPS_SIGNAL1];
+    difference_per_mille = apps.percent_per_mille[APPS_SIGNAL2] - apps.percent_per_mille[APPS_SIGNAL1];
   }
 
-  if (apps.difference_per_mille >= APPS_DIFF_MAX)
+  if (difference_per_mille >= APPS_DIFF_MAX)
   {
     instant_status |= APPS_STATUS_DIFF_FAULT;
   }
@@ -307,15 +321,12 @@ static bool appsEvaluateRawPair(uint16_t raw_signal1, uint16_t raw_signal2)
     instant_status |= isr_fault_status;
   }
 
-  apps.pedal_per_mille =
-      (uint16_t)(((uint32_t)apps.percent_per_mille[APPS_SIGNAL1] +
-                  (uint32_t)apps.percent_per_mille[APPS_SIGNAL2]) /
-                 APPS_ADC_MAX);
+  apps.pedal_per_mille = (uint16_t)(((uint32_t)apps.percent_per_mille[APPS_SIGNAL1] +
+                		 (uint32_t)apps.percent_per_mille[APPS_SIGNAL2]) / APPS_ADC_MAX);
 
   appsUpdateFaultTimer(instant_status);
 
-  if ((instant_status == APPS_STATUS_OK) &&
-      (apps.fault_latched != true))
+  if ((instant_status == APPS_STATUS_OK) && (apps.fault_latched != true))
   {
     apps.valid = true;
   }
@@ -323,32 +334,6 @@ static bool appsEvaluateRawPair(uint16_t raw_signal1, uint16_t raw_signal2)
   return true;
 }
 
-
-bool appsInit(void)
-{
-  memset(&apps, 0, sizeof(apps));
-  appsClearFaultTimer();
-
-  apps.raw_min[APPS_SIGNAL1] = APPS_SIGNAL1_RAW_MIN_DEFAULT;
-  apps.raw_max[APPS_SIGNAL1] = APPS_SIGNAL1_RAW_MAX_DEFAULT;
-  apps.raw_min[APPS_SIGNAL2] = APPS_SIGNAL2_RAW_MIN_DEFAULT;
-  apps.raw_max[APPS_SIGNAL2] = APPS_SIGNAL2_RAW_MAX_DEFAULT;
-  apps.configured = appsCalibrationIsValid();
-
-  apps.initialized = true;
-  adcSetUpdateCallback(appsAdcCallback);
-  apps.status =
-      (apps.configured == true) ? APPS_STATUS_OK : APPS_STATUS_NOT_CONFIGURED;
-
-#ifdef _USE_HW_CLI
-  if (apps_command_registered != true)
-  {
-    apps_command_registered = cliAdd("apps", appsCli);
-  }
-#endif
-
-  return true;
-}
 
 bool appsSetConfig(uint16_t signal1_raw_min,
                    uint16_t signal1_raw_max,
@@ -386,22 +371,20 @@ bool appsGetSnapshot(apps_snapshot_t *p_snapshot)
     return false;
   }
 
-  p_snapshot->raw[APPS_SIGNAL1] = apps.raw[APPS_SIGNAL1];
-  p_snapshot->raw[APPS_SIGNAL2] = apps.raw[APPS_SIGNAL2];
-  p_snapshot->percent_per_mille[APPS_SIGNAL1] =
-      apps.percent_per_mille[APPS_SIGNAL1];
-  p_snapshot->percent_per_mille[APPS_SIGNAL2] =
-      apps.percent_per_mille[APPS_SIGNAL2];
-  p_snapshot->pedal_per_mille = apps.pedal_per_mille;
-  p_snapshot->command_sent = apps.command_sent;
-  p_snapshot->status = apps.status;
-  p_snapshot->fault_latched_status = apps.fault_latched_status;
-  p_snapshot->adc_ok = apps.adc_ok;
-  p_snapshot->valid = apps.valid;
-  p_snapshot->can_tx_ok = apps.can_tx_ok;
-  p_snapshot->can_tx_muted = apps.can_tx_muted;
-  p_snapshot->fault_latched = apps.fault_latched;
-  p_snapshot->configured = apps.configured;
+  p_snapshot->raw[APPS_SIGNAL1] 				= apps.raw[APPS_SIGNAL1];
+  p_snapshot->raw[APPS_SIGNAL2] 				= apps.raw[APPS_SIGNAL2];
+  p_snapshot->percent_per_mille[APPS_SIGNAL1] 	= apps.percent_per_mille[APPS_SIGNAL1];
+  p_snapshot->percent_per_mille[APPS_SIGNAL2] 	= apps.percent_per_mille[APPS_SIGNAL2];
+  p_snapshot->pedal_per_mille 					= apps.pedal_per_mille;
+  p_snapshot->command_sent 						= apps.command_sent;
+  p_snapshot->status 							= apps.status;
+  p_snapshot->fault_latched_status 				= apps.fault_latched_status;
+  p_snapshot->adc_ok 							= apps.adc_ok;
+  p_snapshot->valid 							= apps.valid;
+  p_snapshot->can_tx_ok 						= apps.can_tx_ok;
+  p_snapshot->can_tx_muted 						= apps.can_tx_muted;
+  p_snapshot->fault_latched 					= apps.fault_latched;
+  p_snapshot->configured 						= apps.configured;
 
   return true;
 }
@@ -439,7 +422,7 @@ static bool appsUpdate(void)
     return false;
   }
 
-  return appsEvaluateRawPair((uint16_t)raw_signal1, (uint16_t)raw_signal2);
+  return appsEvaluate((uint16_t)raw_signal1, (uint16_t)raw_signal2);
 }
 
 static bool appsSendCommand(int16_t prepared_command)
@@ -532,6 +515,7 @@ static void appsCli(cli_args_t *args)
       uint32_t status;
       uint16_t signal1_voltage_mv;
       uint16_t signal2_voltage_mv;
+      uint16_t difference_per_mille;
 
       if ((show == true) && (cliKeepLoop() != true))
       {
@@ -540,12 +524,23 @@ static void appsCli(cli_args_t *args)
 
       (void)appsRunPedalCommand();
 
-      signal1_voltage_mv = apps.voltage_mv[APPS_SIGNAL1];
-      signal2_voltage_mv = apps.voltage_mv[APPS_SIGNAL2];
+      signal1_voltage_mv = (uint16_t)adcConvMillivolts(APPS_SIGNAL1_ADC_CH,
+                                                       apps.raw[APPS_SIGNAL1]);
+      signal2_voltage_mv = (uint16_t)adcConvMillivolts(APPS_SIGNAL2_ADC_CH,
+                                                       apps.raw[APPS_SIGNAL2]);
+      if (apps.percent_per_mille[APPS_SIGNAL1] > apps.percent_per_mille[APPS_SIGNAL2])
+      {
+        difference_per_mille = apps.percent_per_mille[APPS_SIGNAL1] -
+                               apps.percent_per_mille[APPS_SIGNAL2];
+      }
+      else
+      {
+        difference_per_mille = apps.percent_per_mille[APPS_SIGNAL2] -
+                               apps.percent_per_mille[APPS_SIGNAL1];
+      }
       status = apps.status;
 
-      cliPrintf("signal1 : raw=%u, %u.%03uV, %u.%u%%\n",
-                apps.raw[APPS_SIGNAL1],
+      cliPrintf("signal1 : raw=%u, %u.%03uV, %u.%u%%\n", apps.raw[APPS_SIGNAL1],
                 signal1_voltage_mv / 1000U,
                 signal1_voltage_mv % 1000U,
                 apps.percent_per_mille[APPS_SIGNAL1] / 10U,
@@ -557,8 +552,8 @@ static void appsCli(cli_args_t *args)
                 apps.percent_per_mille[APPS_SIGNAL2] / 10U,
                 apps.percent_per_mille[APPS_SIGNAL2] % 10U);
       cliPrintf("difference : %u.%u%%\n",
-                apps.difference_per_mille / 10U,
-                apps.difference_per_mille % 10U);
+                difference_per_mille / 10U,
+                difference_per_mille % 10U);
       cliPrintf("pedal : %u.%u%%\n",
                 apps.pedal_per_mille / 10U,
                 apps.pedal_per_mille % 10U);
