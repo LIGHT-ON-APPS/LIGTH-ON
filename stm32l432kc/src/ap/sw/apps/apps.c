@@ -3,6 +3,7 @@
  */
 
 #include "apps.h"
+#include "gpio.h"
 
 #ifdef _USE_HW_CLI
 #include "cli.h"
@@ -22,6 +23,8 @@ typedef struct
 {
   uint16_t raw_min[APPS_ADC_MAX];
   uint16_t raw_max[APPS_ADC_MAX];
+  uint16_t valid_raw_min[APPS_ADC_MAX];
+  uint16_t valid_raw_max[APPS_ADC_MAX];
   uint16_t raw[APPS_ADC_MAX];
   uint16_t percent_per_mille[APPS_ADC_MAX];
   uint16_t pedal_per_mille;
@@ -51,6 +54,7 @@ static apps_t apps;
 static bool appsCalibrationIsValid(void);
 static void appsClearFaultTimer(void);
 static void appsAdcCallback(void);
+static void appsUpdateReadyGpio(void);
 
 #ifdef _USE_HW_CLI
 static bool apps_command_registered = false;
@@ -67,12 +71,17 @@ bool appsInit(void)
   apps.raw_max[APPS_SIGNAL1] = APPS_SIGNAL1_RAW_MAX_DEFAULT;
   apps.raw_min[APPS_SIGNAL2] = APPS_SIGNAL2_RAW_MIN_DEFAULT;
   apps.raw_max[APPS_SIGNAL2] = APPS_SIGNAL2_RAW_MAX_DEFAULT;
+  apps.valid_raw_min[APPS_SIGNAL1] = APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT;
+  apps.valid_raw_max[APPS_SIGNAL1] = APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT;
+  apps.valid_raw_min[APPS_SIGNAL2] = APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT;
+  apps.valid_raw_max[APPS_SIGNAL2] = APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT;
 
   apps.configured = appsCalibrationIsValid();
   apps.initialized = true;
 
   adcSetUpdateCallback(appsAdcCallback);
   apps.status = (apps.configured == true) ? APPS_STATUS_OK : APPS_STATUS_NOT_CONFIGURED;
+  appsUpdateReadyGpio();
 
 #ifdef _USE_HW_CLI
   if (apps_command_registered != true)
@@ -89,7 +98,8 @@ static bool appsCalibrationIsValid(void)
 {
   for (uint8_t i = 0; i < APPS_ADC_MAX; i++)
   {
-    if (apps.raw_min[i] == apps.raw_max[i])
+    if ((apps.raw_min[i] == apps.raw_max[i]) ||
+        (apps.valid_raw_min[i] > apps.valid_raw_max[i]))
     {
       return false;
     }
@@ -106,6 +116,17 @@ static void appsClearFaultTimer(void)
   apps.fault_latched_status 		= APPS_STATUS_OK;
   apps.fault_timer_active 			= false;
   apps.fault_latched 				= false;
+}
+
+/* Fail-safe status output: both APPS plausibility and the latest CAN TX must pass. */
+static void appsUpdateReadyGpio(void)
+{
+  bool ready = (apps.valid == true) &&
+               (apps.can_tx_ok == true) &&
+               (apps.can_tx_muted != true) &&
+               (apps.status == APPS_STATUS_OK);
+
+  gpioPinWrite(APPS_READY_GPIO_CH, ready);
 }
 
 /* Clear stale pedal/valid values after an ADC read failure. */
@@ -126,21 +147,11 @@ static uint16_t appsRawToDigital(uint8_t signal, uint16_t raw, bool *p_range_ok)
 {
   int32_t raw_min 	= apps.raw_min[signal];
   int32_t raw_max 	= apps.raw_max[signal];
-  int32_t raw_low 	= (raw_min < raw_max) ? raw_min : raw_max;
-  int32_t raw_high 	= (raw_min > raw_max) ? raw_min : raw_max;
   int32_t span 		= raw_max - raw_min;
   int32_t scaled;
 
-  *p_range_ok 		= true;
-
-  if ((int32_t)raw < (raw_low - (int32_t)APPS_RAW_LOW_TOL))
-  {
-    *p_range_ok = false;
-  }
-  if ((int32_t)raw > (raw_high + (int32_t)APPS_RAW_HIGH_TOL))
-  {
-    *p_range_ok = false;
-  }
+  *p_range_ok = (raw >= apps.valid_raw_min[signal]) &&
+                (raw <= apps.valid_raw_max[signal]);
 
   scaled = (((int32_t)raw - raw_min) * (int32_t)APPS_PER_MILLE_MAX) / span;
 
@@ -362,6 +373,7 @@ void appsClearFault(void)
   apps.can_tx_muted = false;
   apps.status =
       (apps.configured == true) ? APPS_STATUS_OK : APPS_STATUS_NOT_CONFIGURED;
+  appsUpdateReadyGpio();
 }
 
 bool appsGetSnapshot(apps_snapshot_t *p_snapshot)
@@ -498,6 +510,8 @@ bool appsRunPedalCommand(void)
   int16_t pedal_command       = appsMakePedalCommand();
   bool can_result             = appsSendCommand(pedal_command);
 
+  appsUpdateReadyGpio();
+
   return adc_result && can_result;
 }
 
@@ -569,6 +583,8 @@ static void appsCli(cli_args_t *args)
         cliPrintf("can tx : %s\n", apps.can_tx_ok ? "ok" : "fail");
       }
       cliPrintf("valid : %s\n", apps.valid ? "true" : "false");
+      cliPrintf("ready gpio : %s\n",
+                gpioPinRead(APPS_READY_GPIO_CH) ? "true" : "false");
       cliPrintf("fault timer : %lums / %lums\n",
                 (unsigned long)apps.fault_elapsed_ms,
                 (unsigned long)APPS_FAULT_MS);
@@ -639,9 +655,12 @@ static void appsCli(cli_args_t *args)
               APPS_SIGNAL2_ADC_CH,
               apps.raw_min[APPS_SIGNAL2],
               apps.raw_max[APPS_SIGNAL2]);
-    cliPrintf("raw margin : -%u/+%u\n",
-              APPS_RAW_LOW_TOL,
-              APPS_RAW_HIGH_TOL);
+    cliPrintf("signal1 valid raw : %u..%u\n",
+              apps.valid_raw_min[APPS_SIGNAL1],
+              apps.valid_raw_max[APPS_SIGNAL1]);
+    cliPrintf("signal2 valid raw : %u..%u\n",
+              apps.valid_raw_min[APPS_SIGNAL2],
+              apps.valid_raw_max[APPS_SIGNAL2]);
     cliPrintf("can channel : %u\n", APPS_CAN_CH);
     cliPrintf("max difference : %u.%u%%\n",
               APPS_DIFF_MAX / 10U,

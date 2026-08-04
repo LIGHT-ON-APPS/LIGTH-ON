@@ -22,8 +22,7 @@ typedef struct
 
 button_tbl_t gpio_tbl[GPIO_MAX_CH] =
 {
-    {GPIOA, GPIO_PIN_7, _DEF_OUTPUT , GPIO_PIN_SET, GPIO_PIN_RESET, _DEF_LOW},                  // 1. 아날로그 사용시
-    {GPIOB, GPIO_PIN_0, _DEF_OUTPUT , GPIO_PIN_SET, GPIO_PIN_RESET, _DEF_LOW},                  // 2. Reserved GPIO
+    {GPIOA, GPIO_PIN_7, _DEF_OUTPUT , GPIO_PIN_SET, GPIO_PIN_RESET, _DEF_LOW},                  // 1. APPS valid + CAN TX OK
 };
 
 #ifdef _USE_HW_CLI

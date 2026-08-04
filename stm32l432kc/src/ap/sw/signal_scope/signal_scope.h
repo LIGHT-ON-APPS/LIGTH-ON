@@ -4,8 +4,8 @@
  * UART CSV scope for ADC bring-up.
  */
 
-#ifndef SRC_AP_SIGNAL_SCOPE_SIGNAL_SCOPE_H_
-#define SRC_AP_SIGNAL_SCOPE_SIGNAL_SCOPE_H_
+#ifndef SRC_AP_SW_SIGNAL_SCOPE_SIGNAL_SCOPE_H_
+#define SRC_AP_SW_SIGNAL_SCOPE_SIGNAL_SCOPE_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,4 +39,4 @@ void scopeUpdate(void);
 }
 #endif
 
-#endif /* SRC_AP_SIGNAL_SCOPE_SIGNAL_SCOPE_H_ */
+#endif /* SRC_AP_SW_SIGNAL_SCOPE_SIGNAL_SCOPE_H_ */

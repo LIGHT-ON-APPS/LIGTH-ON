@@ -11,11 +11,14 @@
 5. CAN standard frame, ID `0x201`, DLC `3`, payload `{0x90, torque_lsb, torque_msb}` 전송
 6. fault 또는 not configured 상태에서는 torque command `0` 전송
 
-## 현재 넣어둔 파일
+## 현재 소프트웨어 구조
 
-- `src/ap/apps/apps.h`, `apps.c`: APPS 구조체와 상태는 `apps.c` 내부 전역변수로 관리합니다. 외부에서는 채널, 보정값, torque command 같은 값만 함수 인자로 전달합니다.
+- `src/ap/ap.c`: `apInit()`의 초기화 호출과 `apMain()`의 실행 호출만 담당합니다.
+- `src/ap/ap_runtime.c`: APPS 주기 실행, 서비스 모드, 표시 UART, 진단 CAN, Bamocar 요청을 통합 관리합니다.
+- `src/ap/sw/apps/apps.h`, `apps.c`: APPS 구조체와 상태는 `apps.c` 내부 전역변수로 관리합니다. 외부에서는 채널, 보정값, torque command 같은 값만 함수 인자로 전달합니다.
 - APPS CLI 출력과 런타임 보정 명령은 `apps.c` 안에서 같이 관리합니다.
-- `src/ap/apps/bamocar_can.h`, `bamocar_can.c`: Bamocar D3의 16-bit register write/read request CAN payload를 만드는 작은 헬퍼입니다.
+- `src/ap/sw/apps/bamocar_can.h`, `bamocar_can.c`: Bamocar D3의 16-bit register write/read request CAN payload를 만드는 작은 헬퍼입니다.
+- `src/ap/sw/signal_scope`, `src/ap/sw/telemetry`: 신호 스코프와 차량 텔레메트리 소프트웨어 모듈입니다.
 
 ## 먼저 확정해야 할 하드웨어
 

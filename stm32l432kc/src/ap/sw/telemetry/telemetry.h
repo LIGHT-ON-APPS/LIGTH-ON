@@ -4,8 +4,8 @@
  * CAN decoder/snapshot service with optional FatFS CSV logging.
  */
 
-#ifndef SRC_AP_TELEMETRY_TELEMETRY_H_
-#define SRC_AP_TELEMETRY_TELEMETRY_H_
+#ifndef SRC_AP_SW_TELEMETRY_TELEMETRY_H_
+#define SRC_AP_SW_TELEMETRY_TELEMETRY_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -98,4 +98,4 @@ const char *telemetryResultToString(FRESULT result);
 }
 #endif
 
-#endif /* SRC_AP_TELEMETRY_TELEMETRY_H_ */
+#endif /* SRC_AP_SW_TELEMETRY_TELEMETRY_H_ */

@@ -4,7 +4,7 @@
 
 #include "telemetry.h"
 
-#include "apps/bamocar_can.h"
+#include "sw/apps/bamocar_can.h"
 #include "cli.h"
 
 #ifdef _USE_HW_FATFS

@@ -6,8 +6,8 @@
  * APPS control logic.
  */
 
-#ifndef SRC_AP_APPS_BAMOCAR_CAN_H_
-#define SRC_AP_APPS_BAMOCAR_CAN_H_
+#ifndef SRC_AP_SW_APPS_BAMOCAR_CAN_H_
+#define SRC_AP_SW_APPS_BAMOCAR_CAN_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,4 +51,4 @@ bool bamocarCanSendTorqueCmd(uint8_t can_ch, int16_t torque_cmd);
 }
 #endif
 
-#endif /* SRC_AP_APPS_BAMOCAR_CAN_H_ */
+#endif /* SRC_AP_SW_APPS_BAMOCAR_CAN_H_ */

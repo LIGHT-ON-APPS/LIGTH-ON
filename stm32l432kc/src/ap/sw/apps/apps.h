@@ -4,8 +4,8 @@
  * Accelerator Pedal Position Sensor application logic.
  */
 
-#ifndef SRC_AP_APPS_APPS_H_
-#define SRC_AP_APPS_APPS_H_
+#ifndef SRC_AP_SW_APPS_APPS_H_
+#define SRC_AP_SW_APPS_APPS_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,17 +24,19 @@ extern "C" {
 
 #define APPS_CAN_CH                        _DEF_CAN1
 
+/* High only while APPS plausibility is valid and the latest CAN TX succeeds. */
+#define APPS_READY_GPIO_CH                 _DEF_GPIO1
+
 #define APPS_SIGNAL1_RAW_MIN_DEFAULT       0U
 #define APPS_SIGNAL1_RAW_MAX_DEFAULT       3102U      //2.5v
 #define APPS_SIGNAL2_RAW_MIN_DEFAULT       0U
 #define APPS_SIGNAL2_RAW_MAX_DEFAULT       4095U      //3.3v
 
-
-/* ADC raw tolerance below calibrated min. Unit: ADC count. */
-#define APPS_RAW_LOW_TOL                   80U
-
-/* ADC raw tolerance above calibrated max. Unit: ADC count. */
-#define APPS_RAW_HIGH_TOL                  80U
+/* Independent electrical plausibility limits (initially 10%..90%). */
+#define APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT 310U
+#define APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT 2792U
+#define APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT 410U
+#define APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT 3685U
 
 /* Max allowed APPS1/APPS2 difference. Unit: per-mille, 100 = 10.0%. */
 #define APPS_DIFF_MAX                      100U
@@ -98,4 +100,4 @@ bool appsRunPedalCommand(void);
 }
 #endif
 
-#endif /* SRC_AP_APPS_APPS_H_ */
+#endif /* SRC_AP_SW_APPS_APPS_H_ */

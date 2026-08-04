@@ -75,8 +75,9 @@ extern "C" {
  * byte 4 tells the parser how many bytes the packet in flight actually has. */
 #define DISPLAY_PROTOCOL_MAX_PACKET_SIZE          DISPLAY_PROTOCOL_TELEMETRY_SIZE
 
-/* Bit layout mirrors TELEMETRY_SIGNAL_* in stm32l432kc telemetry.h so the L432
- * can forward its mask unchanged. Keep both in step. */
+/* Bit layout mirrors TELEMETRY_SIGNAL_* in
+ * stm32l432kc/src/ap/sw/telemetry/telemetry.h so the L432 can forward its mask
+ * unchanged. Keep both in step. */
 #define DISPLAY_PROTOCOL_TLM_PACK_V               (1UL << 0)
 #define DISPLAY_PROTOCOL_TLM_PACK_A               (1UL << 1)
 #define DISPLAY_PROTOCOL_TLM_SOC                  (1UL << 2)
