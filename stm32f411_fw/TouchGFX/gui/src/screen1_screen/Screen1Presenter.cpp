@@ -45,7 +45,8 @@ void Screen1Presenter::updateTelemetry(bool fresh,
                                        int16_t packDa,
                                        uint16_t socPerMille,
                                        int16_t cellTempDecic,
-                                       int16_t igbtTempDecic)
+                                       int16_t igbtTempDecic,
+                                       int16_t motorTempDecic)
 {
     view.updateTelemetry(fresh,
                          validMask,
@@ -55,5 +56,6 @@ void Screen1Presenter::updateTelemetry(bool fresh,
                          packDa,
                          socPerMille,
                          cellTempDecic,
-                         igbtTempDecic);
+                         igbtTempDecic,
+                         motorTempDecic);
 }

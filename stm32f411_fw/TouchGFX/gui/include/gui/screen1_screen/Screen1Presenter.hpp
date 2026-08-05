@@ -32,7 +32,8 @@ public:
                                  int16_t packDa,
                                  uint16_t socPerMille,
                                  int16_t cellTempDecic,
-                                 int16_t igbtTempDecic);
+                                 int16_t igbtTempDecic,
+                                       int16_t motorTempDecic);
     virtual ~Screen1Presenter() {}
 
 private:

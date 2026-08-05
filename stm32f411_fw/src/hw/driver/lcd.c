@@ -73,6 +73,7 @@ static lcd_pixel_t lcd_line_buf[LCD_LINE_BUF_PIXELS];
 
 
 static volatile bool requested_from_thread = false;
+static void (*transfer_done_callback)(void) = NULL;
 
 
 
@@ -98,6 +99,28 @@ void TransferDoneISR(void)
   }
 
   lcd_request_draw = false;
+
+  /* 부분 프레임버퍼로 그리는 쪽에 블록 하나가 나갔음을 알린다. 이걸 받아야
+   * 다음 블록을 넘겨준다. 인터럽트 문맥이므로 콜백은 짧아야 한다. */
+  if (transfer_done_callback != NULL)
+  {
+    transfer_done_callback();
+  }
+}
+
+void lcdSetTransferDoneCallBack(void (*p_func)(void))
+{
+  transfer_done_callback = p_func;
+}
+
+bool lcdIsTxBusy(void)
+{
+  if (lcd.isTxBusy == NULL)
+  {
+    return false;
+  }
+
+  return lcd.isTxBusy();
 }
 
 

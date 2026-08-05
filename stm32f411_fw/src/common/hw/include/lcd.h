@@ -61,6 +61,9 @@ typedef struct lcd_driver_t_
   uint16_t (*getHeight)(void);
   bool     (*setCallBack)(void (*p_func)(void));
   bool     (*sendBuffer)(uint8_t *p_data, uint32_t length, uint32_t timeout_ms);
+  /* sendBuffer 가 비동기(DMA)로 도는 드라이버는 아직 전송 중인지 알려 준다.
+   * 없으면(NULL) sendBuffer 가 돌아온 시점에 전송이 끝난 것으로 본다. */
+  bool     (*isTxBusy)(void);
 
 } lcd_driver_t;
 
@@ -84,6 +87,11 @@ bool lcdRequestDraw(void);
 void lcdUpdateDraw(void);
 bool lcdSetWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 bool lcdSendBuffer(uint8_t *p_data, uint32_t length, uint32_t timeout_ms);
+/* lcdSendBuffer 로 넘긴 블록이 아직 화면으로 나가는 중인지. */
+bool lcdIsTxBusy(void);
+/* 블록 전송이 끝날 때 불릴 콜백. 부분 프레임버퍼로 그리는 쪽이 다음 블록을
+ * 언제 보낼 수 있는지 알기 위해 쓴다. 인터럽트 문맥에서 불린다. */
+void lcdSetTransferDoneCallBack(void (*p_func)(void));
 bool lcdDrawRectBuffer(int16_t x, int16_t y, int16_t w, int16_t h, lcd_render_func_t p_func, void *p_arg);
 void lcdDisplayOff(void);
 void lcdDisplayOn(void);

@@ -1,7 +1,7 @@
 /*
  * telemetry.h
  *
- * CAN decoder/snapshot service with optional FatFS CSV logging.
+ * Orion/Bamocar CAN decoder and vehicle-signal snapshot service.
  */
 
 #ifndef SRC_AP_SW_TELEMETRY_TELEMETRY_H_
@@ -12,13 +12,6 @@ extern "C" {
 #endif
 
 #include "hw_def.h"
-#include "can.h"
-
-#ifdef _USE_HW_FATFS
-#include "ff.h"
-
-#define TELEMETRY_PATH_LEN  32
-#endif
 
 #define TELEMETRY_SIGNAL_BMS_PACK_MV              (1UL << 0)
 #define TELEMETRY_SIGNAL_BMS_PACK_MA              (1UL << 1)
@@ -33,36 +26,10 @@ extern "C" {
 #define TELEMETRY_SIGNAL_BAMOCAR_STATUS           (1UL << 10)
 #define TELEMETRY_SIGNAL_BAMOCAR_ERROR_WARNING    (1UL << 11)
 
-typedef enum
-{
-  TELEMETRY_STATE_STOPPED,
-  TELEMETRY_STATE_MOUNTED,
-  TELEMETRY_STATE_LOGGING,
-  TELEMETRY_STATE_ERROR,
-} telemetry_state_t;
-
-#ifdef _USE_HW_FATFS
-typedef struct
-{
-  telemetry_state_t state;
-  uint8_t  can_ch;
-  uint32_t lines_written;
-  uint32_t bytes_written;
-  uint32_t sync_count;
-  uint32_t write_error_count;
-  FRESULT  last_result;
-  char     path[TELEMETRY_PATH_LEN];
-  char     signal_path[TELEMETRY_PATH_LEN];
-  uint32_t signal_lines_written;
-  uint32_t signal_bytes_written;
-} telemetry_info_t;
-#endif
-
 typedef struct
 {
   uint32_t valid_mask;
   uint32_t last_update_ms;
-  bool     logging;
   uint8_t  can_ch;
 
   int32_t  bms_pack_mv;
@@ -82,17 +49,7 @@ typedef struct
 
 bool telemetryInit(void);
 void telemetryUpdate(void);
-bool telemetryLogCan(const can_msg_t *p_msg);
 bool telemetryGetSignalSnapshot(telemetry_signal_snapshot_t *p_snapshot);
-
-#ifdef _USE_HW_FATFS
-bool telemetryMount(void);
-bool telemetryStart(uint8_t can_ch, const char *path);
-void telemetryStop(void);
-bool telemetryIsLogging(void);
-void telemetryGetInfo(telemetry_info_t *p_info);
-const char *telemetryResultToString(FRESULT result);
-#endif
 
 #ifdef __cplusplus
 }

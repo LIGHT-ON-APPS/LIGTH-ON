@@ -23,6 +23,19 @@
 #define ILI9488_TX_CHUNK_BYTES               (ILI9488_TX_CHUNK_PIXELS * 3U)
 #define ILI9488_SPI_TIMEOUT_MS                1000U
 
+/*
+ * 비동기 전송용 변환 버퍼.
+ *
+ * ILI9488 은 SPI 에서 16bpp 를 받지 못하므로(데이터시트상 16-bit/pixel 은 병렬
+ * 인터페이스 전용) RGB565 프레임버퍼를 픽셀당 3바이트 RGB666 으로 풀어서 보내야
+ * 한다. 그 변환 결과를 통째로 담아 DMA 에 넘기기 위한 버퍼다.
+ *
+ * 크기는 TouchGFX 부분 프레임버퍼의 블록 크기(1920 픽셀)에 맞춘다. 블록 하나가
+ * 한 번의 DMA 로 나가야, 전송이 도는 동안 CPU 가 다음 블록을 그릴 수 있다.
+ */
+#define ILI9488_TX_BUF_PIXELS                4800U
+#define ILI9488_TX_BUF_BYTES                 (ILI9488_TX_BUF_PIXELS * 3U)
+
 #define MADCTL_MY                            ILI9488_MADCTL_MY
 #define MADCTL_MX                            ILI9488_MADCTL_MX
 #define MADCTL_MV                            ILI9488_MADCTL_MV
@@ -36,6 +49,7 @@ static uint8_t spi_ch = ILI9488_SPI_CH;
 
 static void (*frameCallBack)(void) = NULL;
 volatile static bool is_write_frame = false;
+static uint8_t tx_buf[ILI9488_TX_BUF_BYTES];
 
 
 static bool writecommand(uint8_t c);
@@ -78,6 +92,7 @@ bool ili9488InitDriver(lcd_driver_t *p_driver)
   p_driver->getHeight   = ili9488GetHeight;
   p_driver->setCallBack = ili9488SetCallBack;
   p_driver->sendBuffer  = ili9488SendBuffer;
+  p_driver->isTxBusy    = ili9488IsTxBusy;
 
   return true;
 }
@@ -346,6 +361,20 @@ bool ili9488SetRotation(uint8_t mode)
 
 bool ili9488SetWindow(int32_t x0, int32_t y0, int32_t x1, int32_t y1)
 {
+  /* 창 설정은 SPI 로 명령을 직접 밀어 넣는다. 앞 블록의 DMA 가 아직 SPI 를 물고
+   * 있으면 그 위에 겹쳐 써서 화면이 어긋나므로 먼저 비워지길 기다린다. */
+  {
+    uint32_t start_ms = millis();
+
+    while (ili9488IsTxBusy() == true)
+    {
+      if ((millis() - start_ms) >= ILI9488_SPI_TIMEOUT_MS)
+      {
+        return false;
+      }
+    }
+  }
+
   x0 = constrain(x0, 0, HW_LCD_WIDTH - 1);
   x1 = constrain(x1, 0, HW_LCD_WIDTH - 1);
   y0 = constrain(y0, 0, HW_LCD_HEIGHT - 1);
@@ -385,11 +414,47 @@ bool ili9488SetWindow(int32_t x0, int32_t y0, int32_t x1, int32_t y1)
   return true;
 }
 
+/* RGB565 한 픽셀을 ILI9488 이 받는 RGB666 3바이트로 편다. */
+static uint32_t ili9488Expand(const uint16_t *p_color,
+                              uint8_t *p_out,
+                              uint32_t pixels)
+{
+  uint32_t tx_len = 0;
+
+  for (uint32_t i = 0; i < pixels; i++)
+  {
+    uint16_t color = *p_color++;
+    uint8_t r = (uint8_t)((color >> 11) & 0x1FU);
+    uint8_t g = (uint8_t)((color >> 5) & 0x3FU);
+    uint8_t b = (uint8_t)(color & 0x1FU);
+
+    p_out[tx_len++] = (uint8_t)((r << 3) | (r >> 2));
+    p_out[tx_len++] = (uint8_t)((g << 2) | (g >> 4));
+    p_out[tx_len++] = (uint8_t)((b << 3) | (b >> 2));
+  }
+
+  return tx_len;
+}
+
+bool ili9488IsTxBusy(void)
+{
+  return (is_write_frame == true) && (spiDmaTxIsDone(spi_ch) != true);
+}
+
+/*
+ * 한 블록을 화면으로 내보낸다.
+ *
+ * 블록이 변환 버퍼에 들어가면 DMA 로 넘기고 바로 돌아온다. 전송이 끝나는 시점은
+ * SPI TX 완료 인터럽트가 TransferDoneISR 로 알려 준다. 이렇게 해야 DMA 가 SPI 를
+ * 물고 있는 동안 CPU 가 다음 블록을 그릴 수 있다. 예전처럼 폴링으로 다 보내고
+ * 돌아오면 그리기와 전송이 번갈아 직렬로 돌아서, 프레임 시간이 두 시간의 합이
+ * 된다.
+ */
 bool ili9488SendBuffer(uint8_t *p_data, uint32_t length, uint32_t timeout_ms)
 {
   const uint16_t *p_color = (const uint16_t *)p_data;
-  uint8_t tx_buf[ILI9488_TX_CHUNK_BYTES];
   uint32_t spi_timeout = timeout_ms;
+  uint32_t tx_len;
 
   if ((p_data == NULL) || (length == 0U))
   {
@@ -401,46 +466,73 @@ bool ili9488SendBuffer(uint8_t *p_data, uint32_t length, uint32_t timeout_ms)
     spi_timeout = ILI9488_SPI_TIMEOUT_MS;
   }
 
-  is_write_frame = true;
+  /* 앞 블록이 아직 나가는 중이면 기다린다. 정상 경로에서는 상위(TouchGFX)가
+   * ili9488IsTxBusy() 를 보고 먼저 막아 주므로 여기까지 오지 않는다. */
+  if (ili9488IsTxBusy() == true)
+  {
+    uint32_t start_ms = millis();
+
+    while (ili9488IsTxBusy() == true)
+    {
+      if ((millis() - start_ms) >= spi_timeout)
+      {
+        return false;
+      }
+    }
+  }
 
   gpioPinWrite(ILI9488_DC_CH, _DEF_HIGH);
   gpioPinWrite(ILI9488_CS_CH, _DEF_LOW);
-
   spiSetBitWidth(spi_ch, 8);
 
-  while (length > 0U)
+  if (length > ILI9488_TX_BUF_PIXELS)
   {
-    uint32_t chunk_pixels = length;
-    uint32_t tx_len = 0;
+    /*
+     * 변환 버퍼보다 큰 요청. TouchGFX 블록 전송은 여기 걸리지 않고, 화면 전체를
+     * 한 번에 칠하는 lcd 자체 API 만 온다. 그쪽은 갱신 속도가 중요하지 않으므로
+     * 예전처럼 나눠서 동기 전송한다.
+     */
+    is_write_frame = true;
 
-    if (chunk_pixels > ILI9488_TX_CHUNK_PIXELS)
+    while (length > 0U)
     {
-      chunk_pixels = ILI9488_TX_CHUNK_PIXELS;
+      uint32_t chunk_pixels = (length > ILI9488_TX_CHUNK_PIXELS)
+                                  ? ILI9488_TX_CHUNK_PIXELS
+                                  : length;
+
+      tx_len = ili9488Expand(p_color, tx_buf, chunk_pixels);
+      p_color += chunk_pixels;
+
+      if (spiWrite(spi_ch, tx_buf, tx_len, spi_timeout) != true)
+      {
+        gpioPinWrite(ILI9488_CS_CH, _DEF_HIGH);
+        is_write_frame = false;
+        return false;
+      }
+
+      length -= chunk_pixels;
     }
 
-    for (uint32_t i = 0; i < chunk_pixels; i++)
-    {
-      uint16_t color = *p_color++;
-      uint8_t r = (uint8_t)((color >> 11) & 0x1FU);
-      uint8_t g = (uint8_t)((color >> 5) & 0x3FU);
-      uint8_t b = (uint8_t)(color & 0x1FU);
-
-      tx_buf[tx_len++] = (uint8_t)((r << 3) | (r >> 2));
-      tx_buf[tx_len++] = (uint8_t)((g << 2) | (g >> 4));
-      tx_buf[tx_len++] = (uint8_t)((b << 3) | (b >> 2));
-    }
-
-    if (spiWrite(spi_ch, tx_buf, tx_len, spi_timeout) != true)
-    {
-      gpioPinWrite(ILI9488_CS_CH, _DEF_HIGH);
-      is_write_frame = false;
-      return false;
-    }
-
-    length -= chunk_pixels;
+    TransferDoneISR();
+    return true;
   }
 
-  TransferDoneISR();
+  tx_len = ili9488Expand(p_color, tx_buf, length);
+
+  /* is_write_frame 은 완료 인터럽트가 이 전송을 우리 것으로 알아보는 표시다.
+   * DMA 를 걸기 전에 세워야 완료가 빨리 떠도 놓치지 않는다. */
+  is_write_frame = true;
+  spiDmaTxStart(spi_ch, tx_buf, tx_len);
+
+  if (spiDmaTxIsDone(spi_ch) == true)
+  {
+    /*
+     * DMA 를 걸지 못했다(또는 이미 끝났다). 완료 인터럽트가 오지 않는 경우
+     * 상위가 다음 블록을 영영 못 보내고 화면이 멎으므로 여기서 마무리한다.
+     * 인터럽트가 이미 처리했다면 is_write_frame 이 내려가 있어 두 번 돌지 않는다.
+     */
+    TransferDoneISR();
+  }
 
   return true;
 }

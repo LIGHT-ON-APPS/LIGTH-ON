@@ -52,7 +52,8 @@ public:
                                  int16_t packDa,
                                  uint16_t socPerMille,
                                  int16_t cellTempDecic,
-                                 int16_t igbtTempDecic)
+                                 int16_t igbtTempDecic,
+                                 int16_t motorTempDecic)
     {
         (void)fresh;
         (void)validMask;
@@ -63,6 +64,7 @@ public:
         (void)socPerMille;
         (void)cellTempDecic;
         (void)igbtTempDecic;
+        (void)motorTempDecic;
     }
 
 protected:

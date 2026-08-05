@@ -14,8 +14,8 @@
 typedef struct
 {
   bool is_open;
-  bool is_tx_done;
-  bool is_rx_done;
+  volatile bool is_tx_done;
+  volatile bool is_rx_done;
 
   void (*func_tx)(void);
   void (*func_rx)(void);
@@ -80,7 +80,17 @@ bool spiBegin(uint8_t ch)
       hspi1.Init.CLKPhase         = SPI_PHASE_1EDGE;
       hspi1.Init.NSS              = SPI_NSS_SOFT;
       // APB2 96 MHz / 8 = 12 MHz (ILI9488 4-line SPI max. 20 MHz)
-      hspi1.Init.BaudRatePrescaler= SPI_BAUDRATEPRESCALER_8;
+      /*
+       * SYSCLK 96 MHz, APB2 분주 1 이므로 SPI1 은 96 MHz / prescaler 다.
+       * 8 이면 12 MHz 인데, ILI9488 은 SPI 로 16bpp 를 받지 못해 픽셀당 3바이트를
+       * 보내야 한다. 12 MHz 에서는 화면 일부만 갱신해도 전송에 100 ms 단위가 걸려
+       * 계기판 갱신이 눈에 띄게 끊긴다. 4(24 MHz)로 올려 전송 시간을 절반으로
+       * 줄인다.
+       *
+       * 데이터시트상 쓰기 사이클 하한은 50 ns(20 MHz)라 24 MHz 는 그보다 빠르다.
+       * 배선이 길거나 화면에 노이즈/찌그러짐이 보이면 여기를 8 로 되돌리면 된다.
+       */
+      hspi1.Init.BaudRatePrescaler= SPI_BAUDRATEPRESCALER_4;
       hspi1.Init.FirstBit         = SPI_FIRSTBIT_MSB;
       hspi1.Init.TIMode           = SPI_TIMODE_DISABLE;
       hspi1.Init.CRCCalculation   = SPI_CRCCALCULATION_DISABLE;

@@ -24,6 +24,9 @@ protected:
         return *static_cast<FrontendApplication*>(touchgfx::Application::getInstance());
     }
 
+    /*
+     * Member Declarations
+     */
     touchgfx::Box __background;
     touchgfx::Box background;
     touchgfx::Box topDivider;
@@ -54,8 +57,13 @@ protected:
     touchgfx::TextArea torqueVal;
 
 private:
-    static const uint32_t CANVAS_BUFFER_SIZE = 4800;
+
+    /*
+     * Canvas Buffer Size
+     */
+    static const uint32_t CANVAS_BUFFER_SIZE = 7200;
     uint8_t canvasBuffer[CANVAS_BUFFER_SIZE];
+
 };
 
 #endif // SCREEN1VIEWBASE_HPP

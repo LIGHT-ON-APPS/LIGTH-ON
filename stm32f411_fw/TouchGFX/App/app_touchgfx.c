@@ -30,7 +30,10 @@
 /* Private define ------------------------------------------------------------*/
 
 /* USER CODE BEGIN PD */
-#define TOUCHGFX_FRAME_INTERVAL_MS  50U
+/* The view/model timing is expressed in 60 Hz ticks. A 50 ms software VSYNC
+ * made the decimated demo path visibly step; 17 ms supplies a 59 Hz base tick
+ * while the model limits dirty-region redraws to a sustainable rate. */
+#define TOUCHGFX_FRAME_INTERVAL_MS  17U
 
 /* USER CODE END PD */
 

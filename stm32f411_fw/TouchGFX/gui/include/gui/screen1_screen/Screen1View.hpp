@@ -5,36 +5,36 @@
 #include <gui/screen1_screen/Screen1Presenter.hpp>
 #include <touchgfx/Unicode.hpp>
 #include <touchgfx/widgets/Box.hpp>
+#include <touchgfx/widgets/BoxWithBorder.hpp>
 #include <touchgfx/widgets/TextArea.hpp>
 #include <touchgfx/widgets/TextAreaWithWildcard.hpp>
 #include <touchgfx/widgets/canvas/Circle.hpp>
 #include <touchgfx/widgets/canvas/PainterRGB565.hpp>
+#include <touchgfx/containers/progress_indicators/BoxProgress.hpp>
 #include <touchgfx/containers/progress_indicators/CircleProgress.hpp>
 #include <stdint.h>
 
-/*
- * 주행 중인 드라이버가 보는 계기판.
+/**
+ * Compact 480x320 motorsport display.
  *
- * 화면 구성은 '힐끗 보고 읽는다'를 기준으로 정했다.
- *
- *  - 최상단 시프트 라이트 바: 주변시로 읽는 곳이다. 숫자를 읽으려면 시선을
- *    옮겨야 하지만 바는 눈을 코너에 두고도 색과 길이가 들어온다. 변속 판단은
- *    여기서 끝나야 한다.
- *  - 좌 RPM / 우 SOC 원형 게이지: 바늘 위치(=각도)는 숫자보다 빨리 읽힌다.
- *    정확한 값이 필요할 때만 가운데 숫자를 본다.
- *  - 하단 IGBT / CELL 온도: 주행 중 계속 볼 값이 아니다. 평소에는 조용한
- *    흰색이고 임계를 넘을 때만 색이 올라와 시선을 끈다.
- *
- * Designer(ViewBase)가 만든 위젯은 전부 숨기고 이 클래스가 화면을 직접 구성한다.
- * 표시 항목이 CAN/UART 로 들어오는 값에 따라 색과 자리표시자가 바뀌어야 하는데,
- * 그 규칙을 Designer 로 표현할 수 없기 때문이다. Designer 를 다시 열어도 이쪽
- * 레이아웃이 그대로 유지된다.
+ * The Designer-generated widgets are retained for project compatibility, but
+ * the runtime dashboard is composed here so live colors and safety state can
+ * be updated without regenerating the Designer project.
  */
 class Screen1View : public Screen1ViewBase
 {
 public:
-    /* 시프트 라이트 세그먼트 수. 폭 27 + 간격 3 으로 480 을 채운다. */
     static const uint8_t SHIFT_SEGMENTS = 16U;
+
+    /*
+     * CanvasWidgetRenderer 작업 버퍼.
+     *
+     * Designer 가 만든 ViewBase 는 4800 바이트로 잡아 두는데, 이 화면의 링은 폭이
+     * 168 px 이라 그 버퍼로는 한 번에 다 못 그리고 위젯 하나를 여러 띠로 나눠
+     * 반복해서 그리게 된다. 같은 그림을 여러 번 그리는 셈이라 프레임을 그대로
+     * 깎아먹는다. 생성자에서 이 버퍼로 다시 잡아 준다.
+     */
+    static const uint32_t CANVAS_BUFFER_SIZE = 16000U;
 
     Screen1View();
     virtual ~Screen1View() {}
@@ -61,78 +61,112 @@ public:
                          int16_t packDa,
                          uint16_t socPerMille,
                          int16_t cellTempDecic,
-                         int16_t igbtTempDecic);
+                         int16_t igbtTempDecic,
+                         int16_t motorTempDecic);
 
 protected:
-    /* --- 배경 --- */
     touchgfx::Box screenBg;
-    touchgfx::Box shiftRule;
-    touchgfx::Box tempRule;
-    touchgfx::Box centerRule;
 
-    /* --- 시프트 라이트 --- */
+    /* Shift-light housing and LEDs. */
+    touchgfx::BoxWithBorder shiftHousing;
     touchgfx::Box shiftSeg[SHIFT_SEGMENTS];
 
-    /* --- RPM 게이지 ---
-     * rpmText 라는 이름을 쓴 이유는 아래 온도 위젯 주석과 같다. ViewBase 에
-     * rpmValue 가 이미 있어서, 같은 이름을 쓰면 setupScreen 의 setVisible(false)
-     * 가 base 대신 이쪽 위젯을 숨겨 숫자가 통째로 사라진다. */
-    touchgfx::Circle rpmTrack;
-    touchgfx::PainterRGB565 rpmTrackPainter;
-    touchgfx::CircleProgress rpmArc;
-    touchgfx::PainterRGB565 rpmArcPainter;
-    touchgfx::TextAreaWithOneWildcard rpmText;
-    touchgfx::TextArea rpmLabel;
-
-    /* --- SOC 게이지 --- */
-    touchgfx::Circle socTrack2;
-    touchgfx::PainterRGB565 socTrackPainter;
-    touchgfx::CircleProgress socArc;
-    touchgfx::PainterRGB565 socArcPainter;
+    /* Left battery gauge. */
+    touchgfx::BoxWithBorder socBatteryBody;
+    touchgfx::Box socBatteryTerminal;
+    touchgfx::BoxProgress socBatteryFill;
     touchgfx::TextAreaWithOneWildcard socValue;
     touchgfx::TextArea socLabel;
-    touchgfx::TextArea socPercent;
 
-    /* --- 온도 --- */
-    /* 이름을 base 와 겹치지 않게 둔다. Screen1ViewBase 에 igbtLabel/motorLabel 등이
-     * 이미 있어서 같은 이름을 쓰면 파생 클래스 멤버가 base 를 가리고, setupScreen 의
-     * setVisible(false) 가 엉뚱하게 이쪽 위젯을 숨긴다. */
+    /* Right speed gauge. */
+    touchgfx::Circle speedTrack;
+    touchgfx::PainterRGB565 speedTrackPainter;
+    touchgfx::CircleProgress speedArc;
+    touchgfx::PainterRGB565 speedArcPainter;
+    touchgfx::TextAreaWithOneWildcard speedValue;
+    touchgfx::TextArea speedLabel;
+    touchgfx::TextArea speedUnit;
+
+    /* Central RPM and system-state module. */
+    touchgfx::BoxWithBorder centerPanel;
+    touchgfx::TextAreaWithOneWildcard rpmText;
+    touchgfx::TextArea rpmLabel;
+    touchgfx::BoxWithBorder statusPanel;
+    touchgfx::Box statusAccent;
+    touchgfx::TextArea statusText;
+
+    /* Bottom temperature tiles. Initials and units are static; only the large
+     * numeric widget is invalidated when telemetry changes. */
+    touchgfx::BoxWithBorder motorPanel;
+    touchgfx::TextArea motorTempLabel;
+    touchgfx::TextAreaWithOneWildcard motorValue;
+    touchgfx::TextArea motorUnit;
+
+    touchgfx::BoxWithBorder igbtPanel;
     touchgfx::TextArea igbtTempLabel;
     touchgfx::TextAreaWithOneWildcard igbtValue;
     touchgfx::TextArea igbtUnit;
+
+    touchgfx::BoxWithBorder cellPanel;
     touchgfx::TextArea cellTempLabel;
     touchgfx::TextAreaWithOneWildcard cellValue;
     touchgfx::TextArea cellUnit;
 
-    /* --- 링크 상태 --- */
-    touchgfx::Box linkDot;
-    touchgfx::TextArea linkText;
-
-    /* 와일드카드 버퍼. 서식이 넘치면 조용히 잘리므로 여유를 둔다. */
     touchgfx::Unicode::UnicodeChar rpmBuf[10];
     touchgfx::Unicode::UnicodeChar socBuf[10];
+    touchgfx::Unicode::UnicodeChar speedBuf[10];
+    touchgfx::Unicode::UnicodeChar motorBuf[10];
     touchgfx::Unicode::UnicodeChar igbtBuf[10];
     touchgfx::Unicode::UnicodeChar cellBuf[10];
 
 private:
+    /*
+     * 마지막으로 화면에 그려 넣은 값. 텔레메트리는 같은 값이 반복해서 들어오는
+     * 일이 흔한데, 그걸 그대로 invalidate 로 옮기면 F411 이 SPI 로 화면을 밀어내는
+     * 속도를 넘겨서 갱신이 눈에 띄게 끊긴다. 값도 색도 그대로면 다시 그리지 않는다.
+     */
+    struct DrawnField
+    {
+        int32_t value;
+        touchgfx::colortype color;
+        bool valid;
+        bool drawn;
+    };
+
+    static bool fieldChanged(DrawnField& field,
+                             int32_t value,
+                             bool valid,
+                             touchgfx::colortype color);
+
     void applyShiftLights(int32_t rpm, bool valid);
     void applyLinkState();
 
     bool appsFaultActive;
     bool linkConnected;
 
-    /* 시프트 라이트 상태. 세그먼트 색을 매번 다시 칠하지 않고 바뀐 것만
-     * invalidate 하려고 직전 색을 들고 있는다. 부분 프레임버퍼로 SPI 에 실어
-     * 보내는 화면이라 불필요한 갱신이 그대로 프레임 시간이 된다. */
     touchgfx::colortype shiftColor[SHIFT_SEGMENTS];
-    /* RPM 링의 현재 색. 같은 이유로 색이 실제로 바뀐 프레임에만 링을 통째로
-     * 다시 그린다. */
-    touchgfx::colortype rpmArcColor;
+    touchgfx::colortype socFillColor;
+    touchgfx::colortype speedArcColor;
     bool shiftBlinkActive;
     bool shiftBlinkOn;
     uint8_t blinkTick;
     int32_t lastRpm;
     bool lastRpmValid;
+
+    DrawnField rpmDrawn;
+    DrawnField socDrawn;
+    DrawnField speedDrawn;
+    DrawnField motorDrawn;
+    DrawnField igbtDrawn;
+    DrawnField cellDrawn;
+
+    /* 링크 상태도 전이할 때만 다시 그린다. 배지 3개(패널/밑줄/글자)가 매
+     * APPS 패킷마다 갱신되면 그것만으로 프레임을 잡아먹는다. */
+    bool linkStateDrawn;
+    bool drawnConnected;
+    bool drawnFaultActive;
+
+    uint8_t canvasBuffer[CANVAS_BUFFER_SIZE];
 };
 
 #endif // SCREEN1VIEW_HPP

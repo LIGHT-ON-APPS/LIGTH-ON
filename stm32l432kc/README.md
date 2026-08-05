@@ -18,7 +18,7 @@
 - `src/ap/sw/apps/apps.h`, `apps.c`: APPS 구조체와 상태는 `apps.c` 내부 전역변수로 관리합니다. 외부에서는 채널, 보정값, torque command 같은 값만 함수 인자로 전달합니다.
 - APPS CLI 출력과 런타임 보정 명령은 `apps.c` 안에서 같이 관리합니다.
 - `src/ap/sw/apps/bamocar_can.h`, `bamocar_can.c`: Bamocar D3의 16-bit register write/read request CAN payload를 만드는 작은 헬퍼입니다.
-- `src/ap/sw/signal_scope`, `src/ap/sw/telemetry`: 신호 스코프와 차량 텔레메트리 소프트웨어 모듈입니다.
+- `src/ap/sw/telemetry`: CAN 차량 신호를 디코딩해 표시 장치에 전달하는 텔레메트리 모듈입니다.
 
 ## 먼저 확정해야 할 하드웨어
 

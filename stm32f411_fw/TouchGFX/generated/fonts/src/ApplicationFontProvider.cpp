@@ -12,25 +12,25 @@ touchgfx::Font* ApplicationFontProvider::getFont(touchgfx::FontId typography)
     switch (typography)
     {
     case Typography::HUGE:
-        // verdana_64_4bpp
+        // BarlowCondensed_SemiBold_64_4bpp
         return const_cast<touchgfx::Font*>(TypedTextDatabase::getFonts()[0]);
     case Typography::LARGE:
-        // verdana_40_4bpp
+        // BarlowCondensed_SemiBold_52_4bpp
         return const_cast<touchgfx::Font*>(TypedTextDatabase::getFonts()[1]);
     case Typography::TILE:
-        // verdana_30_4bpp
+        // BarlowCondensed_SemiBold_40_4bpp
         return const_cast<touchgfx::Font*>(TypedTextDatabase::getFonts()[2]);
     case Typography::DEFAULT:
-        // verdana_20_4bpp
+        // BarlowCondensed_SemiBold_20_4bpp
         return const_cast<touchgfx::Font*>(TypedTextDatabase::getFonts()[3]);
     case Typography::VALUE:
-        // verdana_18_4bpp
+        // BarlowCondensed_SemiBold_30_4bpp
         return const_cast<touchgfx::Font*>(TypedTextDatabase::getFonts()[4]);
     case Typography::LABEL:
-        // verdana_14_4bpp
+        // BarlowCondensed_Regular_15_4bpp
         return const_cast<touchgfx::Font*>(TypedTextDatabase::getFonts()[5]);
     case Typography::SMALL:
-        // verdana_10_4bpp
+        // BarlowCondensed_Regular_11_4bpp
         return const_cast<touchgfx::Font*>(TypedTextDatabase::getFonts()[6]);
     default:
         return 0;

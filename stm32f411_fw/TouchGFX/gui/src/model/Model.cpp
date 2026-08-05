@@ -2,9 +2,32 @@
 #include <gui/model/ModelListener.hpp>
 
 #if !defined(SIMULATOR)
+#include "hw_def.h"
+#endif
+
+#if !defined(SIMULATOR) && (HW_USE_TOUCHGFX_DEMO == 0)
 #include "display_link.h"
 #else
 #include "display_protocol.h"
+#endif
+
+#if defined(SIMULATOR) || (HW_USE_TOUCHGFX_DEMO != 0)
+namespace
+{
+/* Returns a repeating 0..1000..0 triangle wave. */
+uint16_t trianglePerMille(uint32_t tick, uint32_t periodTicks)
+{
+    const uint32_t halfPeriod = periodTicks / 2U;
+    uint32_t phase = tick % periodTicks;
+
+    if (phase > halfPeriod)
+    {
+        phase = periodTicks - phase;
+    }
+
+    return static_cast<uint16_t>((phase * 1000U) / halfPeriod);
+}
+}
 #endif
 
 Model::Model()
@@ -23,7 +46,7 @@ void Model::tick()
 {
     tickCounter++;
 
-#if !defined(SIMULATOR)
+#if !defined(SIMULATOR) && (HW_USE_TOUCHGFX_DEMO == 0)
     display_link_snapshot_t snapshot = {};
     bool hasData = displayLinkGetSnapshot(&snapshot);
     bool connected = hasData && snapshot.connected;
@@ -78,7 +101,8 @@ void Model::tick()
                 snapshot.telemetry.pack_da,
                 snapshot.telemetry.soc_per_mille,
                 snapshot.telemetry.cell_max_temp_decic,
-                snapshot.telemetry.igbt_temp_decic);
+                snapshot.telemetry.igbt_temp_decic,
+                snapshot.telemetry.motor_temp_decic);
 
             lastTelemetryPacketCount = snapshot.telemetry_packet_count;
             lastTelemetryFresh = snapshot.telemetry_fresh;
@@ -86,37 +110,66 @@ void Model::tick()
         }
     }
 #else
-    /* 시뮬레이터: 화면 배치와 색 전환을 보드 없이 확인하기 위한 합성 신호.
-     * 페달을 훑으면서 온도를 정상 -> 경고 -> 위험까지 올린다. */
-    int phase = tickCounter % 600;
-    uint16_t pedal = static_cast<uint16_t>(
-        ((phase < 300) ? phase : (600 - phase)) * 1000 / 300);
-
-    if (modelListener != 0)
+    /* Simulator/F411 demo: synthetic values for testing without the L432KC. */
+    /*
+     * Standalone dashboard demo for bring-up without the STM32L432KC.
+     * Updating at about 30 Hz makes the standalone RPM motion noticeably less
+     * stepped while still leaving SPI bandwidth for the other dirty regions.
+     */
+    if ((modelListener == 0) || ((tickCounter % 2U) != 0U))
     {
-        modelListener->updateApps(true,
-                                  0x0FU,
-                                  static_cast<uint16_t>(pedal * 4U),
-                                  static_cast<uint16_t>(pedal * 4U + 3U),
-                                  pedal,
-                                  pedal,
-                                  pedal,
-                                  static_cast<int16_t>(pedal * 32767L / 1000L),
-                                  0U,
-                                  0U);
-
-        modelListener->updateTelemetry(
-            true,
-            DISPLAY_PROTOCOL_TLM_PACK_V | DISPLAY_PROTOCOL_TLM_PACK_A |
-                DISPLAY_PROTOCOL_TLM_SOC | DISPLAY_PROTOCOL_TLM_CELL_TEMP |
-                DISPLAY_PROTOCOL_TLM_RPM | DISPLAY_PROTOCOL_TLM_IGBT_TEMP,
-            static_cast<int32_t>(pedal * 6500L / 1000L),
-            0U,
-            3962U,
-            static_cast<int16_t>(pedal * 2000L / 1000L),
-            784U,
-            static_cast<int16_t>(300 + (pedal * 300L / 1000L)),
-            static_cast<int16_t>(350 + (pedal * 500L / 1000L)));
+        return;
     }
+
+    const uint16_t driveWave = trianglePerMille(tickCounter, 720U);
+    const uint16_t socWave = trianglePerMille(tickCounter + 600U, 2400U);
+    const uint16_t tempWave = trianglePerMille(tickCounter + 300U, 1200U);
+    const uint16_t apps1Raw = static_cast<uint16_t>(
+        310U + (static_cast<uint32_t>(driveWave) * (2792U - 310U) /
+                1000U));
+    const uint16_t apps2Raw = static_cast<uint16_t>(
+        410U + (static_cast<uint32_t>(driveWave) * (3685U - 410U) /
+                1000U));
+
+    modelListener->updateApps(
+        true,
+        0x0FU,
+        apps1Raw,
+        apps2Raw,
+        driveWave,
+        driveWave,
+        driveWave,
+        static_cast<int16_t>(static_cast<int32_t>(driveWave) * 32767L /
+                             1000L),
+        0U,
+        0U);
+
+    modelListener->updateTelemetry(
+        true,
+        DISPLAY_PROTOCOL_TLM_PACK_V | DISPLAY_PROTOCOL_TLM_PACK_A |
+            DISPLAY_PROTOCOL_TLM_SOC | DISPLAY_PROTOCOL_TLM_CELL_TEMP |
+            DISPLAY_PROTOCOL_TLM_RPM | DISPLAY_PROTOCOL_TLM_IGBT_TEMP |
+            DISPLAY_PROTOCOL_TLM_MOTOR_TEMP | DISPLAY_PROTOCOL_TLM_SPEED,
+        800L + (static_cast<int32_t>(driveWave) * 5700L / 1000L),
+        static_cast<uint16_t>(static_cast<uint32_t>(driveWave) * 2000U /
+                              1000U),
+        static_cast<uint16_t>(3600U +
+                              (static_cast<uint32_t>(socWave) * 450U /
+                               1000U)),
+        static_cast<int16_t>(static_cast<int32_t>(driveWave) * 1800L /
+                             1000L),
+        static_cast<uint16_t>(100U +
+                              (static_cast<uint32_t>(socWave) * 850U /
+                               1000U)),
+        static_cast<int16_t>(280L +
+                             (static_cast<int32_t>(tempWave) * 300L /
+                              1000L)),
+        static_cast<int16_t>(380L +
+                             (static_cast<int32_t>(tempWave) * 420L /
+                              1000L)),
+        /* 모터는 인버터보다 천천히, 조금 낮게 오른다. */
+        static_cast<int16_t>(320L +
+                             (static_cast<int32_t>(tempWave) * 380L /
+                              1000L)));
 #endif
 }

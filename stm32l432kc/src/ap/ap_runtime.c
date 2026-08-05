@@ -12,7 +12,6 @@
 #include "display_protocol.h"
 #include "sw/apps/apps.h"
 #include "sw/apps/bamocar_can.h"
-#include "sw/signal_scope/signal_scope.h"
 #include "sw/telemetry/telemetry.h"
 #include "uart.h"
 
@@ -157,14 +156,13 @@ static void apServiceModeUpdate(void)
 #endif
 }
 
-/* 서비스 모드가 활성화된 동안에만 CLI와 신호 스코프를 실행한다. */
+/* 서비스 모드가 활성화된 동안에만 CLI를 실행한다. */
 static void apServiceCliUpdate(void)
 {
 #ifdef _USE_HW_CLI
   if ((service_mode == true) && (service_mode_active == true))
   {
     cliMain();
-    scopeUpdate();
   }
 #endif
 }
@@ -628,7 +626,6 @@ void apRuntimeInit(void)
 {
   apServiceInit();
   apAppsInit();
-  (void)scopeInit();
   apDisplayInit();
   (void)telemetryInit();
   apDiagCanInit();

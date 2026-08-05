@@ -1,100 +1,148 @@
 #include <gui/screen1_screen/Screen1View.hpp>
 #include <touchgfx/Color.hpp>
+#include <touchgfx/canvas_widget_renderer/CanvasWidgetRenderer.hpp>
 #include <texts/TextKeysAndLanguages.hpp>
 
 namespace
 {
+/* Functional race-display palette: neutral surfaces with one lime accent. */
+const uint8_t BG_R = 5,       BG_G = 6,       BG_B = 7;
+const uint8_t PANEL_R = 11,   PANEL_G = 13,   PANEL_B = 14;
+const uint8_t BORDER_R = 53,  BORDER_G = 58,  BORDER_B = 60;
+const uint8_t TRACK_R = 44,   TRACK_G = 49,   TRACK_B = 51;
+const uint8_t SEGOFF_R = 22,  SEGOFF_G = 25,  SEGOFF_B = 25;
+
 /*
- * 야간 주행용 색. 순백/순흑을 쓰지 않는다. 어두운 곳에서 순백 글자는 번져
- * 보이고(halation) 잔상이 남아 오히려 읽기 어렵다. 배경은 완전한 검정 대신
- * 약간 들어올려 게이지 트랙이 배경과 구분되게 한다.
+ * 색은 위계를 만드는 데만 쓴다. 화면에서 가장 밝은 것은 RPM 숫자여야 하고,
+ * 나머지는 그보다 한 단계 아래로 내려가야 시선이 먼저 갈 곳을 안다.
+ *
+ * 정상 상태에 형광색을 쓰지 않는 것도 같은 이유다. 늘 켜져 있는 색은 신호가
+ * 아니라 배경이 되고, 정작 경고가 떴을 때 눈에 덜 띈다. 채도가 높은 색은
+ * 경고(WARN)와 고장(FAULT)에만 남겨 둔다.
  */
-const uint8_t BG_R = 8,     BG_G = 11,   BG_B = 16;
-const uint8_t RULE_R = 32,  RULE_G = 40, RULE_B = 50;
-const uint8_t TRACK_R = 30, TRACK_G = 37, TRACK_B = 46;
-const uint8_t SEGOFF_R = 24, SEGOFF_G = 30, SEGOFF_B = 38;
-
-const uint8_t FG_R = 238,  FG_G = 244, FG_B = 250;   /* 주 수치 */
-const uint8_t DIM_R = 124, DIM_G = 140, DIM_B = 155; /* 라벨/무효값 */
-
-const uint8_t RPM_R = 120,  RPM_G = 216, RPM_B = 255; /* RPM 아크 */
-const uint8_t OK_R = 62,    OK_G = 208,  OK_B = 122;
-const uint8_t WARN_R = 255, WARN_G = 190, WARN_B = 60;
-const uint8_t FAULT_R = 255, FAULT_G = 76, FAULT_B = 76;
+const uint8_t FG_R = 244,     FG_G = 245,     FG_B = 239;
+const uint8_t DIM_R = 142,    DIM_G = 148,    DIM_B = 148;
+const uint8_t OK_R = 126,     OK_G = 222,     OK_B = 76;
+const uint8_t WARN_R = 255,   WARN_G = 181,   WARN_B = 46;
+const uint8_t FAULT_R = 255,  FAULT_G = 68,   FAULT_B = 56;
 
 const uint8_t APPS_VALID_FLAG = 1U << 0;
 
-/*
- * --- 팀에서 확정해야 하는 값 ---
- *
- * 모터 최대 회전수. 게이지 눈금 전체와 시프트 라이트 구간이 전부 이 값에서
- * 나오므로, 실제 모터/인버터 사양과 다르면 계기판 전체가 틀린 눈금이 된다.
- *
- * 4자리(<= 9999)를 전제로 가운데 숫자 폰트 크기를 잡았다. 이보다 큰 모터를
- * 쓰게 되면 숫자가 게이지 링을 침범하므로 폰트를 Large 로 낮춰야 한다.
- */
-const int32_t RPM_MAX = 6500;
+const uint32_t TLM_SOC = 1UL << 2;
+const uint32_t TLM_CELL_TEMP = 1UL << 3;
+const uint32_t TLM_RPM = 1UL << 5;
+const uint32_t TLM_MOTOR_TEMP = 1UL << 8;
+const uint32_t TLM_IGBT_TEMP = 1UL << 9;
+const uint32_t TLM_SPEED = 1UL << 16;
 
-/* 시프트 라이트가 노랑/빨강으로 넘어가는 지점(RPM_MAX 대비 per-mille).
- * 빨강 구간은 회전수 한계에 다 왔다는 뜻이고, 점멸은 레드라인이다. */
+const int32_t RPM_MAX = 6500;
+const int32_t SPEED_MAX_DKPH = 2000; /* 200.0 km/h */
+
 const int32_t SHIFT_AMBER_PM = 700;
 const int32_t SHIFT_RED_PM = 860;
 const int32_t SHIFT_BLINK_PM = 960;
 
-/*
- * 온도 경고 임계값 [0.1 degC]. --- 팀에서 확정해야 하는 값 ---
- * 셀은 리튬이온 일반값, IGBT 는 Bamocar 디레이팅 시작점 근처를 임시로 잡았다.
- * 실제 팩/인버터 사양서로 반드시 대조할 것. 색이 바뀌는 지점이라 운전자 판단에
- * 직접 영향을 준다.
- */
-const int16_t CELL_WARN_DECIC = 450;   /* 45.0 C */
-const int16_t CELL_CRIT_DECIC = 550;   /* 55.0 C */
-const int16_t IGBT_WARN_DECIC = 600;   /* 60.0 C */
-const int16_t IGBT_CRIT_DECIC = 750;   /* 75.0 C */
-
-/* SOC 경고 임계값 [per-mille]. */
+const int16_t CELL_WARN_DECIC = 450;
+const int16_t CELL_CRIT_DECIC = 550;
+const int16_t IGBT_WARN_DECIC = 600;
+const int16_t IGBT_CRIT_DECIC = 750;
+/* 모터 권선은 인버터보다 높은 온도를 견딘다. --- 팀에서 확정해야 하는 값 ---
+ * 모터 사양서의 연속/최대 권선 온도로 반드시 대조할 것. */
+const int16_t MOTOR_WARN_DECIC = 900;   /* 90.0 C */
+const int16_t MOTOR_CRIT_DECIC = 1200;  /* 120.0 C */
 const int32_t SOC_WARN_PM = 300;
 const int32_t SOC_CRIT_PM = 150;
 
-/* --- 레이아웃 --- */
-const int16_t SEG_Y = 4;
-const int16_t SEG_H = 30;
-const int16_t SEG_W = 27;
-const int16_t SEG_PITCH = 30;
-const int16_t SEG_X0 = 2;
+/* Shift-light geometry.
+ * 이 막대는 시선이 코너에 가 있는 동안 주변시로만 읽는다. 주변시는 해상도가
+ * 낮은 대신 면적과 밝기에 반응하므로, 세그먼트를 키울수록 그대로 인식이 빨라진다. */
+const int16_t SHIFT_HOUSING_H = 36;
+const int16_t SEG_X0 = 10;
+const int16_t SEG_Y = 6;
+const int16_t SEG_W = 25;
+const int16_t SEG_H = 23;
+const int16_t SEG_PITCH = 29;
 
-const int16_t GAUGE_BOX = 198;         /* 게이지 위젯 한 변 */
-const int16_t GAUGE_Y = 46;
-const int16_t GAUGE_R = 90;
-/* 링을 더 굵게 하면 안쪽 지름이 좁아져 4자리 RPM 이 링을 파고든다.
- * 14 는 링이 계기판으로 보이는 최소 굵기와 숫자 여백이 만나는 지점이다. */
-const int16_t GAUGE_LW = 14;
-const int16_t GAUGE_L_X = 6;           /* 좌(RPM) 위젯 좌상단 */
-const int16_t GAUGE_R_X = 276;         /* 우(SOC) 위젯 좌상단 */
-const int16_t GAUGE_C = GAUGE_BOX / 2; /* 위젯 안에서의 중심 */
+/* Keep the source's full RPM resolution. The previous 10 rpm quantization
+ * made otherwise smooth input look artificially stepped. */
+const int32_t RPM_DISPLAY_STEP = 1;
 
-/* 계기판 관례대로 7시30분에서 4시30분까지 270도. */
+/*
+ * 링 각도 눈금.
+ *
+ * 링은 지름 144 px 에 270도라 1도가 채 1 px 이 안 된다. 그런데 setValue 로 각도가
+ * 조금이라도 움직이면 그 구간을 감싸는 사각형이 통째로 다시 그려지고, 그 사각형
+ * 안에 있는 트랙과 진행 링을 CanvasWidget 으로 다시 계산해야 한다. 눈에 보이지도
+ * 않는 변화에 그 비용을 내지 않도록, 링에 넣는 값은 미리 눈금으로 끊는다.
+ *
+ * 숫자는 그대로 1 % / 1 km/h 로 움직이므로 표시 해상도는 떨어지지 않는다.
+ */
+const int32_t SPEED_ARC_STEP_DKPH = 20;  /* 2 km/h */
+
+/* Two compact auxiliary gauges flank the central RPM module. */
+const int16_t GAUGE_BOX = 168;
+const int16_t GAUGE_Y = 42;
+const int16_t GAUGE_LEFT_X = 5;
+const int16_t GAUGE_RIGHT_X = 307;
+const int16_t GAUGE_CENTER = GAUGE_BOX / 2;
+const int16_t GAUGE_RADIUS = 72;
+const int16_t GAUGE_LINE_WIDTH = 10;
 const int16_t ARC_START = -135;
 const int16_t ARC_END = 135;
 
-const int16_t VALUE_Y = 108;
-const int16_t VALUE_H = 78;
-const int16_t LABEL_Y = 190;
+/* Horizontal battery geometry inside the former left circular gauge area. */
+const int16_t BATTERY_BODY_X = 19;
+const int16_t BATTERY_BODY_Y = 76;
+const int16_t BATTERY_BODY_W = 130;
+const int16_t BATTERY_BODY_H = 68;
+const int16_t BATTERY_BORDER = 4;
+const int16_t BATTERY_FILL_X = 26;
+const int16_t BATTERY_FILL_Y = 85;
+const int16_t BATTERY_FILL_W = 116;
+const int16_t BATTERY_FILL_H = 50;
+const int16_t BATTERY_TERMINAL_X = 149;
+const int16_t BATTERY_TERMINAL_Y = 97;
+const int16_t BATTERY_TERMINAL_W = 11;
+const int16_t BATTERY_TERMINAL_H = 26;
 
 touchgfx::colortype rgb(uint8_t r, uint8_t g, uint8_t b)
 {
     return touchgfx::Color::getColorFromRGB(r, g, b);
 }
 
-void placeBox(touchgfx::Box& box, int16_t x, int16_t y, int16_t w, int16_t h,
+int32_t clampValue(int32_t value, int32_t low, int32_t high)
+{
+    if (value < low)
+    {
+        return low;
+    }
+    if (value > high)
+    {
+        return high;
+    }
+    return value;
+}
+
+void placeBox(touchgfx::Box& box,
+              int16_t x, int16_t y, int16_t w, int16_t h,
               uint8_t r, uint8_t g, uint8_t b)
 {
     box.setPosition(x, y, w, h);
     box.setColor(rgb(r, g, b));
 }
 
-void placeLabel(touchgfx::TextArea& text, int16_t x, int16_t y,
-                int16_t w, int16_t h, TEXTS id)
+void placePanel(touchgfx::BoxWithBorder& panel,
+                int16_t x, int16_t y, int16_t w, int16_t h)
+{
+    panel.setPosition(x, y, w, h);
+    panel.setColor(rgb(PANEL_R, PANEL_G, PANEL_B));
+    panel.setBorderColor(rgb(BORDER_R, BORDER_G, BORDER_B));
+    panel.setBorderSize(1U);
+}
+
+void placeLabel(touchgfx::TextArea& text,
+                int16_t x, int16_t y, int16_t w, int16_t h,
+                TEXTS id)
 {
     text.setPosition(x, y, w, h);
     text.setColor(rgb(DIM_R, DIM_G, DIM_B));
@@ -103,7 +151,8 @@ void placeLabel(touchgfx::TextArea& text, int16_t x, int16_t y,
 
 void placeValue(touchgfx::TextAreaWithOneWildcard& text,
                 touchgfx::Unicode::UnicodeChar* buffer,
-                int16_t x, int16_t y, int16_t w, int16_t h, TEXTS id)
+                int16_t x, int16_t y, int16_t w, int16_t h,
+                TEXTS id)
 {
     text.setPosition(x, y, w, h);
     text.setColor(rgb(FG_R, FG_G, FG_B));
@@ -111,28 +160,28 @@ void placeValue(touchgfx::TextAreaWithOneWildcard& text,
     text.setWildcard(buffer);
 }
 
-/* 게이지 바탕이 되는 빈 링. 값이 0일 때도 눈금이 어디까지 있는지 보여야
- * 게이지로 읽힌다. */
-void placeTrack(touchgfx::Circle& circle, touchgfx::PainterRGB565& painter,
+void placeTrack(touchgfx::Circle& circle,
+                touchgfx::PainterRGB565& painter,
                 int16_t x, int16_t y)
 {
     circle.setPosition(x, y, GAUGE_BOX, GAUGE_BOX);
-    circle.setCenter(GAUGE_C, GAUGE_C);
-    circle.setRadius(GAUGE_R);
-    circle.setLineWidth(GAUGE_LW);
+    circle.setCenter(GAUGE_CENTER, GAUGE_CENTER);
+    circle.setRadius(GAUGE_RADIUS);
+    circle.setLineWidth(GAUGE_LINE_WIDTH);
     circle.setArc(ARC_START, ARC_END);
     painter.setColor(rgb(TRACK_R, TRACK_G, TRACK_B));
     circle.setPainter(painter);
 }
 
-void placeArc(touchgfx::CircleProgress& arc, touchgfx::PainterRGB565& painter,
+void placeArc(touchgfx::CircleProgress& arc,
+              touchgfx::PainterRGB565& painter,
               int16_t x, int16_t y, int32_t range)
 {
     arc.setXY(x, y);
     arc.setProgressIndicatorPosition(0, 0, GAUGE_BOX, GAUGE_BOX);
-    arc.setCenter(GAUGE_C, GAUGE_C);
-    arc.setRadius(GAUGE_R);
-    arc.setLineWidth(GAUGE_LW);
+    arc.setCenter(GAUGE_CENTER, GAUGE_CENTER);
+    arc.setRadius(GAUGE_RADIUS);
+    arc.setLineWidth(GAUGE_LINE_WIDTH);
     arc.setStartEndAngle(ARC_START, ARC_END);
     arc.setCapPrecision(180);
     arc.setRange(0, static_cast<int>(range));
@@ -140,148 +189,224 @@ void placeArc(touchgfx::CircleProgress& arc, touchgfx::PainterRGB565& painter,
     arc.setValue(0);
 }
 
-/* 0.1 단위 정수를 "12.3" 으로. 음수도 부호가 한 번만 붙게 처리한다. */
-void formatDeci(touchgfx::Unicode::UnicodeChar* buffer, uint16_t size,
-                int32_t deci)
+void formatDeci(touchgfx::Unicode::UnicodeChar* buffer,
+                uint16_t size, int32_t deci)
 {
     int32_t whole = deci / 10;
-    int32_t frac = deci % 10;
+    int32_t fraction = deci % 10;
 
-    if (frac < 0)
+    if (fraction < 0)
     {
-        frac = -frac;
+        fraction = -fraction;
     }
 
     if ((deci < 0) && (whole == 0))
     {
-        /* -0.4 처럼 정수부가 0 인 음수는 "0.4" 로 나와버린다. */
         touchgfx::Unicode::snprintf(buffer, size, "-0.%d",
-                                    static_cast<int>(frac));
+                                    static_cast<int>(fraction));
         return;
     }
 
     touchgfx::Unicode::snprintf(buffer, size, "%d.%d",
                                 static_cast<int>(whole),
-                                static_cast<int>(frac));
+                                static_cast<int>(fraction));
 }
 
-/* 값이 없을 때. 숫자 자리를 비우면 운전자가 0 으로 오해한다. */
+void formatPercent(touchgfx::Unicode::UnicodeChar* buffer,
+                   uint16_t size, int32_t percent)
+{
+    touchgfx::Unicode::snprintf(buffer, size, "%d", static_cast<int>(percent));
+
+    uint16_t length = touchgfx::Unicode::strlen(buffer);
+    if ((length + 1U) < size)
+    {
+        buffer[length] = static_cast<touchgfx::Unicode::UnicodeChar>('%');
+        buffer[length + 1U] = 0;
+    }
+}
+
 void formatUnknown(touchgfx::Unicode::UnicodeChar* buffer, uint16_t size)
 {
     touchgfx::Unicode::snprintf(buffer, size, "--");
 }
 }
 
+bool Screen1View::fieldChanged(DrawnField& field,
+                               int32_t value,
+                               bool valid,
+                               touchgfx::colortype color)
+{
+    /* 값이 없을 때(자리표시자)는 숫자를 비교하지 않는다. '--' 를 띄우는 동안
+     * 뒤에서 값이 계속 흔들려도 화면은 그대로여야 한다. */
+    const bool same = field.drawn &&
+                      (field.valid == valid) &&
+                      (field.color == color) &&
+                      ((valid != true) || (field.value == value));
+
+    if (same)
+    {
+        return false;
+    }
+
+    field.value = value;
+    field.valid = valid;
+    field.color = color;
+    field.drawn = true;
+    return true;
+}
+
 Screen1View::Screen1View()
     : appsFaultActive(false),
       linkConnected(false),
+      socFillColor(0),
+      speedArcColor(0),
       shiftBlinkActive(false),
       shiftBlinkOn(true),
       blinkTick(0U),
       lastRpm(0),
-      lastRpmValid(false)
+      lastRpmValid(false),
+      rpmDrawn(),
+      socDrawn(),
+      speedDrawn(),
+      motorDrawn(),
+      igbtDrawn(),
+      cellDrawn(),
+      linkStateDrawn(false),
+      drawnConnected(false),
+      drawnFaultActive(false)
 {
-    /* ---------------- 배경 ---------------- */
+    /* ViewBase 생성자가 잡아 둔 4800 바이트 버퍼를 이걸로 교체한다.
+     * ViewBase 가 먼저 생성되므로 여기서 덮어쓰는 순서가 맞다. */
+    touchgfx::CanvasWidgetRenderer::setupBuffer(canvasBuffer,
+                                                CANVAS_BUFFER_SIZE);
+
+    formatUnknown(rpmBuf, 10U);
+    formatUnknown(socBuf, 10U);
+    formatUnknown(speedBuf, 10U);
+    formatUnknown(motorBuf, 10U);
+    formatUnknown(igbtBuf, 10U);
+    formatUnknown(cellBuf, 10U);
+
     placeBox(screenBg, 0, 0, 480, 320, BG_R, BG_G, BG_B);
     add(screenBg);
 
-    /* ---------------- 시프트 라이트 ----------------
-     * 코너를 보면서도 주변시로 읽는 곳이다. 세그먼트로 끊어야 몇 칸 남았는지
-     * 순간적으로 세어지고, 연속 막대보다 변속 시점이 정확해진다. */
+    placePanel(shiftHousing, 0, 0, 480, SHIFT_HOUSING_H);
+    add(shiftHousing);
+
     for (uint8_t i = 0U; i < SHIFT_SEGMENTS; i++)
     {
         shiftColor[i] = rgb(SEGOFF_R, SEGOFF_G, SEGOFF_B);
         placeBox(shiftSeg[i],
-                 static_cast<int16_t>(SEG_X0 + (i * SEG_PITCH)), SEG_Y,
-                 SEG_W, SEG_H,
+                 static_cast<int16_t>(SEG_X0 + (i * SEG_PITCH)),
+                 SEG_Y, SEG_W, SEG_H,
                  SEGOFF_R, SEGOFF_G, SEGOFF_B);
         add(shiftSeg[i]);
     }
-    placeBox(shiftRule, 0, 38, 480, 2, RULE_R, RULE_G, RULE_B);
-    add(shiftRule);
 
-    /* ---------------- RPM 게이지 ---------------- */
-    placeTrack(rpmTrack, rpmTrackPainter, GAUGE_L_X, GAUGE_Y);
-    add(rpmTrack);
-    placeArc(rpmArc, rpmArcPainter, GAUGE_L_X, GAUGE_Y, RPM_MAX);
-    rpmArcColor = rgb(RPM_R, RPM_G, RPM_B);
-    rpmArcPainter.setColor(rpmArcColor);
-    add(rpmArc);
+    /* Battery gauge: static case/terminal with a left-to-right SOC fill. */
+    placeBox(socBatteryTerminal,
+             BATTERY_TERMINAL_X, BATTERY_TERMINAL_Y,
+             BATTERY_TERMINAL_W, BATTERY_TERMINAL_H,
+             FG_R, FG_G, FG_B);
+    add(socBatteryTerminal);
 
-    placeValue(rpmText, rpmBuf, GAUGE_L_X, VALUE_Y, GAUGE_BOX, VALUE_H,
-               T_T_RPM);
-    add(rpmText);
-    placeLabel(rpmLabel, GAUGE_L_X, LABEL_Y, GAUGE_BOX, 18, T_T_RPMUNIT);
-    add(rpmLabel);
+    socBatteryBody.setPosition(BATTERY_BODY_X, BATTERY_BODY_Y,
+                               BATTERY_BODY_W, BATTERY_BODY_H);
+    socBatteryBody.setColor(rgb(PANEL_R, PANEL_G, PANEL_B));
+    socBatteryBody.setBorderColor(rgb(FG_R, FG_G, FG_B));
+    socBatteryBody.setBorderSize(BATTERY_BORDER);
+    add(socBatteryBody);
 
-    /* ---------------- SOC 게이지 ---------------- */
-    placeTrack(socTrack2, socTrackPainter, GAUGE_R_X, GAUGE_Y);
-    add(socTrack2);
-    placeArc(socArc, socArcPainter, GAUGE_R_X, GAUGE_Y, 1000);
-    socArcPainter.setColor(rgb(OK_R, OK_G, OK_B));
-    add(socArc);
+    socBatteryFill.setXY(BATTERY_FILL_X, BATTERY_FILL_Y);
+    socBatteryFill.setProgressIndicatorPosition(0, 0,
+                                                BATTERY_FILL_W,
+                                                BATTERY_FILL_H);
+    socBatteryFill.setRange(0, 1000);
+    socBatteryFill.setDirection(touchgfx::AbstractDirectionProgress::RIGHT);
+    socFillColor = rgb(OK_R, OK_G, OK_B);
+    socBatteryFill.setColor(socFillColor);
+    socBatteryFill.setValue(0);
+    add(socBatteryFill);
 
-    placeValue(socValue, socBuf, GAUGE_R_X, VALUE_Y, GAUGE_BOX, VALUE_H,
-               T_T_RPM);
-    add(socValue);
-    /* "SOC" 와 "%" 를 게이지 중심(375) 기준으로 나란히 놓는다. 라벨 폰트가
-     * 왼쪽 정렬이라 x 를 직접 계산해야 가운데로 온다. */
-    placeLabel(socLabel, 349, LABEL_Y, 40, 18, T_T_SOCLABEL);
+    placeLabel(socLabel, GAUGE_LEFT_X, 49, GAUGE_BOX, 20, T_T_SOCLABEL);
     add(socLabel);
-    placeLabel(socPercent, 386, LABEL_Y, 20, 18, T_T_PERCENT);
-    add(socPercent);
+    /* 숫자는 흰색으로 두고 잔량 상태는 채움 색으로 말한다. 숫자까지 색을 입히면
+     * 화면에서 RPM 보다 잔량이 먼저 눈에 들어온다. */
+    placeValue(socValue, socBuf, GAUGE_LEFT_X, 151, GAUGE_BOX, 55, T_T_SOC);
+    add(socValue);
 
-    /* 두 게이지를 갈라 주는 선. 값이 서로 섞여 읽히지 않게 한다. */
-    placeBox(centerRule, 239, 70, 2, 150, RULE_R, RULE_G, RULE_B);
-    add(centerRule);
+    /* Speed gauge. */
+    placeTrack(speedTrack, speedTrackPainter, GAUGE_RIGHT_X, GAUGE_Y);
+    add(speedTrack);
+    placeArc(speedArc, speedArcPainter, GAUGE_RIGHT_X, GAUGE_Y,
+             SPEED_MAX_DKPH);
+    speedArcColor = rgb(FG_R, FG_G, FG_B);
+    speedArcPainter.setColor(speedArcColor);
+    add(speedArc);
 
-    /* ---------------- 온도 ----------------
-     * RPM 게이지 아래에 인버터(IGBT), SOC 게이지 아래에 배터리(CELL) 를 둔다.
-     * 위쪽 게이지와 같은 계통끼리 세로로 묶여서 눈이 헤매지 않는다. */
-    placeBox(tempRule, 0, 246, 480, 2, RULE_R, RULE_G, RULE_B);
-    add(tempRule);
+    placeLabel(speedLabel, GAUGE_RIGHT_X, 80, GAUGE_BOX, 20, T_T_VOUTLABEL);
+    add(speedLabel);
+    placeValue(speedValue, speedBuf, GAUGE_RIGHT_X, 101, GAUGE_BOX, 64,
+               T_T_VOUTVAL);
+    add(speedValue);
+    placeLabel(speedUnit, GAUGE_RIGHT_X, 164, GAUGE_BOX, 20,
+               T_T_SPEEDUNIT);
+    add(speedUnit);
 
-    placeLabel(igbtTempLabel, 12, 264, 90, 18, T_T_IGBTLABEL);
+    /* Central RPM module replaces a decorative third gauge. */
+    placePanel(centerPanel, 176, 52, 128, 156);
+    add(centerPanel);
+    placeLabel(rpmLabel, 176, 64, 128, 20, T_T_RPMUNIT);
+    add(rpmLabel);
+    placeValue(rpmText, rpmBuf, 176, 82, 128, 78, T_T_RPM);
+    add(rpmText);
+
+    placePanel(statusPanel, 184, 164, 112, 32);
+    add(statusPanel);
+    placeBox(statusAccent, 184, 194, 112, 2, WARN_R, WARN_G, WARN_B);
+    add(statusAccent);
+    placeLabel(statusText, 184, 168, 112, 24, T_T_DATALOST);
+    add(statusText);
+
+    /* Bottom temperature tiles. Static initials/units stay outside the dirty
+     * value rectangle so a number change transfers only the large digits. */
+    placePanel(motorPanel, 8, 236, 146, 76);
+    add(motorPanel);
+    placeLabel(motorTempLabel, 14, 249, 24, 40, T_T_MOTORINITIAL);
+    motorTempLabel.setColor(rgb(FG_R, FG_G, FG_B));
+    add(motorTempLabel);
+    placeValue(motorValue, motorBuf, 38, 249, 86, 40, T_T_TEMPVALUE);
+    add(motorValue);
+    placeLabel(motorUnit, 124, 274, 24, 20, T_T_DEGC);
+    add(motorUnit);
+
+    placePanel(igbtPanel, 167, 236, 146, 76);
+    add(igbtPanel);
+    placeLabel(igbtTempLabel, 173, 249, 24, 40, T_T_INVERTERINITIAL);
+    igbtTempLabel.setColor(rgb(FG_R, FG_G, FG_B));
     add(igbtTempLabel);
-    placeValue(igbtValue, igbtBuf, 86, 250, 80, 42, T_T_IGBTVAL);
+    placeValue(igbtValue, igbtBuf, 197, 249, 86, 40, T_T_TEMPVALUE);
     add(igbtValue);
-    placeLabel(igbtUnit, 170, 264, 16, 18, T_T_DEGC);
+    placeLabel(igbtUnit, 283, 274, 24, 20, T_T_DEGC);
     add(igbtUnit);
 
-    /* 오른쪽 묶음은 화면 오른쪽 끝에서 왼쪽 묶음과 같은 12px 여백이 남도록
-     * 맞춘다. 좌우 여백이 어긋나면 화면이 한쪽으로 밀린 것처럼 보인다. */
-    placeLabel(cellTempLabel, 286, 264, 90, 18, T_T_MOTORLABEL);
+    placePanel(cellPanel, 326, 236, 146, 76);
+    add(cellPanel);
+    placeLabel(cellTempLabel, 332, 249, 24, 40, T_T_CELLINITIAL);
+    cellTempLabel.setColor(rgb(FG_R, FG_G, FG_B));
     add(cellTempLabel);
-    placeValue(cellValue, cellBuf, 374, 250, 80, 42, T_T_MOTORVAL);
+    placeValue(cellValue, cellBuf, 356, 249, 86, 40, T_T_TEMPVALUE);
     add(cellValue);
-    placeLabel(cellUnit, 458, 264, 16, 18, T_T_DEGC);
+    placeLabel(cellUnit, 442, 274, 24, 20, T_T_DEGC);
     add(cellUnit);
 
-    /* ---------------- 링크 상태 ----------------
-     * 정상일 때는 눈에 띌 필요가 없는 정보라 화면 맨 아래 작게 둔다.
-     * 문제가 생기면 색으로 올라온다. */
-    placeBox(linkDot, 196, 300, 12, 12, DIM_R, DIM_G, DIM_B);
-    add(linkDot);
-
-    linkText.setPosition(216, 294, 120, 24);
-    linkText.setColor(rgb(DIM_R, DIM_G, DIM_B));
-    linkText.setTypedText(touchgfx::TypedText(T_T_DATALOST));
-    add(linkText);
 }
 
 void Screen1View::setupScreen()
 {
     Screen1ViewBase::setupScreen();
 
-    /*
-     * Designer 가 배치한 위젯은 전부 감춘다. 이 화면은 위 생성자에서 직접
-     * 구성했고, 두 벌이 겹쳐 그려지면 잔상이 남는다.
-     *
-     * 전부 Screen1ViewBase:: 로 한정한다. 여기 이름 중 하나가 이 클래스의 멤버와
-     * 겹치면 파생 멤버가 base 를 가려서, 감추려던 Designer 위젯 대신 이쪽 위젯이
-     * 사라진다(값이 통째로 안 보인다). 한정자를 붙여 두면 그때는 컴파일이 되고
-     * 동작이 틀리는 대신, 애초에 이 줄이 무엇을 가리키는지가 분명해진다.
-     */
+    /* The legacy Designer composition is kept in the project, but hidden. */
     Screen1ViewBase::__background.setVisible(false);
     Screen1ViewBase::background.setVisible(false);
     Screen1ViewBase::topDivider.setVisible(false);
@@ -311,7 +436,7 @@ void Screen1View::setupScreen()
     Screen1ViewBase::torqueVal.setVisible(false);
 
     updateApps(false, 0U, 0U, 0U, 0U, 0U, 0U, 0, 0U, 0U);
-    updateTelemetry(false, 0U, 0, 0U, 0U, 0, 0U, 0, 0);
+    updateTelemetry(false, 0U, 0, 0U, 0U, 0, 0U, 0, 0, 0);
 }
 
 void Screen1View::tearDownScreen()
@@ -319,43 +444,27 @@ void Screen1View::tearDownScreen()
     Screen1ViewBase::tearDownScreen();
 }
 
-/*
- * 시프트 라이트를 RPM 에 맞춰 칠한다.
- *
- * 세그먼트는 0 부터 차례로 채우고, 채워진 칸의 색을 구간에 따라 녹/황/적으로
- * 바꾼다. 색이 바뀐 칸만 invalidate 한다 - 부분 프레임버퍼로 SPI 에 실어 보내는
- * 화면이라, 안 바뀐 칸까지 다시 보내면 그대로 프레임 시간이 늘어난다.
- */
 void Screen1View::applyShiftLights(int32_t rpm, bool valid)
 {
-    int32_t per_mille;
+    int32_t perMille;
     uint8_t lit;
 
-    if (rpm < 0)
+    rpm = clampValue(rpm, 0, RPM_MAX);
+    perMille = (RPM_MAX > 0) ? ((rpm * 1000) / RPM_MAX) : 0;
+
+    if (!valid)
     {
-        rpm = 0;
-    }
-    per_mille = (RPM_MAX > 0) ? ((rpm * 1000) / RPM_MAX) : 0;
-    if (per_mille > 1000)
-    {
-        per_mille = 1000;
+        perMille = 0;
     }
 
-    /* 값을 못 받는 동안 마지막 RPM 이 그대로 켜져 있으면 운전자가 현재
-     * 회전수로 읽는다. 전부 꺼서 '정보 없음' 을 분명히 한다. */
-    if (valid != true)
-    {
-        per_mille = 0;
-    }
-
-    lit = static_cast<uint8_t>((per_mille * SHIFT_SEGMENTS) / 1000);
+    lit = static_cast<uint8_t>((perMille * SHIFT_SEGMENTS) / 1000);
     if (lit > SHIFT_SEGMENTS)
     {
         lit = SHIFT_SEGMENTS;
     }
 
-    shiftBlinkActive = valid && (per_mille >= SHIFT_BLINK_PM);
-    if (shiftBlinkActive != true)
+    shiftBlinkActive = valid && (perMille >= SHIFT_BLINK_PM);
+    if (!shiftBlinkActive)
     {
         shiftBlinkOn = true;
         blinkTick = 0U;
@@ -363,24 +472,18 @@ void Screen1View::applyShiftLights(int32_t rpm, bool valid)
 
     for (uint8_t i = 0U; i < SHIFT_SEGMENTS; i++)
     {
-        int32_t seg_pm = ((i + 1) * 1000) / SHIFT_SEGMENTS;
+        const int32_t segmentPm = ((i + 1) * 1000) / SHIFT_SEGMENTS;
         touchgfx::colortype color;
 
-        if (i >= lit)
+        if ((i >= lit) || (shiftBlinkActive && !shiftBlinkOn))
         {
             color = rgb(SEGOFF_R, SEGOFF_G, SEGOFF_B);
         }
-        else if (shiftBlinkActive && (shiftBlinkOn != true))
-        {
-            /* 레드라인에서는 전체가 함께 꺼졌다 켜진다. 색이 아니라 움직임이라
-             * 시선이 계기판에 없어도 알아챈다. */
-            color = rgb(SEGOFF_R, SEGOFF_G, SEGOFF_B);
-        }
-        else if (seg_pm >= SHIFT_RED_PM)
+        else if (segmentPm >= SHIFT_RED_PM)
         {
             color = rgb(FAULT_R, FAULT_G, FAULT_B);
         }
-        else if (seg_pm >= SHIFT_AMBER_PM)
+        else if (segmentPm >= SHIFT_AMBER_PM)
         {
             color = rgb(WARN_R, WARN_G, WARN_B);
         }
@@ -400,53 +503,60 @@ void Screen1View::applyShiftLights(int32_t rpm, bool valid)
 
 void Screen1View::handleTickEvent()
 {
-    if (shiftBlinkActive != true)
+    if (!shiftBlinkActive)
     {
         return;
     }
 
-    /* 60 Hz 틱 기준 약 6 Hz 점멸. 더 빠르면 눈이 따라오지 못하고, 더 느리면
-     * 변속 신호로 안 읽힌다. */
     blinkTick++;
     if (blinkTick >= 5U)
     {
         blinkTick = 0U;
-        shiftBlinkOn = (shiftBlinkOn != true);
+        shiftBlinkOn = !shiftBlinkOn;
         applyShiftLights(lastRpm, lastRpmValid);
     }
 }
 
 void Screen1View::applyLinkState()
 {
-    if (linkConnected != true)
+    touchgfx::colortype color;
+
+    /* 상태가 그대로면 손대지 않는다. 이 배지는 패널/밑줄/글자 세 위젯이라,
+     * APPS 패킷마다 다시 그리면 아무 일도 없는 동안 프레임을 계속 깎는다. */
+    if (linkStateDrawn &&
+        (drawnConnected == linkConnected) &&
+        (drawnFaultActive == appsFaultActive))
     {
-        linkText.setTypedText(touchgfx::TypedText(T_T_DATALOST));
-        linkText.setColor(rgb(WARN_R, WARN_G, WARN_B));
-        linkDot.setColor(rgb(WARN_R, WARN_G, WARN_B));
-        /* 문구마다 폭이 달라서, 가운데로 보이게 하려면 x 를 옮겨야 한다.
-         * (Label 은 왼쪽 정렬 타이포그래피다) */
-        linkDot.setX(190);
-        linkText.setX(210);
+        return;
+    }
+
+    drawnConnected = linkConnected;
+    drawnFaultActive = appsFaultActive;
+    linkStateDrawn = true;
+
+    if (!linkConnected)
+    {
+        statusText.setTypedText(touchgfx::TypedText(T_T_DATALOST));
+        color = rgb(WARN_R, WARN_G, WARN_B);
     }
     else if (appsFaultActive)
     {
-        linkText.setTypedText(touchgfx::TypedText(T_T_STATUSFAULT));
-        linkText.setColor(rgb(FAULT_R, FAULT_G, FAULT_B));
-        linkDot.setColor(rgb(FAULT_R, FAULT_G, FAULT_B));
-        linkDot.setX(199);
-        linkText.setX(219);
+        statusText.setTypedText(touchgfx::TypedText(T_T_STATUSFAULT));
+        color = rgb(FAULT_R, FAULT_G, FAULT_B);
     }
     else
     {
-        linkText.setTypedText(touchgfx::TypedText(T_T_STATUS));
-        linkText.setColor(rgb(OK_R, OK_G, OK_B));
-        linkDot.setColor(rgb(OK_R, OK_G, OK_B));
-        linkDot.setX(197);
-        linkText.setX(217);
+        statusText.setTypedText(touchgfx::TypedText(T_T_STATUS));
+        color = rgb(OK_R, OK_G, OK_B);
     }
 
-    linkText.invalidate();
-    linkDot.invalidate();
+    statusText.setColor(color);
+    statusAccent.setColor(color);
+    statusPanel.setBorderColor(color);
+
+    statusText.invalidate();
+    statusAccent.invalidate();
+    statusPanel.invalidate();
 }
 
 void Screen1View::updateApps(bool connected,
@@ -460,7 +570,9 @@ void Screen1View::updateApps(bool connected,
                              uint32_t status,
                              uint32_t fault)
 {
-    /* 페달/아날로그 입력은 이 화면에 띄우지 않는다. 주행 중 드라이버가 볼 값이
+    const bool appsValid = connected && ((flags & APPS_VALID_FLAG) != 0U);
+
+    /* 페달과 아날로그 입력은 이 화면에 띄우지 않는다. 주행 중 드라이버가 볼 값이
      * 아니고, 정비용 수치는 CLI(display info) 로 볼 수 있다. 링크와 고장 상태만
      * 가져다 쓴다. */
     (void)apps1Raw;
@@ -471,9 +583,7 @@ void Screen1View::updateApps(bool connected,
     (void)command;
 
     linkConnected = connected;
-    appsFaultActive = ((flags & APPS_VALID_FLAG) == 0U) ||
-                      (status != 0U) ||
-                      (fault != 0U);
+    appsFaultActive = !appsValid || (status != 0U) || (fault != 0U);
 
     applyLinkState();
 }
@@ -486,147 +596,204 @@ void Screen1View::updateTelemetry(bool fresh,
                                   int16_t packDa,
                                   uint16_t socPerMille,
                                   int16_t cellTempDecic,
-                                  int16_t igbtTempDecic)
+                                  int16_t igbtTempDecic,
+                                  int16_t motorTempDecic)
 {
-    /*
-     * 각 값은 '텔레메트리가 최근에 왔고' + '그 필드의 valid 비트가 서 있을 때'만
-     * 숫자로 띄운다. 둘 중 하나라도 아니면 '--'. CAN 이 끊긴 뒤 마지막 숫자가
-     * 화면에 그대로 남아 있으면 운전자가 현재 값으로 읽는다.
-     */
-    const bool haveRpm = fresh && ((validMask & (1UL << 5)) != 0U);
-    const bool haveSoc = fresh && ((validMask & (1UL << 2)) != 0U);
-    const bool haveCell = fresh && ((validMask & (1UL << 3)) != 0U);
-    const bool haveIgbt = fresh && ((validMask & (1UL << 9)) != 0U);
+    const bool haveRpm = fresh && ((validMask & TLM_RPM) != 0U);
+    const bool haveSoc = fresh && ((validMask & TLM_SOC) != 0U);
+    const bool haveSpeed = fresh && ((validMask & TLM_SPEED) != 0U);
+    const bool haveCell = fresh && ((validMask & TLM_CELL_TEMP) != 0U);
+    const bool haveIgbt = fresh && ((validMask & TLM_IGBT_TEMP) != 0U);
+    const bool haveMotor = fresh && ((validMask & TLM_MOTOR_TEMP) != 0U);
 
-    (void)speedDkph;
     (void)packDv;
     (void)packDa;
 
-    /* ---------------- RPM ---------------- */
     lastRpm = motorRpm;
     lastRpmValid = haveRpm;
 
-    if (haveRpm)
+    /* ---------------- RPM ---------------- */
     {
-        int32_t shown = (motorRpm < 0) ? 0 : motorRpm;
-        int32_t per_mille = (RPM_MAX > 0) ? ((shown * 1000) / RPM_MAX) : 0;
-        touchgfx::colortype arcColor;
+        const int32_t bounded = clampValue(motorRpm, 0, 9999);
+        const int32_t stepped =
+            ((bounded + (RPM_DISPLAY_STEP / 2)) / RPM_DISPLAY_STEP) *
+            RPM_DISPLAY_STEP;
+        const int32_t perMille =
+            (RPM_MAX > 0)
+                ? ((clampValue(bounded, 0, RPM_MAX) * 1000) / RPM_MAX)
+                : 0;
+        const touchgfx::colortype color =
+            haveRpm ? ((perMille >= SHIFT_RED_PM)
+                           ? rgb(FAULT_R, FAULT_G, FAULT_B)
+                           : rgb(FG_R, FG_G, FG_B))
+                    : rgb(DIM_R, DIM_G, DIM_B);
 
-        touchgfx::Unicode::snprintf(rpmBuf, 10U, "%d",
-                                    static_cast<int>(shown));
-        rpmArc.setValue(static_cast<int>(shown));
-
-        /*
-         * 링은 레드라인에서만 색이 바뀐다. 시프트 라이트처럼 노랑 단계까지 두면
-         * 주행 시간의 절반을 경고색으로 보내게 되고, 그러면 색이 신호가 아니라
-         * 배경이 된다. 중간 구간은 위쪽 세그먼트 바가 이미 보여주고 있다.
-         */
-        arcColor = (per_mille >= SHIFT_RED_PM) ? rgb(FAULT_R, FAULT_G, FAULT_B)
-                                               : rgb(RPM_R, RPM_G, RPM_B);
-
-        rpmText.setColor((per_mille >= SHIFT_RED_PM)
-                             ? rgb(FAULT_R, FAULT_G, FAULT_B)
-                             : rgb(FG_R, FG_G, FG_B));
-
-        /* 색이 바뀔 때만 링 전체를 다시 그린다. setValue 는 늘어난 구간만
-         * 갱신하므로, 색만 바꾸고 두면 이미 그려진 부분이 옛 색으로 남는다. */
-        if (arcColor != rpmArcColor)
+        if (fieldChanged(rpmDrawn, stepped, haveRpm, color))
         {
-            rpmArcColor = arcColor;
-            rpmArcPainter.setColor(arcColor);
-            rpmArc.invalidate();
+            if (haveRpm)
+            {
+                touchgfx::Unicode::snprintf(rpmBuf, 10U, "%d",
+                                            static_cast<int>(stepped));
+            }
+            else
+            {
+                formatUnknown(rpmBuf, 10U);
+            }
+            rpmText.setColor(color);
+            rpmText.invalidate();
         }
-    }
-    else
-    {
-        formatUnknown(rpmBuf, 10U);
-        rpmText.setColor(rgb(DIM_R, DIM_G, DIM_B));
-        rpmArc.setValue(0);
     }
     applyShiftLights(motorRpm, haveRpm);
 
-    /* ---------------- SOC ---------------- */
-    if (haveSoc)
+    /* ---------------- 배터리 잔량 ---------------- */
     {
-        /* 게이지에서는 소수점 이하가 의미 없다. 정수 퍼센트로 반올림해서
-         * 숫자가 잘게 떨리지 않게 한다. */
-        int32_t percent = (static_cast<int32_t>(socPerMille) + 5) / 10;
+        const int32_t boundedSoc =
+            haveSoc ? clampValue(socPerMille, 0, 1000) : 0;
+        const int32_t percent = (boundedSoc + 5) / 10;
+        const touchgfx::colortype textColor =
+            haveSoc ? rgb(FG_R, FG_G, FG_B) : rgb(DIM_R, DIM_G, DIM_B);
 
-        touchgfx::Unicode::snprintf(socBuf, 10U, "%d",
-                                    static_cast<int>(percent));
-        socArc.setValue(static_cast<int>(socPerMille));
+        touchgfx::colortype fillColor = rgb(DIM_R, DIM_G, DIM_B);
 
-        if (socPerMille <= SOC_CRIT_PM)
+        if (haveSoc)
         {
-            socValue.setColor(rgb(FAULT_R, FAULT_G, FAULT_B));
-            socArcPainter.setColor(rgb(FAULT_R, FAULT_G, FAULT_B));
+            if (boundedSoc <= SOC_CRIT_PM)
+            {
+                fillColor = rgb(FAULT_R, FAULT_G, FAULT_B);
+            }
+            else if (boundedSoc <= SOC_WARN_PM)
+            {
+                fillColor = rgb(WARN_R, WARN_G, WARN_B);
+            }
+            else
+            {
+                fillColor = rgb(OK_R, OK_G, OK_B);
+            }
         }
-        else if (socPerMille <= SOC_WARN_PM)
+
+        /* BoxProgress invalidates only the width delta as SOC changes. A full
+         * fill redraw is needed only when crossing a color threshold. */
+        if (fillColor != socFillColor)
         {
-            socValue.setColor(rgb(WARN_R, WARN_G, WARN_B));
-            socArcPainter.setColor(rgb(WARN_R, WARN_G, WARN_B));
+            socFillColor = fillColor;
+            socBatteryFill.setColor(fillColor);
+            socBatteryFill.invalidate();
         }
-        else
+        socBatteryFill.setValue(static_cast<int>(boundedSoc));
+
+        if (fieldChanged(socDrawn, percent, haveSoc, textColor))
         {
-            socValue.setColor(rgb(FG_R, FG_G, FG_B));
-            socArcPainter.setColor(rgb(OK_R, OK_G, OK_B));
+            if (haveSoc)
+            {
+                formatPercent(socBuf, 10U, percent);
+            }
+            else
+            {
+                formatUnknown(socBuf, 10U);
+            }
+            socValue.setColor(textColor);
+            socValue.invalidate();
         }
     }
-    else
+
+    /* ---------------- 속도 ---------------- */
     {
-        formatUnknown(socBuf, 10U);
-        socValue.setColor(rgb(DIM_R, DIM_G, DIM_B));
-        socArc.setValue(0);
+        const int32_t boundedSpeed =
+            haveSpeed ? clampValue(speedDkph, 0, SPEED_MAX_DKPH) : 0;
+        const int32_t speedKph =
+            haveSpeed ? ((static_cast<int32_t>(speedDkph) + 5) / 10) : 0;
+        const touchgfx::colortype color =
+            haveSpeed ? rgb(FG_R, FG_G, FG_B) : rgb(DIM_R, DIM_G, DIM_B);
+
+        speedArc.setValue(static_cast<int>(
+            (boundedSpeed / SPEED_ARC_STEP_DKPH) * SPEED_ARC_STEP_DKPH));
+
+        if (fieldChanged(speedDrawn, speedKph, haveSpeed, color))
+        {
+            if (haveSpeed)
+            {
+                touchgfx::Unicode::snprintf(speedBuf, 10U, "%d",
+                                            static_cast<int>(speedKph));
+            }
+            else
+            {
+                formatUnknown(speedBuf, 10U);
+            }
+            speedValue.setColor(color);
+            speedValue.invalidate();
+        }
     }
 
     /* ---------------- 온도 ---------------- */
-    if (haveIgbt)
     {
-        formatDeci(igbtBuf, 10U, igbtTempDecic);
-        if (igbtTempDecic >= IGBT_CRIT_DECIC)
+        const touchgfx::colortype color =
+            haveIgbt ? ((igbtTempDecic >= IGBT_CRIT_DECIC)
+                            ? rgb(FAULT_R, FAULT_G, FAULT_B)
+                            : (igbtTempDecic >= IGBT_WARN_DECIC)
+                                  ? rgb(WARN_R, WARN_G, WARN_B)
+                                  : rgb(FG_R, FG_G, FG_B))
+                     : rgb(DIM_R, DIM_G, DIM_B);
+
+        if (fieldChanged(igbtDrawn, igbtTempDecic, haveIgbt, color))
         {
-            igbtValue.setColor(rgb(FAULT_R, FAULT_G, FAULT_B));
+            if (haveIgbt)
+            {
+                formatDeci(igbtBuf, 10U, igbtTempDecic);
+            }
+            else
+            {
+                formatUnknown(igbtBuf, 10U);
+            }
+            igbtValue.setColor(color);
+            igbtValue.invalidate();
         }
-        else if (igbtTempDecic >= IGBT_WARN_DECIC)
-        {
-            igbtValue.setColor(rgb(WARN_R, WARN_G, WARN_B));
-        }
-        else
-        {
-            igbtValue.setColor(rgb(FG_R, FG_G, FG_B));
-        }
-    }
-    else
-    {
-        formatUnknown(igbtBuf, 10U);
-        igbtValue.setColor(rgb(DIM_R, DIM_G, DIM_B));
     }
 
-    if (haveCell)
     {
-        formatDeci(cellBuf, 10U, cellTempDecic);
-        if (cellTempDecic >= CELL_CRIT_DECIC)
+        const touchgfx::colortype color =
+            haveMotor ? ((motorTempDecic >= MOTOR_CRIT_DECIC)
+                             ? rgb(FAULT_R, FAULT_G, FAULT_B)
+                             : (motorTempDecic >= MOTOR_WARN_DECIC)
+                                   ? rgb(WARN_R, WARN_G, WARN_B)
+                                   : rgb(FG_R, FG_G, FG_B))
+                      : rgb(DIM_R, DIM_G, DIM_B);
+
+        if (fieldChanged(motorDrawn, motorTempDecic, haveMotor, color))
         {
-            cellValue.setColor(rgb(FAULT_R, FAULT_G, FAULT_B));
+            if (haveMotor)
+            {
+                formatDeci(motorBuf, 10U, motorTempDecic);
+            }
+            else
+            {
+                formatUnknown(motorBuf, 10U);
+            }
+            motorValue.setColor(color);
+            motorValue.invalidate();
         }
-        else if (cellTempDecic >= CELL_WARN_DECIC)
-        {
-            cellValue.setColor(rgb(WARN_R, WARN_G, WARN_B));
-        }
-        else
-        {
-            cellValue.setColor(rgb(FG_R, FG_G, FG_B));
-        }
-    }
-    else
-    {
-        formatUnknown(cellBuf, 10U);
-        cellValue.setColor(rgb(DIM_R, DIM_G, DIM_B));
     }
 
-    rpmText.invalidate();
-    socValue.invalidate();
-    socArc.invalidate();
-    igbtValue.invalidate();
-    cellValue.invalidate();
+    {
+        const touchgfx::colortype color =
+            haveCell ? ((cellTempDecic >= CELL_CRIT_DECIC)
+                            ? rgb(FAULT_R, FAULT_G, FAULT_B)
+                            : (cellTempDecic >= CELL_WARN_DECIC)
+                                  ? rgb(WARN_R, WARN_G, WARN_B)
+                                  : rgb(FG_R, FG_G, FG_B))
+                     : rgb(DIM_R, DIM_G, DIM_B);
+
+        if (fieldChanged(cellDrawn, cellTempDecic, haveCell, color))
+        {
+            if (haveCell)
+            {
+                formatDeci(cellBuf, 10U, cellTempDecic);
+            }
+            else
+            {
+                formatUnknown(cellBuf, 10U);
+            }
+            cellValue.setColor(color);
+            cellValue.invalidate();
+        }
+    }
 }

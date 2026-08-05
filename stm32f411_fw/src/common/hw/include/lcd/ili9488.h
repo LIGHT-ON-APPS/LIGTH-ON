@@ -24,6 +24,7 @@ uint16_t ili9488GetWidth(void);
 uint16_t ili9488GetHeight(void);
 bool ili9488SetCallBack(void (*p_func)(void));
 bool ili9488SendBuffer(uint8_t *p_data, uint32_t length, uint32_t timeout_ms);
+bool ili9488IsTxBusy(void);
 
 #endif
 

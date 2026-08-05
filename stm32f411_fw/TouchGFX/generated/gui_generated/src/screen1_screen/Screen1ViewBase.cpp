@@ -4,26 +4,65 @@
 #include <gui_generated/screen1_screen/Screen1ViewBase.hpp>
 #include <touchgfx/canvas_widget_renderer/CanvasWidgetRenderer.hpp>
 #include <touchgfx/Color.hpp>
+#include <images/BitmapDatabase.hpp>
 #include <texts/TextKeysAndLanguages.hpp>
 
 Screen1ViewBase::Screen1ViewBase()
 {
     touchgfx::CanvasWidgetRenderer::setupBuffer(canvasBuffer, CANVAS_BUFFER_SIZE);
+
     __background.setPosition(0, 0, 480, 320);
     __background.setColor(touchgfx::Color::getColorFromRGB(0, 0, 0));
     add(__background);
+
     background.setPosition(0, 0, 480, 320);
     background.setColor(touchgfx::Color::getColorFromRGB(6, 10, 14));
     add(background);
+
     topDivider.setPosition(0, 58, 480, 2);
     topDivider.setColor(touchgfx::Color::getColorFromRGB(38, 48, 60));
     add(topDivider);
+
     socTrack.setPosition(184, 42, 120, 8);
     socTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
     add(socTrack);
+
     socFill.setPosition(184, 42, 94, 8);
     socFill.setColor(touchgfx::Color::getColorFromRGB(65, 220, 114));
     add(socFill);
+
+    voutTrack.setPosition(270, 102, 194, 12);
+    voutTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
+    add(voutTrack);
+
+    voutFill.setPosition(270, 102, 124, 12);
+    voutFill.setColor(touchgfx::Color::getColorFromRGB(83, 211, 255));
+    add(voutFill);
+
+    motorTrack.setPosition(270, 162, 194, 12);
+    motorTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
+    add(motorTrack);
+
+    motorFill.setPosition(270, 162, 110, 12);
+    motorFill.setColor(touchgfx::Color::getColorFromRGB(255, 197, 61));
+    add(motorFill);
+
+    igbtTrack.setPosition(270, 222, 194, 12);
+    igbtTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
+    add(igbtTrack);
+
+    igbtFill.setPosition(270, 222, 88, 12);
+    igbtFill.setColor(touchgfx::Color::getColorFromRGB(65, 220, 114));
+    add(igbtFill);
+
+    phaseTrack.setPosition(270, 292, 194, 8);
+    phaseTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
+    add(phaseTrack);
+
+    phaseFill.setPosition(270, 292, 148, 8);
+    phaseFill.setColor(touchgfx::Color::getColorFromRGB(130, 169, 255));
+    add(phaseFill);
+
     rpmRing.setXY(30, 72);
     rpmRing.setProgressIndicatorPosition(0, 0, 210, 210);
     rpmRing.setRange(0, 6500);
@@ -36,89 +75,78 @@ Screen1ViewBase::Screen1ViewBase()
     rpmRing.setPainter(rpmRingPainter);
     rpmRing.setValue(4250);
     add(rpmRing);
-    voutTrack.setPosition(270, 102, 194, 12);
-    voutTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
-    add(voutTrack);
-    voutFill.setPosition(270, 102, 124, 12);
-    voutFill.setColor(touchgfx::Color::getColorFromRGB(83, 211, 255));
-    add(voutFill);
-    motorTrack.setPosition(270, 162, 194, 12);
-    motorTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
-    add(motorTrack);
-    motorFill.setPosition(270, 162, 110, 12);
-    motorFill.setColor(touchgfx::Color::getColorFromRGB(255, 197, 61));
-    add(motorFill);
-    igbtTrack.setPosition(270, 222, 194, 12);
-    igbtTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
-    add(igbtTrack);
-    igbtFill.setPosition(270, 222, 88, 12);
-    igbtFill.setColor(touchgfx::Color::getColorFromRGB(65, 220, 114));
-    add(igbtFill);
-    phaseTrack.setPosition(270, 292, 194, 8);
-    phaseTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
-    add(phaseTrack);
-    phaseFill.setPosition(270, 292, 148, 8);
-    phaseFill.setColor(touchgfx::Color::getColorFromRGB(130, 169, 255));
-    add(phaseFill);
+
     statusDot.setPosition(16, 18, 14, 14);
     statusDot.setColor(touchgfx::Color::getColorFromRGB(65, 220, 114));
     add(statusDot);
+
     statusText.setPosition(38, 12, 120, 28);
     statusText.setColor(touchgfx::Color::getColorFromRGB(120, 255, 163));
     statusText.setLinespacing(0);
     statusText.setTypedText(touchgfx::TypedText(T_T_STATUS));
     add(statusText);
+
     socText.setPosition(184, 14, 120, 24);
     socText.setColor(touchgfx::Color::getColorFromRGB(230, 237, 243));
     socText.setLinespacing(0);
     socText.setTypedText(touchgfx::TypedText(T_T_SOC));
     add(socText);
+
     rpmValue.setPosition(30, 142, 210, 50);
     rpmValue.setColor(touchgfx::Color::getColorFromRGB(255, 255, 255));
     rpmValue.setLinespacing(0);
     rpmValue.setTypedText(touchgfx::TypedText(T_T_RPM));
     add(rpmValue);
+
     rpmUnit.setPosition(30, 192, 210, 20);
     rpmUnit.setColor(touchgfx::Color::getColorFromRGB(188, 198, 209));
     rpmUnit.setLinespacing(0);
     rpmUnit.setTypedText(touchgfx::TypedText(T_T_RPMUNIT));
     add(rpmUnit);
+
     voutLabel.setPosition(270, 72, 96, 24);
     voutLabel.setColor(touchgfx::Color::getColorFromRGB(188, 198, 209));
     voutLabel.setLinespacing(0);
     voutLabel.setTypedText(touchgfx::TypedText(T_T_VOUTLABEL));
     add(voutLabel);
+
     voutVal.setPosition(344, 68, 120, 30);
     voutVal.setColor(touchgfx::Color::getColorFromRGB(83, 211, 255));
     voutVal.setLinespacing(0);
     voutVal.setTypedText(touchgfx::TypedText(T_T_VOUTVAL));
     add(voutVal);
+
     motorLabel.setPosition(270, 132, 96, 24);
     motorLabel.setColor(touchgfx::Color::getColorFromRGB(188, 198, 209));
     motorLabel.setLinespacing(0);
     motorLabel.setTypedText(touchgfx::TypedText(T_T_MOTORLABEL));
     add(motorLabel);
+
     motorVal.setPosition(344, 128, 120, 30);
     motorVal.setColor(touchgfx::Color::getColorFromRGB(255, 197, 61));
     motorVal.setLinespacing(0);
     motorVal.setTypedText(touchgfx::TypedText(T_T_MOTORVAL));
     add(motorVal);
+
     igbtLabel.setPosition(270, 192, 96, 24);
     igbtLabel.setColor(touchgfx::Color::getColorFromRGB(188, 198, 209));
     igbtLabel.setLinespacing(0);
     igbtLabel.setTypedText(touchgfx::TypedText(T_T_IGBTLABEL));
     add(igbtLabel);
+
     igbtVal.setPosition(344, 188, 120, 30);
     igbtVal.setColor(touchgfx::Color::getColorFromRGB(65, 220, 114));
     igbtVal.setLinespacing(0);
     igbtVal.setTypedText(touchgfx::TypedText(T_T_IGBTVAL));
     add(igbtVal);
+
     torqueLabel.setPosition(270, 252, 96, 20);
     torqueLabel.setColor(touchgfx::Color::getColorFromRGB(188, 198, 209));
     torqueLabel.setLinespacing(0);
     torqueLabel.setTypedText(touchgfx::TypedText(T_T_TORQUELABEL));
     add(torqueLabel);
-    torqueVal.setPosition(314, 248, 150, 24);
+
+    torqueVal.setPosition(314, 248, 120, 24);
     torqueVal.setColor(touchgfx::Color::getColorFromRGB(230, 237, 243));
     torqueVal.setLinespacing(0);
     torqueVal.setTypedText(touchgfx::TypedText(T_T_TORQUEVAL));
@@ -132,4 +160,5 @@ Screen1ViewBase::~Screen1ViewBase()
 
 void Screen1ViewBase::setupScreen()
 {
+
 }

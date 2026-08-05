@@ -43,7 +43,13 @@ extern "C" void touchgfxDisplayDriverTransmitBlock(const uint8_t* pixels, uint16
 extern "C" void touchgfxSignalVSync(void);
 
 // Block Allocator for Partial Framebuffer strategy
-static ManyBlockAllocator<1920, /* block size */
+//
+// 블록이 작으면 같은 화면을 잘게 쪼개 보내느라 블록당 고정 비용(창 설정 명령,
+// DMA 기동, 완료 인터럽트)을 그만큼 자주 치르게 된다. ILI9488 은 SPI 로 16bpp 를
+// 못 받아 픽셀당 3바이트를 보내야 하므로 이 비용이 특히 아깝다. 블록을 키우면
+// 전송 한 번에 실리는 양이 늘어 그리기와 전송이 겹칠 여지도 함께 늘어난다.
+// 크기를 바꾸면 ili9488.c 의 ILI9488_TX_BUF_PIXELS 도 같이 맞춰야 한다.
+static ManyBlockAllocator<4800, /* block size */
        3, /* number of blocks */
        2 /* bytes per pixel */
        > blockAllocator;
