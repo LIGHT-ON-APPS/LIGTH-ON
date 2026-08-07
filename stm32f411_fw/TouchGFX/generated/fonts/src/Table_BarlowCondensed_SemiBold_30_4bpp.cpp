@@ -17,7 +17,9 @@ KEEP extern const touchgfx::GlyphNode glyphs_BarlowCondensed_SemiBold_30_4bpp[] 
     {  1201, 0x0037,  12,  22,  22,   0,  12,   6,   1, 0x00 }, // seven
     {  1333, 0x0038,  11,  22,  22,   1,  13,   0,   0, 0x00 }, // eight
     {  1465, 0x0039,  12,  22,  22,   0,  13,   0,   0, 0x00 }, // nine
-    {  1597, 0x003F,  12,  22,  22,   0,  12,   0,   0, 0x00 }  // question
+    {  1597, 0x003F,  12,  22,  22,   0,  12,   0,   0, 0x00 }, // question
+    {  1729, 0x0043,  12,  22,  22,   1,  14,   0,   0, 0x00 }, // C
+    {  1861, 0x00B0,  11,  11,  26,   0,  11,   0,   0, 0x00 }  // degree
 };
 
 FONT_SEARCHTABLE_LOCATION_FLASH_PRAGMA
@@ -35,7 +37,9 @@ KEEP extern const uint16_t unicodelist_BarlowCondensed_SemiBold_30_4bpp[] FONT_S
     0x0037,
     0x0038,
     0x0039,
-    0x003F
+    0x003F,
+    0x0043,
+    0x00B0
 };
 
 // BarlowCondensed_SemiBold_30_4bpp
@@ -53,6 +57,6 @@ touchgfx::UnmappedDataFont& getFont_BarlowCondensed_SemiBold_30_4bpp();
 
 touchgfx::UnmappedDataFont& getFont_BarlowCondensed_SemiBold_30_4bpp()
 {
-    static touchgfx::UnmappedDataFont BarlowCondensed_SemiBold_30_4bpp(glyphs_BarlowCondensed_SemiBold_30_4bpp, unicodelist_BarlowCondensed_SemiBold_30_4bpp, 14, 30, 30, 0, 0, 4, 1, 0, 0, unicodes_BarlowCondensed_SemiBold_30_4bpp, kerning_BarlowCondensed_SemiBold_30_4bpp, 63, 0, 0, 0);
+    static touchgfx::UnmappedDataFont BarlowCondensed_SemiBold_30_4bpp(glyphs_BarlowCondensed_SemiBold_30_4bpp, unicodelist_BarlowCondensed_SemiBold_30_4bpp, 16, 30, 30, 0, 0, 4, 1, 0, 0, unicodes_BarlowCondensed_SemiBold_30_4bpp, kerning_BarlowCondensed_SemiBold_30_4bpp, 63, 0, 0, 0);
     return BarlowCondensed_SemiBold_30_4bpp;
 }

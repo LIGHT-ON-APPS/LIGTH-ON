@@ -1,5 +1,5 @@
 /*
- * telemetry_decoder.c
+ * telemetry.c
  *
  * Orion BMS and Bamocar CAN decoder with a display-facing signal snapshot.
  * Persistent CAN logging is owned by the external TMA-1/ESP logger.
@@ -8,7 +8,7 @@
 #include "telemetry.h"
 
 #include "can.h"
-#include "sw/apps/bamocar_can.h"
+#include "sw/bamocar/bamocar_can.h"
 
 #ifdef _USE_HW_CLI
 #include "cli.h"

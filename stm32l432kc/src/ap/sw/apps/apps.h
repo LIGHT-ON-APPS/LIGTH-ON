@@ -13,7 +13,7 @@ extern "C" {
 
 #include "hw_def.h"
 #include "adc.h"
-#include "bamocar_can.h"
+#include "sw/bamocar/bamocar_can.h"
 
 
 #define APPS_ADC_MAX                       HW_ADC_MAX_CH
@@ -27,15 +27,31 @@ extern "C" {
 /* High only while APPS plausibility is valid and the latest CAN TX succeeds. */
 #define APPS_READY_GPIO_CH                 _DEF_GPIO1
 
-#define APPS_SIGNAL1_RAW_MIN_DEFAULT       0U
-#define APPS_SIGNAL1_RAW_MAX_DEFAULT       3102U      //2.5v
-#define APPS_SIGNAL2_RAW_MIN_DEFAULT       0U
-#define APPS_SIGNAL2_RAW_MAX_DEFAULT       4095U      //3.3v
+/*
+ * Pedal-travel scaling, both ends measured on the car 2026-08-07.
+ * Released: signal1 79..80 (0.064 V), signal2 106..109 (0.088 V).
+ * Fully pressed: signal1 2075 (1.672 V), signal2 2740 (2.208 V).
+ *
+ * Readings outside raw_min..raw_max clamp to 0% / 100%, so no extra deadband
+ * is needed at either end. Signal2 swings about 1.32x signal1; each channel is
+ * normalised to per-mille before the plausibility comparison, so the differing
+ * gains are expected and do not raise DIFF_FAULT.
+ */
+#define APPS_SIGNAL1_RAW_MIN_DEFAULT       83U        //0.064v
+#define APPS_SIGNAL1_RAW_MAX_DEFAULT       2070U      //1.672v
+#define APPS_SIGNAL2_RAW_MIN_DEFAULT       121U       //0.085v
+#define APPS_SIGNAL2_RAW_MAX_DEFAULT       2740U      //2.208v
 
-/* Independent electrical plausibility limits (initially 10%..90%). */
-#define APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT 310U
+/*
+ * Independent electrical plausibility limits. A reading outside this window
+ * raises SIGNALn_RANGE_FAULT, which is how an open or shorted sensor line is
+ * caught. The lower limit must sit below the released-pedal reading above, so
+ * a sensor that rests near 0 V leaves almost no room to detect a short to
+ * ground. Raise these once the sensor's real rest offset is confirmed.
+ */
+#define APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT 0U
 #define APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT 2792U
-#define APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT 410U
+#define APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT 0U
 #define APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT 3685U
 
 /* Max allowed APPS1/APPS2 difference. Unit: per-mille, 100 = 10.0%. */

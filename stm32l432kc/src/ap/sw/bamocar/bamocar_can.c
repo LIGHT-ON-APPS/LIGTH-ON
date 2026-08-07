@@ -2,7 +2,7 @@
  * bamocar_can.c
  *
  * Bamocar CAN protocol helper.
- * APPS decides the requested torque; this file only packs/sends Bamocar
+ * Callers decide what to command or read; this file only packs/sends Bamocar
  * register frames over the existing CAN driver.
  */
 

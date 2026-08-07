@@ -13,8 +13,6 @@
 
 void apInit(void);
 void apMain(void);
-void apSetServiceMode(bool enabled);
-bool apIsServiceMode(void);
 
 /* 진단 CAN 발행 통계. tx_total은 시도한 세트 수, tx_fail은 세 프레임 중 하나라도
  * 실패한 세트 수. CAN이 닫혀 있어 건너뛴 주기는 둘 다 세지 않는다. */

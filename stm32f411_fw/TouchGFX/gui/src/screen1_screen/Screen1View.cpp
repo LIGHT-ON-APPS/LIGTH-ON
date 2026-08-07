@@ -5,26 +5,47 @@
 
 namespace
 {
-/* Functional race-display palette: neutral surfaces with one lime accent. */
-const uint8_t BG_R = 5,       BG_G = 6,       BG_B = 7;
-const uint8_t PANEL_R = 11,   PANEL_G = 13,   PANEL_B = 14;
-const uint8_t BORDER_R = 53,  BORDER_G = 58,  BORDER_B = 60;
-const uint8_t TRACK_R = 44,   TRACK_G = 49,   TRACK_B = 51;
-const uint8_t SEGOFF_R = 22,  SEGOFF_G = 25,  SEGOFF_B = 25;
+/*
+ * 주간 야외 주행용 밝은 테마.
+ *
+ * ILI9488 은 transmissive TFT 이고 이 보드의 백라이트는 GPIO on/off 라 이미 최대
+ * 밝기다. 즉 직사광 아래에서 소프트웨어가 쓸 수 있는 수단은 색 조합뿐이다.
+ *
+ * 밝은 바탕이 유리한 이유는 대비비가 아니다(반사광은 글자와 배경에 똑같이
+ * 더해져서 비율은 거의 그대로다). 실제로 갈리는 것은
+ *   - 어두운 화면은 거울처럼 하늘/헬멧을 비춰 그 상이 글자를 덮는다
+ *   - 밝은 곳에 순응한 눈은 동공이 수축해 어두운 계조를 읽지 못한다
+ *   - 어두운 바탕 위 밝은 글자는 번져서(halation) 획이 뭉개진다
+ * 이 세 가지이고, 전부 밝은 바탕에서 사라진다.
+ *
+ * 정보가 실린 타일을 화면에서 가장 밝게 두고, 바탕은 한 단계 낮춰 타일이
+ * 떠 보이게 한다.
+ */
+const uint8_t BG_R = 232,     BG_G = 234,     BG_B = 232;
+const uint8_t PANEL_R = 255,  PANEL_G = 255,  PANEL_B = 253;
+const uint8_t BORDER_R = 168, BORDER_G = 173, BORDER_B = 175;
+/* 밝은 바탕에서는 '꺼짐'도 눈에 보여야 눈금이 성립한다. 배경과 붙어 버리면
+ * 시프트 바는 몇 칸이 남았는지, 링은 어디까지 차야 하는지를 알 수 없다. */
+const uint8_t TRACK_R = 183,  TRACK_G = 189,  TRACK_B = 191;
+const uint8_t SEGOFF_R = 188, SEGOFF_G = 194, SEGOFF_B = 196;
 
 /*
- * 색은 위계를 만드는 데만 쓴다. 화면에서 가장 밝은 것은 RPM 숫자여야 하고,
- * 나머지는 그보다 한 단계 아래로 내려가야 시선이 먼저 갈 곳을 안다.
+ * 색은 위계를 만드는 데만 쓴다. 화면에서 가장 진한 것은 RPM 숫자여야 하고,
+ * 나머지는 그보다 한 단계 흐려야 시선이 먼저 갈 곳을 안다.
  *
- * 정상 상태에 형광색을 쓰지 않는 것도 같은 이유다. 늘 켜져 있는 색은 신호가
- * 아니라 배경이 되고, 정작 경고가 떴을 때 눈에 덜 띈다. 채도가 높은 색은
- * 경고(WARN)와 고장(FAULT)에만 남겨 둔다.
+ * 경고색은 어두운 테마에서 쓰던 것을 그대로 옮기면 안 된다. 흰 바탕에서 노랑
+ * (255,181,46)은 배경과 붙어 버려 거의 보이지 않고, 순색 빨강도 생각보다 약하다.
+ * 채도 대신 명도를 낮춰서 배경과 벌린다.
  */
-const uint8_t FG_R = 244,     FG_G = 245,     FG_B = 239;
-const uint8_t DIM_R = 142,    DIM_G = 148,    DIM_B = 148;
-const uint8_t OK_R = 126,     OK_G = 222,     OK_B = 76;
-const uint8_t WARN_R = 255,   WARN_G = 181,   WARN_B = 46;
-const uint8_t FAULT_R = 255,  FAULT_G = 68,   FAULT_B = 56;
+const uint8_t FG_R = 12,      FG_G = 14,      FG_B = 16;
+const uint8_t DIM_R = 92,     DIM_G = 98,     DIM_B = 102;
+const uint8_t OK_R = 0,       OK_G = 138,     OK_B = 58;
+const uint8_t WARN_R = 196,   WARN_G = 88,    WARN_B = 0;
+const uint8_t FAULT_R = 198,  FAULT_G = 22,   FAULT_B = 22;
+
+/* 경고/고장 타일은 글자색만 바꾸지 않고 배경째 채운다. 밝은 환경에서는 작은
+ * 글자 색보다 큰 면적이 훨씬 빨리 읽힌다. 그 위에 얹는 글자색이다. */
+const uint8_t ONFILL_R = 255, ONFILL_G = 255, ONFILL_B = 255;
 
 const uint8_t APPS_VALID_FLAG = 1U << 0;
 
@@ -377,7 +398,10 @@ Screen1View::Screen1View()
     add(motorTempLabel);
     placeValue(motorValue, motorBuf, 38, 249, 86, 40, T_T_TEMPVALUE);
     add(motorValue);
-    placeLabel(motorUnit, 124, 274, 24, 20, T_T_DEGC);
+    /* 단위는 값보다 한 단계 작게(40 -> 30) 두되 색은 값과 같은 흰색으로 맞춘다.
+     * y 를 값보다 8 px 내린 것은 두 폰트 크기 차이만큼 밑선을 맞추기 위함이다. */
+    placeLabel(motorUnit, 122, 257, 32, 36, T_T_DEGC);
+    motorUnit.setColor(rgb(FG_R, FG_G, FG_B));
     add(motorUnit);
 
     placePanel(igbtPanel, 167, 236, 146, 76);
@@ -387,7 +411,8 @@ Screen1View::Screen1View()
     add(igbtTempLabel);
     placeValue(igbtValue, igbtBuf, 197, 249, 86, 40, T_T_TEMPVALUE);
     add(igbtValue);
-    placeLabel(igbtUnit, 283, 274, 24, 20, T_T_DEGC);
+    placeLabel(igbtUnit, 281, 257, 32, 36, T_T_DEGC);
+    igbtUnit.setColor(rgb(FG_R, FG_G, FG_B));
     add(igbtUnit);
 
     placePanel(cellPanel, 326, 236, 146, 76);
@@ -397,7 +422,8 @@ Screen1View::Screen1View()
     add(cellTempLabel);
     placeValue(cellValue, cellBuf, 356, 249, 86, 40, T_T_TEMPVALUE);
     add(cellValue);
-    placeLabel(cellUnit, 442, 274, 24, 20, T_T_DEGC);
+    placeLabel(cellUnit, 440, 257, 32, 36, T_T_DEGC);
+    cellUnit.setColor(rgb(FG_R, FG_G, FG_B));
     add(cellUnit);
 
 }
@@ -514,6 +540,95 @@ void Screen1View::handleTickEvent()
         blinkTick = 0U;
         shiftBlinkOn = !shiftBlinkOn;
         applyShiftLights(lastRpm, lastRpmValid);
+    }
+}
+
+/*
+ * 온도 타일 갱신.
+ *
+ * 임계를 넘으면 숫자 색만 바꾸는 대신 타일 배경째 채우고 글자를 흰색으로
+ * 뒤집는다. 밝은 바탕에서는 작은 글자의 색보다 큰 면적이 훨씬 빨리 읽히고,
+ * 햇빛에 화면이 씻겨도 면은 끝까지 남는다.
+ *
+ * 배경이 바뀔 때만 타일 전체를 다시 그린다. 숫자만 달라진 프레임에서 타일을
+ * 통째로 갱신하면 그게 그대로 프레임 시간이 된다.
+ */
+void Screen1View::updateTempTile(DrawnField& drawn,
+                                 touchgfx::BoxWithBorder& panel,
+                                 touchgfx::TextArea& initial,
+                                 touchgfx::TextAreaWithOneWildcard& value,
+                                 touchgfx::TextArea& unit,
+                                 touchgfx::Unicode::UnicodeChar* buffer,
+                                 int16_t decic,
+                                 bool valid,
+                                 int16_t warnDecic,
+                                 int16_t critDecic)
+{
+    touchgfx::colortype fill;
+    touchgfx::colortype ink;
+    bool fillChanged;
+
+    if (valid != true)
+    {
+        fill = rgb(PANEL_R, PANEL_G, PANEL_B);
+        ink = rgb(DIM_R, DIM_G, DIM_B);
+    }
+    else if (decic >= critDecic)
+    {
+        fill = rgb(FAULT_R, FAULT_G, FAULT_B);
+        ink = rgb(ONFILL_R, ONFILL_G, ONFILL_B);
+    }
+    else if (decic >= warnDecic)
+    {
+        fill = rgb(WARN_R, WARN_G, WARN_B);
+        ink = rgb(ONFILL_R, ONFILL_G, ONFILL_B);
+    }
+    else
+    {
+        fill = rgb(PANEL_R, PANEL_G, PANEL_B);
+        ink = rgb(FG_R, FG_G, FG_B);
+    }
+
+    /* fieldChanged 가 drawn 을 갱신해 버리므로 먼저 비교해 둔다.
+     * 글자색만 달라지는 전환(값 없음 -> 정상)도 타일을 다시 그려야 한다.
+     * 배경은 둘 다 흰색이라 fill 비교만으로는 잡히지 않는다. */
+    fillChanged = (drawn.drawn != true) ||
+                  (drawn.color != fill) ||
+                  (drawn.ink != ink);
+
+    if ((fieldChanged(drawn, decic, valid, fill) != true) &&
+        (fillChanged != true))
+    {
+        return;
+    }
+    drawn.ink = ink;
+
+    if (valid)
+    {
+        formatDeci(buffer, 10U, decic);
+    }
+    else
+    {
+        formatUnknown(buffer, 10U);
+    }
+
+    if (fillChanged)
+    {
+        const bool filled = (fill != rgb(PANEL_R, PANEL_G, PANEL_B));
+
+        panel.setColor(fill);
+        panel.setBorderColor(filled ? fill
+                                    : rgb(BORDER_R, BORDER_G, BORDER_B));
+        initial.setColor(ink);
+        value.setColor(ink);
+        unit.setColor(ink);
+
+        /* 타일 영역이 dirty 가 되면 그 위에 겹친 글자들도 함께 다시 그려진다. */
+        panel.invalidate();
+    }
+    else
+    {
+        value.invalidate();
     }
 }
 
@@ -725,75 +840,13 @@ void Screen1View::updateTelemetry(bool fresh,
     }
 
     /* ---------------- 온도 ---------------- */
-    {
-        const touchgfx::colortype color =
-            haveIgbt ? ((igbtTempDecic >= IGBT_CRIT_DECIC)
-                            ? rgb(FAULT_R, FAULT_G, FAULT_B)
-                            : (igbtTempDecic >= IGBT_WARN_DECIC)
-                                  ? rgb(WARN_R, WARN_G, WARN_B)
-                                  : rgb(FG_R, FG_G, FG_B))
-                     : rgb(DIM_R, DIM_G, DIM_B);
-
-        if (fieldChanged(igbtDrawn, igbtTempDecic, haveIgbt, color))
-        {
-            if (haveIgbt)
-            {
-                formatDeci(igbtBuf, 10U, igbtTempDecic);
-            }
-            else
-            {
-                formatUnknown(igbtBuf, 10U);
-            }
-            igbtValue.setColor(color);
-            igbtValue.invalidate();
-        }
-    }
-
-    {
-        const touchgfx::colortype color =
-            haveMotor ? ((motorTempDecic >= MOTOR_CRIT_DECIC)
-                             ? rgb(FAULT_R, FAULT_G, FAULT_B)
-                             : (motorTempDecic >= MOTOR_WARN_DECIC)
-                                   ? rgb(WARN_R, WARN_G, WARN_B)
-                                   : rgb(FG_R, FG_G, FG_B))
-                      : rgb(DIM_R, DIM_G, DIM_B);
-
-        if (fieldChanged(motorDrawn, motorTempDecic, haveMotor, color))
-        {
-            if (haveMotor)
-            {
-                formatDeci(motorBuf, 10U, motorTempDecic);
-            }
-            else
-            {
-                formatUnknown(motorBuf, 10U);
-            }
-            motorValue.setColor(color);
-            motorValue.invalidate();
-        }
-    }
-
-    {
-        const touchgfx::colortype color =
-            haveCell ? ((cellTempDecic >= CELL_CRIT_DECIC)
-                            ? rgb(FAULT_R, FAULT_G, FAULT_B)
-                            : (cellTempDecic >= CELL_WARN_DECIC)
-                                  ? rgb(WARN_R, WARN_G, WARN_B)
-                                  : rgb(FG_R, FG_G, FG_B))
-                     : rgb(DIM_R, DIM_G, DIM_B);
-
-        if (fieldChanged(cellDrawn, cellTempDecic, haveCell, color))
-        {
-            if (haveCell)
-            {
-                formatDeci(cellBuf, 10U, cellTempDecic);
-            }
-            else
-            {
-                formatUnknown(cellBuf, 10U);
-            }
-            cellValue.setColor(color);
-            cellValue.invalidate();
-        }
-    }
+    updateTempTile(motorDrawn, motorPanel, motorTempLabel, motorValue,
+                   motorUnit, motorBuf, motorTempDecic, haveMotor,
+                   MOTOR_WARN_DECIC, MOTOR_CRIT_DECIC);
+    updateTempTile(igbtDrawn, igbtPanel, igbtTempLabel, igbtValue,
+                   igbtUnit, igbtBuf, igbtTempDecic, haveIgbt,
+                   IGBT_WARN_DECIC, IGBT_CRIT_DECIC);
+    updateTempTile(cellDrawn, cellPanel, cellTempLabel, cellValue,
+                   cellUnit, cellBuf, cellTempDecic, haveCell,
+                   CELL_WARN_DECIC, CELL_CRIT_DECIC);
 }

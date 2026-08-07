@@ -61,7 +61,7 @@ DMA를 MCU에 추가하는 정확한 절차는 `stm32l432kc/DMA_SETUP_CHECKLIST.
 
 ### 저장소 안의 기존 telemetry 코드
 
-`stm32l432kc/src/ap/sw/telemetry/telemetry_decoder.c`는 Orion/Bamocar CAN 디코딩과 최신 신호 snapshot만 담당한다.
+`stm32l432kc/src/ap/sw/telemetry/telemetry.c`는 Orion/Bamocar CAN 디코딩과 최신 신호 snapshot만 담당한다.
 
 - `ap_runtime.c`는 `telemetryInit()`와 `telemetryUpdate()`를 호출하므로 CAN 수신·디코딩은 실행 중이다.
 - L432 telemetry에는 FatFS/CSV 로거 및 SD 저장 경로가 없다.

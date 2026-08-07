@@ -3,11 +3,12 @@
  *
  * Minimal helpers for UniTek BAMOCAR D3 CAN command frames.
  * This module keeps Bamocar register IDs, CAN IDs, and byte packing out of
- * APPS control logic.
+ * its callers: APPS torque commands, telemetry decoding, and the runtime's
+ * periodic register requests all share it.
  */
 
-#ifndef SRC_AP_SW_APPS_BAMOCAR_CAN_H_
-#define SRC_AP_SW_APPS_BAMOCAR_CAN_H_
+#ifndef SRC_AP_SW_BAMOCAR_BAMOCAR_CAN_H_
+#define SRC_AP_SW_BAMOCAR_BAMOCAR_CAN_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,4 +52,4 @@ bool bamocarCanSendTorqueCmd(uint8_t can_ch, int16_t torque_cmd);
 }
 #endif
 
-#endif /* SRC_AP_SW_APPS_BAMOCAR_CAN_H_ */
+#endif /* SRC_AP_SW_BAMOCAR_BAMOCAR_CAN_H_ */

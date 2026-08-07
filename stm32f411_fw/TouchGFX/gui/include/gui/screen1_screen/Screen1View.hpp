@@ -129,6 +129,10 @@ private:
     {
         int32_t value;
         touchgfx::colortype color;
+        /* 온도 타일처럼 배경(color)과 글자색이 따로 노는 경우에 쓴다. 배경이
+         * 그대로여도 글자색만 바뀌는 전환(값 없음 -> 정상)이 있어서, 이걸
+         * 같이 보지 않으면 글자가 흐린 색 그대로 남는다. */
+        touchgfx::colortype ink;
         bool valid;
         bool drawn;
     };
@@ -140,6 +144,18 @@ private:
 
     void applyShiftLights(int32_t rpm, bool valid);
     void applyLinkState();
+
+    /* 온도 타일 하나를 갱신한다. 세 타일이 규칙이 같아서 한 곳으로 묶었다. */
+    void updateTempTile(DrawnField& drawn,
+                        touchgfx::BoxWithBorder& panel,
+                        touchgfx::TextArea& initial,
+                        touchgfx::TextAreaWithOneWildcard& value,
+                        touchgfx::TextArea& unit,
+                        touchgfx::Unicode::UnicodeChar* buffer,
+                        int16_t decic,
+                        bool valid,
+                        int16_t warnDecic,
+                        int16_t critDecic);
 
     bool appsFaultActive;
     bool linkConnected;

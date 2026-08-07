@@ -11,7 +11,7 @@
 #include "can.h"
 #include "display_protocol.h"
 #include "sw/apps/apps.h"
-#include "sw/apps/bamocar_can.h"
+#include "sw/bamocar/bamocar_can.h"
 #include "sw/telemetry/telemetry.h"
 #include "uart.h"
 
@@ -20,10 +20,6 @@
 #define DISPLAY_UART_BAUD                  115200U
 #define DISPLAY_TX_PERIOD_MS               50U
 #define DISPLAY_TLM_TX_PERIOD_MS           100U
-
-/* 서비스 CLI는 전원 인가 직후부터 USART2(VCP)에서 사용할 수 있게 한다. */
-#define SERVICE_MODE_DEFAULT_ENABLED       true
-#define SERVICE_CLI_BAUD                   57600U
 
 /* APPS 진단 CAN 송신 설정. */
 #define DIAG_CAN_TX_PERIOD_MS              50U
@@ -87,13 +83,6 @@ _Static_assert(TELEMETRY_SIGNAL_BAMOCAR_IGBT_TEMP_DECIC == DISPLAY_PROTOCOL_TLM_
                "IGBT temperature mask layouts differ");
 
 
-/* 서비스 모드와 CLI UART 상태. */
-static volatile bool service_mode = SERVICE_MODE_DEFAULT_ENABLED;
-
-#ifdef _USE_HW_CLI
-static bool service_mode_active = false;
-#endif
-
 /* APPS 제어 루프 주기 상태. */
 static uint32_t apps_pre_time = 0U;
 static bool apps_scheduler_started = false;
@@ -120,73 +109,12 @@ static bool bamocar_scheduler_started = false;
 
 
 /* --------------------------------------------------------------------------
- * 서비스 모드와 CLI
- * -------------------------------------------------------------------------- */
-
-/* 서비스 모드 요청과 실제 CLI 연결 상태를 초기화한다. */
-static void apServiceInit(void)
-{
-  service_mode = SERVICE_MODE_DEFAULT_ENABLED;
-
-#ifdef _USE_HW_CLI
-  service_mode_active = false;
-  cliSetRunCheck(apIsServiceMode);
-#endif
-}
-
-/* 서비스 모드 요청에 따라 CLI용 UART를 열거나 닫는다. */
-static void apServiceModeUpdate(void)
-{
-#ifdef _USE_HW_CLI
-  bool requested = service_mode;
-
-  if ((requested == true) && (service_mode_active != true))
-  {
-    service_mode_active = cliOpen(_DEF_UART1, SERVICE_CLI_BAUD);
-    if (service_mode_active != true)
-    {
-      service_mode = false;
-    }
-  }
-  else if ((requested != true) && (service_mode_active == true))
-  {
-    (void)cliClose();
-    service_mode_active = false;
-  }
-#endif
-}
-
-/* 서비스 모드가 활성화된 동안에만 CLI를 실행한다. */
-static void apServiceCliUpdate(void)
-{
-#ifdef _USE_HW_CLI
-  if ((service_mode == true) && (service_mode_active == true))
-  {
-    cliMain();
-  }
-#endif
-}
-
-/* 외부에서 서비스 모드의 활성화 여부를 요청한다. */
-void apSetServiceMode(bool enabled)
-{
-  service_mode = enabled;
-}
-
-/* 현재 요청된 서비스 모드 상태를 반환한다. */
-bool apIsServiceMode(void)
-{
-  return service_mode;
-}
-
-/* --------------------------------------------------------------------------
  * APPS 페달 제어
  * -------------------------------------------------------------------------- */
 
-/* APPS 모듈과 10 ms 제어 주기 상태를 초기화한다. */
-static void apAppsInit(void)
+/* APPS 제어의 10 ms 주기 상태만 초기화한다. 모듈 자체는 apModuleInit()이 세운다. */
+static void apAppsSchedulerInit(void)
 {
-  (void)appsInit();
   apps_pre_time = 0U;
   apps_scheduler_started = false;
 }
@@ -621,30 +549,54 @@ static void apBamocarUpdate(void)
  * 애플리케이션 런타임 진입점
  * -------------------------------------------------------------------------- */
 
-/* 각 기능을 의존 관계에 맞는 순서로 한 번씩 초기화한다. */
-void apRuntimeInit(void)
+/*
+ * src/ap/sw 아래의 소프트웨어 모듈을 세운다. ADC 콜백 등록, GPIO 출력,
+ * CLI 명령 등록처럼 런타임 바깥에 영향을 주는 초기화는 여기에만 둔다.
+ * apInit()이 apRuntimeInit()보다 먼저 호출한다.
+ */
+void apModuleInit(void)
 {
-  apServiceInit();
-  apAppsInit();
-  apDisplayInit();
-  (void)telemetryInit();
-  apDiagCanInit();
-  apBamocarInit();
+  appsInit();		// 페달 보정값, ADC 콜백, READY GPIO, "apps" CLI 명령.
+  telemetryInit();	// Orion/Bamocar CAN 디코더 상태, "telemetry" CLI 명령.
 }
 
-/* 안전 제어와 통신 처리 순서를 유지하며 각 기능을 한 번씩 실행한다. */
+/*
+ * 런타임이 쓰는 주기·순번·연결 상태를 초기화한다.
+ * 모듈이 이미 서 있어야 하므로 apModuleInit() 뒤에 호출해야 한다.
+ */
+void apRuntimeInit(void)
+{
+  apAppsSchedulerInit();	// APPS 제어의 10 ms 주기 상태.
+  apDisplayInit();		// 계기판(F411) USART1 링크를 열고 두 패킷의 순번·송신 주기를 잡는다.
+  apDiagCanInit();		// APPS 진단 CAN 프레임의 순번과 송신 통계.
+  apBamocarInit();		// Bamocar 레지스터 재요청 주기. 첫 루프에서 즉시 보내도록 맞춘다.
+}
+
+/*
+ * 안전 제어와 통신 처리 순서를 유지하며 각 기능을 한 번씩 실행한다.
+ * apMain()의 무한 루프가 계속 호출하므로 여기서 블로킹하면 안 된다.
+ * 주기 작업은 각자 millis()로 때를 확인하고 아니면 즉시 반환한다.
+ */
 void apRuntimeUpdate(void)
 {
-  apServiceModeUpdate();
-
+  /* [10 ms] 페달 ADC를 읽어 Bamocar로 토크 지령을 보낸다. 안전상 최우선. */
   apAppsUpdate();
+
+  /* [50 ms] 같은 APPS 상태를 계기판 상태 패킷으로 만들어 USART1로 보낸다. */
   apDisplayStatusUpdate();
+
+  /* [50 ms] 같은 APPS 상태를 진단 CAN 3프레임으로 보낸다. 위 UART와 반 주기 어긋난다. */
   apDiagCanUpdate();
+
+  /* [1 s] Bamocar에 RPM·온도·DC버스·상태 레지스터의 주기 송신을 재요청한다. */
   apBamocarUpdate();
+
+  /* [100 ms] 아래 telemetryUpdate()가 디코딩해 둔 차량 신호를 계기판으로 보낸다. */
   apDisplayTelemetryUpdate();
 
+  /* 송신을 모두 마친 뒤 CAN 에러를 확인하고 bus-off에서 복구한다. */
   (void)canUpdate();
 
+  /* CAN 수신 큐를 비우며 Orion/Bamocar 프레임을 신호 스냅샷으로 디코딩한다. */
   telemetryUpdate();
-  apServiceCliUpdate();
 }

@@ -13,11 +13,11 @@
 
 ## 현재 소프트웨어 구조
 
-- `src/ap/ap.c`: `apInit()`의 초기화 호출과 `apMain()`의 실행 호출만 담당합니다.
-- `src/ap/ap_runtime.c`: APPS 주기 실행, 서비스 모드, 표시 UART, 진단 CAN, Bamocar 요청을 통합 관리합니다.
+- `src/ap/ap.c`: `apInit()`의 초기화 호출과 `apMain()`의 실행 호출, 그리고 서비스 CLI의 개시와 주기 실행을 담당합니다.
+- `src/ap/ap_runtime.c`: APPS 주기 실행, 표시 UART, 진단 CAN, Bamocar 요청을 통합 관리합니다. 모듈 초기화는 `apModuleInit()`, 런타임 상태 초기화는 `apRuntimeInit()`으로 나뉩니다.
 - `src/ap/sw/apps/apps.h`, `apps.c`: APPS 구조체와 상태는 `apps.c` 내부 전역변수로 관리합니다. 외부에서는 채널, 보정값, torque command 같은 값만 함수 인자로 전달합니다.
 - APPS CLI 출력과 런타임 보정 명령은 `apps.c` 안에서 같이 관리합니다.
-- `src/ap/sw/apps/bamocar_can.h`, `bamocar_can.c`: Bamocar D3의 16-bit register write/read request CAN payload를 만드는 작은 헬퍼입니다.
+- `src/ap/sw/bamocar/bamocar_can.h`, `bamocar_can.c`: Bamocar D3의 16-bit register write/read request CAN payload를 만드는 작은 헬퍼입니다. `apps`, `telemetry`, `ap_runtime`이 함께 씁니다.
 - `src/ap/sw/telemetry`: CAN 차량 신호를 디코딩해 표시 장치에 전달하는 텔레메트리 모듈입니다.
 
 ## 먼저 확정해야 할 하드웨어

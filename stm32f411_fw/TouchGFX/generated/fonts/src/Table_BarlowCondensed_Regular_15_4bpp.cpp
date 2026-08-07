@@ -26,8 +26,7 @@ KEEP extern const touchgfx::GlyphNode glyphs_BarlowCondensed_Regular_15_4bpp[] F
     {   583, 0x0053,   6,  11,  11,   0,   6,   0,   0, 0x00 }, // S
     {   616, 0x0054,   6,  11,  11,   0,   6,   4,   1, 0x00 }, // T
     {   649, 0x0055,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // U
-    {   682, 0x0056,   6,  11,  11,   0,   7,   0,   0, 0x00 }, // V
-    {   715, 0x00B0,   5,   5,  13,   0,   5,   0,   0, 0x00 }  // degree
+    {   682, 0x0056,   6,  11,  11,   0,   7,   0,   0, 0x00 }  // V
 };
 
 FONT_SEARCHTABLE_LOCATION_FLASH_PRAGMA
@@ -54,8 +53,7 @@ KEEP extern const uint16_t unicodelist_BarlowCondensed_Regular_15_4bpp[] FONT_SE
     0x0053,
     0x0054,
     0x0055,
-    0x0056,
-    0x00B0
+    0x0056
 };
 
 // BarlowCondensed_Regular_15_4bpp
@@ -73,6 +71,6 @@ touchgfx::UnmappedDataFont& getFont_BarlowCondensed_Regular_15_4bpp();
 
 touchgfx::UnmappedDataFont& getFont_BarlowCondensed_Regular_15_4bpp()
 {
-    static touchgfx::UnmappedDataFont BarlowCondensed_Regular_15_4bpp(glyphs_BarlowCondensed_Regular_15_4bpp, unicodelist_BarlowCondensed_Regular_15_4bpp, 24, 15, 15, 0, 0, 4, 1, 0, 0, unicodes_BarlowCondensed_Regular_15_4bpp, kerning_BarlowCondensed_Regular_15_4bpp, 63, 0, 0, 0);
+    static touchgfx::UnmappedDataFont BarlowCondensed_Regular_15_4bpp(glyphs_BarlowCondensed_Regular_15_4bpp, unicodelist_BarlowCondensed_Regular_15_4bpp, 23, 15, 15, 0, 0, 4, 1, 0, 0, unicodes_BarlowCondensed_Regular_15_4bpp, kerning_BarlowCondensed_Regular_15_4bpp, 63, 0, 0, 0);
     return BarlowCondensed_Regular_15_4bpp;
 }
