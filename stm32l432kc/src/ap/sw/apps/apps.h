@@ -66,6 +66,20 @@ extern "C" {
 /* Torque command sent at 100% pedal. Unit: Bamocar raw command. */
 #define APPS_TORQUE_MAX                    BAMOCAR_TORQUE_CMD_MAX
 
+/*
+ * Anything at or below this is sent as 0. Unit: Bamocar raw command.
+ * 655 is about 2% of APPS_TORQUE_MAX, so ADC noise around a released pedal
+ * cannot leave a standing torque request on the bus.
+ */
+/*
+ * Anything at or above this is sent as APPS_TORQUE_MAX. Unit: Bamocar raw
+ * command. Mechanical stop tolerance and sensor spread keep a fully pressed
+ * pedal from reaching the calibrated maximum (measured 99.1%), so without this
+ * the driver could never request full torque. 32112 is about 98%.
+ */
+#define APPS_TORQUE_CUTOFF                 2949
+#define APPS_TORQUE_CUTOFF_HIGH            32112
+
 typedef enum
 {
   APPS_SIGNAL1 = 0,

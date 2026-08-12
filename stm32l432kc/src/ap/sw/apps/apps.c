@@ -19,6 +19,18 @@
 #error "_DEF_VER must be _DEF_VER1 or _DEF_VER2 for APPS fault output"
 #endif
 
+/* "apps trace" live view: bar width in characters and sample period in ms. */
+#define APPS_TRACE_BAR_LEN     16U
+#define APPS_TRACE_PERIOD_MS   50U
+
+/* Which end of the torque range the last CAN command was snapped to. */
+typedef enum
+{
+  APPS_CUTOFF_NONE = 0,
+  APPS_CUTOFF_LOW,
+  APPS_CUTOFF_HIGH,
+} apps_cutoff_t;
+
 typedef struct
 {
   uint16_t raw_min[APPS_ADC_MAX];
@@ -32,6 +44,7 @@ typedef struct
   uint32_t status;
   bool     adc_ok;
   bool     valid;
+  apps_cutoff_t cutoff;
   bool     can_tx_ok;
   bool     can_tx_muted;
   volatile uint32_t isr_fault_status;
@@ -468,6 +481,22 @@ static bool appsSendCommand(int16_t prepared_command)
     command_to_send = prepared_command;
   }
 
+  /*
+   * Snap both ends of the range: the noise floor to a clean zero, and the top
+   * to full torque so mechanical tolerance cannot cap the driver below 100%.
+   */
+  apps.cutoff = APPS_CUTOFF_NONE;
+  if ((command_to_send > 0) && (command_to_send <= APPS_TORQUE_CUTOFF))
+  {
+    command_to_send = 0;
+    apps.cutoff = APPS_CUTOFF_LOW;
+  }
+  else if (command_to_send >= APPS_TORQUE_CUTOFF_HIGH)
+  {
+    command_to_send = APPS_TORQUE_MAX;
+    apps.cutoff = APPS_CUTOFF_HIGH;
+  }
+
   if (canIsOpen(APPS_CAN_CH) != true)
   {
     (void)canOpen(APPS_CAN_CH, CAN_NORMAL, CAN_CLASSIC, CAN_500K, CAN_500K);
@@ -705,6 +734,113 @@ static void appsCli(cli_args_t *args)
     return;
   }
 
+  /*
+   * One line per sample so a pedal press and release can be watched live.
+   * Tracks the travel actually reached and how often the cutoff fired, then
+   * prints a summary when the user stops it with a key press.
+   */
+  if ((args->argc == 1) && args->isStr(0, "trace"))
+  {
+    uint16_t pedal_min    = (uint16_t)APPS_PER_MILLE_MAX;
+    uint16_t pedal_max    = 0U;
+    int16_t  command_max  = 0;
+    uint32_t cutoff_count = 0U;
+    uint32_t full_count   = 0U;
+    uint32_t sample_count = 0U;
+
+    cliPrintf("cutoff <= %d, full >= %d, max %d\n",
+              APPS_TORQUE_CUTOFF, APPS_TORQUE_CUTOFF_HIGH, APPS_TORQUE_MAX);
+    cliPrintf("press any key to stop\n\n");
+    cliPrintf(" pedal     cmd  0%%              100%%  state\n");
+
+    while (cliKeepLoop() == true)
+    {
+      char bar[APPS_TRACE_BAR_LEN + 1U];
+      uint8_t filled;
+      const char *state;
+
+      (void)appsRunPedalCommand();
+
+      filled = (uint8_t)(((uint32_t)apps.pedal_per_mille *
+                          (uint32_t)APPS_TRACE_BAR_LEN) /
+                         (uint32_t)APPS_PER_MILLE_MAX);
+
+      for (uint8_t i = 0U; i < APPS_TRACE_BAR_LEN; i++)
+      {
+        bar[i] = (i < filled) ? '#' : '.';
+      }
+      bar[APPS_TRACE_BAR_LEN] = '\0';
+
+      if (apps.valid != true)
+      {
+        state = "FAULT";
+      }
+      else if (apps.cutoff == APPS_CUTOFF_LOW)
+      {
+        state = "CUT";
+      }
+      else if (apps.cutoff == APPS_CUTOFF_HIGH)
+      {
+        state = "FULL";
+      }
+      else if (apps.command_sent == 0)
+      {
+        /* Nothing to cut: the pedal is already at rest. */
+        state = "IDLE";
+      }
+      else
+      {
+        state = "RUN";
+      }
+
+      cliPrintf("%3u.%u%%  %6d  |%s| %s\n",
+                apps.pedal_per_mille / 10U,
+                apps.pedal_per_mille % 10U,
+                apps.command_sent,
+                bar,
+                state);
+
+      if (apps.pedal_per_mille < pedal_min)
+      {
+        pedal_min = apps.pedal_per_mille;
+      }
+      if (apps.pedal_per_mille > pedal_max)
+      {
+        pedal_max = apps.pedal_per_mille;
+      }
+      if (apps.command_sent > command_max)
+      {
+        command_max = apps.command_sent;
+      }
+      if (apps.cutoff == APPS_CUTOFF_LOW)
+      {
+        cutoff_count++;
+      }
+      if (apps.cutoff == APPS_CUTOFF_HIGH)
+      {
+        full_count++;
+      }
+      sample_count++;
+
+      for (uint32_t wait_ms = 0U;
+           (wait_ms < APPS_TRACE_PERIOD_MS) && (cliKeepLoop() == true);
+           wait_ms++)
+      {
+        delay(1);
+      }
+    }
+
+    cliPrintf("\n--- summary ---\n");
+    cliPrintf("samples : %lu\n", (unsigned long)sample_count);
+    cliPrintf("pedal   : %u.%u%% .. %u.%u%%\n",
+              pedal_min / 10U, pedal_min % 10U,
+              pedal_max / 10U, pedal_max % 10U);
+    cliPrintf("command : 0 .. %d / %d\n", command_max, APPS_TORQUE_MAX);
+    cliPrintf("cutoff  : %lu samples\n", (unsigned long)cutoff_count);
+    cliPrintf("full    : %lu samples\n", (unsigned long)full_count);
+    return;
+  }
+
   if ((args->argc == 1) && args->isStr(0, "clear"))
   {
     appsClearFault();
@@ -716,6 +852,7 @@ static void appsCli(cli_args_t *args)
   cliPrintf("apps show\n");
   cliPrintf("apps config\n");
   cliPrintf("apps config signal1_min signal1_max signal2_min signal2_max\n");
+  cliPrintf("apps trace\n");
   cliPrintf("apps clear\n");
 }
 
