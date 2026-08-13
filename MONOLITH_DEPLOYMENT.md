@@ -315,9 +315,13 @@ if (last && now - *last >= interval && canlogqueue)   // can.c:170, interval = i
 | 경로 | 진단 프레임 |
 |---|---|
 | **SD 카드** | 20 Hz 전량 (`LOG()`는 무조건 실행) |
-| **서버 (live)** | CAN ID당 **2 Hz** |
+| **서버 (live)** | 기본 CAN ID당 **2 Hz**. Orion TEM `0x1838F380` 예외 패치는 아직 미배포 |
 
 서버에서 20 Hz가 안 보이는 건 정상이다. 정밀 분석은 SD 원본, 서버는 실시간 감시·장기 보관용.
+
+Orion TEM 45채널 서버 수집의 설계, 운영 영향, 배포 및 롤백 절차는
+`TEM_45CH_DATA_PIPELINE_CHANGE.md`를 따른다. 해당 변경은 현재 저장소에
+배포 패키지만 준비된 상태이며 운영 TMA/VM에는 아직 적용되지 않았다.
 
 ### LED
 
