@@ -1,0 +1,489 @@
+diff --git a/device/firmware/main/peripheral/can.c b/device/firmware/main/peripheral/can.c
+index 9548366..29c93af 100644
+--- a/device/firmware/main/peripheral/can.c
++++ b/device/firmware/main/peripheral/can.c
+@@ -1,5 +1,7 @@
+ #include "main.h"
+ 
++#include "can_tem_snapshot.h"
++
+ #include "driver/twai.h"
+ 
+ #define CAN_ALERT_ERROR                                                                                        \
+@@ -54,6 +56,9 @@ typedef struct {
+ 
+ static id_entry_t id_table[HASH_SIZE];
+ 
++static can_tem_snapshot_state_t tem_snapshot;
++static log_t tem_snapshot_log[CAN_TEM_SNAPSHOT_BUFFER_COUNT][CAN_TEM_SNAPSHOT_SENSOR_COUNT];
++
+ static inline uint32_t hash(uint32_t x) {
+   x ^= x >> 16;
+   x *= 0x7feb352d;
+@@ -108,6 +113,11 @@ void task_can(void *pvParameters) {
+   }
+ 
+   const TickType_t interval = pdMS_TO_TICKS(storage.device.intv);
++  const TickType_t tem_interval = can_tem_snapshot_clamp_interval(
++    interval, pdMS_TO_TICKS(CAN_TEM_SNAPSHOT_MIN_INTERVAL_MS)
++  );
++
++  can_tem_snapshot_init(&tem_snapshot);
+   uint32_t prev_alerts      = 0;
+ 
+   while (true) {
+@@ -163,18 +173,47 @@ void task_can(void *pvParameters) {
+       log.payload.can.remote   = msg.rtr;
+       log.payload.can.len      = msg.data_length_code;
+       memcpy(log.payload.can.data, msg.data, msg.data_length_code);
+-      LOG(LOG_TYPE_CAN, &log);
++      int logged = LOG(LOG_TYPE_CAN, &log);
++
++      if (can_tem_is_target_frame(msg.identifier, msg.extd, msg.rtr, msg.data_length_code)) {
++        can_tem_snapshot_capture_t capture = {0};
++
++        /* LOG() does not prepare a timestamp/checksum while logqueue is absent.
++         * Only freeze canonical records that the SD queue accepted. */
++        if (logged == pdTRUE) {
++          capture = can_tem_snapshot_capture(&tem_snapshot, msg.data);
++        } else {
++          can_tem_snapshot_invalidate_capture(&tem_snapshot);
++        }
+ 
+-      // check hash table to send telemetry or not
+-      TickType_t now   = xTaskGetTickCount();
+-      TickType_t *last = hash_table_lookup(msg.identifier | (msg.extd << 31));
++        if (capture.store) {
++          memcpy(&tem_snapshot_log[capture.buffer][capture.sensor_id], &log, sizeof(log));
++        }
++      } else {
++        // check hash table to send telemetry or not
++        TickType_t now   = xTaskGetTickCount();
++        TickType_t *last = hash_table_lookup(msg.identifier | (msg.extd << 31));
+ 
+-      if (last && now - *last >= interval && canlogqueue) {
+-        *last = now;
+-        xQueueSend(canlogqueue, &log, 0);
++        if (last && now - *last >= interval && canlogqueue) {
++          *last = now;
++          xQueueSend(canlogqueue, &log, 0);
++        }
+       }
+     }
+ 
++    // Send one record from the frozen TEM snapshot at the configured interval
++    // (never faster than 2 Hz). Commit only after a successful queue copy so a
++    // full queue retries the same record instead of silently skipping a sensor.
++    can_tem_snapshot_forward_t forward;
++    TickType_t now = xTaskGetTickCount();
++
++    if (!canlogqueue) {
++      can_tem_snapshot_restart_transmit(&tem_snapshot);
++    } else if (can_tem_snapshot_peek(&tem_snapshot, now, tem_interval, &forward) &&
++               xQueueSend(canlogqueue, &tem_snapshot_log[forward.buffer][forward.sensor_id], 0) == pdTRUE) {
++      can_tem_snapshot_commit(&tem_snapshot, now);
++    }
++
+     vTaskDelay(1);  // 1 tick = 1ms at 1000Hz
+   }
+ }
+diff --git a/device/firmware/main/peripheral/can_tem_snapshot.h b/device/firmware/main/peripheral/can_tem_snapshot.h
+new file mode 100644
+index 0000000..87d5f66
+--- /dev/null
++++ b/device/firmware/main/peripheral/can_tem_snapshot.h
+@@ -0,0 +1,170 @@
++#ifndef MONOLITH_CAN_TEM_SNAPSHOT_H
++#define MONOLITH_CAN_TEM_SNAPSHOT_H
++
++#include <stdbool.h>
++#include <stdint.h>
++
++/* Orion TEM module 1, individual thermistor broadcast (29-bit CAN ID). */
++#define CAN_ID_ORION_TEM1_THERMISTOR 0x1838F380UL
++#define CAN_TEM_SNAPSHOT_SENSOR_COUNT 45U
++#define CAN_TEM_SNAPSHOT_BUFFER_COUNT 3U
++#define CAN_TEM_SNAPSHOT_MIN_INTERVAL_MS 500U
++
++typedef struct {
++  uint32_t last_forward_ticks;
++  uint8_t capture_buffer;
++  uint8_t capture_next_sensor_id;
++  uint8_t pending_buffer;
++  uint8_t transmit_buffer;
++  uint8_t transmit_sensor_id;
++  bool capture_started;
++  bool pending;
++  bool transmitting;
++  bool have_forwarded;
++} can_tem_snapshot_state_t;
++
++typedef struct {
++  bool store;
++  uint8_t buffer;
++  uint8_t sensor_id;
++} can_tem_snapshot_capture_t;
++
++typedef struct {
++  uint8_t buffer;
++  uint8_t sensor_id;
++} can_tem_snapshot_forward_t;
++
++static inline void can_tem_snapshot_init(can_tem_snapshot_state_t *state) {
++  *state = (can_tem_snapshot_state_t){0};
++  state->capture_buffer = 0U;
++  state->pending_buffer = 1U;
++  state->transmit_buffer = 2U;
++}
++
++static inline bool can_tem_is_target_frame(uint32_t id, bool extended, bool remote, uint8_t dlc) {
++  return extended && !remote && dlc == 8U && id == CAN_ID_ORION_TEM1_THERMISTOR;
++}
++
++static inline uint32_t can_tem_snapshot_clamp_interval(uint32_t configured_ticks, uint32_t minimum_ticks) {
++  return configured_ticks < minimum_ticks ? minimum_ticks : configured_ticks;
++}
++
++/* A dropped SD record invalidates only the mutable capture. */
++static inline void can_tem_snapshot_invalidate_capture(can_tem_snapshot_state_t *state) {
++  state->capture_started        = false;
++  state->capture_next_sensor_id = 0U;
++}
++
++static inline bool can_tem_sensor_id(const uint8_t data[8], uint8_t *sensor_id) {
++  uint8_t decoded = data[3] & 0x7FU;
++  if (decoded >= CAN_TEM_SNAPSHOT_SENSOR_COUNT) return false;
++  *sensor_id = decoded;
++  return true;
++}
++
++static inline uint8_t can_tem_snapshot_spare_buffer(const can_tem_snapshot_state_t *state) {
++  for (uint8_t buffer = 0; buffer < CAN_TEM_SNAPSHOT_BUFFER_COUNT; buffer++) {
++    if (buffer != state->capture_buffer && (!state->transmitting || buffer != state->transmit_buffer) &&
++        (!state->pending || buffer != state->pending_buffer)) {
++      return buffer;
++    }
++  }
++
++  return state->capture_buffer; /* All three roles are occupied; caller will replace pending. */
++}
++
++static inline void can_tem_snapshot_start_pending(can_tem_snapshot_state_t *state) {
++  if (state->transmitting || !state->pending) return;
++  state->transmit_buffer    = state->pending_buffer;
++  state->transmit_sensor_id = 0U;
++  state->transmitting       = true;
++  state->pending            = false;
++}
++
++/* free_queue() can delete records that were already accepted by canlogqueue.
++ * Replay the immutable transmit buffer from sensor 0 when the queue returns. */
++static inline void can_tem_snapshot_restart_transmit(can_tem_snapshot_state_t *state) {
++  if (state->transmitting) state->transmit_sensor_id = 0U;
++}
++
++/*
++ * Only the strict sequence 0,1,...,44 forms a snapshot. A gap or out-of-order
++ * ID invalidates the partial cycle; sensor 0 (including a repeated 0) immediately
++ * starts a new one. Completion atomically installs the capture as the freshest pending
++ * snapshot. If an older pending snapshot exists, its buffer becomes the next
++ * mutable capture, so the immutable transmitter is never overwritten.
++ */
++static inline can_tem_snapshot_capture_t can_tem_snapshot_capture(
++  can_tem_snapshot_state_t *state, const uint8_t data[8]
++) {
++  can_tem_snapshot_capture_t capture = {0};
++  uint8_t sensor_id;
++
++  if (!can_tem_sensor_id(data, &sensor_id)) {
++    can_tem_snapshot_invalidate_capture(state);
++    return capture;
++  }
++
++  if (!state->capture_started) {
++    if (sensor_id != 0U) return capture;
++    state->capture_started        = true;
++    state->capture_next_sensor_id = 0U;
++  }
++
++  if (sensor_id != state->capture_next_sensor_id) {
++    can_tem_snapshot_invalidate_capture(state);
++    if (sensor_id != 0U) return capture;
++    state->capture_started = true;
++  }
++
++  capture.store     = true;
++  capture.buffer    = state->capture_buffer;
++  capture.sensor_id = sensor_id;
++  state->capture_next_sensor_id = sensor_id + 1U;
++
++  if (state->capture_next_sensor_id == CAN_TEM_SNAPSHOT_SENSOR_COUNT) {
++    uint8_t completed_buffer = state->capture_buffer;
++
++    if (state->pending) {
++      state->capture_buffer = state->pending_buffer; /* Replace stale pending atomically. */
++    } else {
++      state->capture_buffer = can_tem_snapshot_spare_buffer(state);
++    }
++
++    state->pending_buffer = completed_buffer;
++    state->pending        = true;
++    can_tem_snapshot_invalidate_capture(state);
++    can_tem_snapshot_start_pending(state);
++  }
++
++  return capture;
++}
++
++/* Return the next frozen slot without advancing it. */
++static inline bool can_tem_snapshot_peek(
++  const can_tem_snapshot_state_t *state, uint32_t now_ticks, uint32_t interval_ticks,
++  can_tem_snapshot_forward_t *forward
++) {
++  if (!state->transmitting) return false;
++  if (state->have_forwarded && (uint32_t)(now_ticks - state->last_forward_ticks) < interval_ticks) return false;
++
++  forward->buffer    = state->transmit_buffer;
++  forward->sensor_id = state->transmit_sensor_id;
++  return true;
++}
++
++/* Advance only after the queue accepted the slot returned by peek(). */
++static inline void can_tem_snapshot_commit(can_tem_snapshot_state_t *state, uint32_t now_ticks) {
++  if (!state->transmitting) return;
++
++  state->last_forward_ticks = now_ticks;
++  state->have_forwarded     = true;
++  state->transmit_sensor_id++;
++
++  if (state->transmit_sensor_id == CAN_TEM_SNAPSHOT_SENSOR_COUNT) {
++    state->transmitting = false;
++    can_tem_snapshot_start_pending(state);
++  }
++}
++
++#endif
+diff --git a/device/firmware/test/test_can_tem_snapshot.c b/device/firmware/test/test_can_tem_snapshot.c
+new file mode 100644
+index 0000000..14d7b8f
+--- /dev/null
++++ b/device/firmware/test/test_can_tem_snapshot.c
+@@ -0,0 +1,218 @@
++#include <assert.h>
++#include <stdbool.h>
++#include <stdint.h>
++
++#include "../main/peripheral/can_tem_snapshot.h"
++
++typedef struct {
++  uint32_t timestamp;
++  uint8_t sensor_id;
++} fake_log_t;
++
++static can_tem_snapshot_capture_t capture(
++  can_tem_snapshot_state_t *state, uint8_t sensor_and_fault, uint32_t timestamp,
++  fake_log_t log[CAN_TEM_SNAPSHOT_BUFFER_COUNT][CAN_TEM_SNAPSHOT_SENSOR_COUNT]
++) {
++  uint8_t data[8] = {0};
++  data[3] = sensor_and_fault;
++  can_tem_snapshot_capture_t action = can_tem_snapshot_capture(state, data);
++  if (action.store) {
++    log[action.buffer][action.sensor_id] = (fake_log_t){ timestamp, action.sensor_id };
++  }
++  return action;
++}
++
++static void capture_scan(
++  can_tem_snapshot_state_t *state, uint32_t first_timestamp,
++  fake_log_t log[CAN_TEM_SNAPSHOT_BUFFER_COUNT][CAN_TEM_SNAPSHOT_SENSOR_COUNT]
++) {
++  for (uint8_t sensor_id = 0; sensor_id < CAN_TEM_SNAPSHOT_SENSOR_COUNT; sensor_id++) {
++    can_tem_snapshot_capture_t action = capture(state, sensor_id, first_timestamp + sensor_id * 100U, log);
++    assert(action.store);
++    assert(action.sensor_id == sensor_id);
++  }
++}
++
++static void forward_whole_snapshot(
++  can_tem_snapshot_state_t *state, uint8_t expected_buffer, uint32_t first_tick,
++  fake_log_t log[CAN_TEM_SNAPSHOT_BUFFER_COUNT][CAN_TEM_SNAPSHOT_SENSOR_COUNT], uint32_t first_timestamp
++) {
++  can_tem_snapshot_forward_t forward;
++  for (uint8_t sensor_id = 0; sensor_id < CAN_TEM_SNAPSHOT_SENSOR_COUNT; sensor_id++) {
++    uint32_t now = first_tick + sensor_id * 500U;
++    assert(can_tem_snapshot_peek(state, now, 500U, &forward));
++    assert(forward.buffer == expected_buffer);
++    assert(forward.sensor_id == sensor_id);
++    assert(log[forward.buffer][forward.sensor_id].timestamp == first_timestamp + sensor_id * 100U);
++    can_tem_snapshot_commit(state, now);
++  }
++}
++
++static void test_target_and_interval_policy(void) {
++  assert(can_tem_is_target_frame(0x1838F380UL, true, false, 8U));
++  assert(!can_tem_is_target_frame(0x1838F380UL, false, false, 8U));
++  assert(!can_tem_is_target_frame(0x1838F380UL, true, true, 8U));
++  assert(!can_tem_is_target_frame(0x1838F380UL, true, false, 7U));
++  assert(!can_tem_is_target_frame(0x1839F380UL, true, false, 8U));
++  assert(!can_tem_is_target_frame(0x1838F381UL, true, false, 8U));
++
++  assert(can_tem_snapshot_clamp_interval(0U, 500U) == 500U);
++  assert(can_tem_snapshot_clamp_interval(499U, 500U) == 500U);
++  assert(can_tem_snapshot_clamp_interval(500U, 500U) == 500U);
++  assert(can_tem_snapshot_clamp_interval(1000U, 500U) == 1000U);
++}
++
++static void test_mid_scan_boot_waits_for_coherent_zero_to_44_cycle(void) {
++  can_tem_snapshot_state_t state;
++  fake_log_t log[CAN_TEM_SNAPSHOT_BUFFER_COUNT][CAN_TEM_SNAPSHOT_SENSOR_COUNT] = {0};
++  can_tem_snapshot_init(&state);
++
++  for (uint8_t sensor_id = 17U; sensor_id < CAN_TEM_SNAPSHOT_SENSOR_COUNT; sensor_id++) {
++    assert(!capture(&state, sensor_id, 1000U + sensor_id * 100U, log).store);
++  }
++  assert(!state.transmitting && !state.pending);
++
++  capture_scan(&state, 10000U, log);
++  assert(state.transmitting);
++  assert(state.transmit_buffer == 0U);
++  assert(state.capture_buffer == 1U);
++
++  can_tem_snapshot_forward_t forward;
++  assert(can_tem_snapshot_peek(&state, 10U, 500U, &forward));
++  assert(forward.buffer == 0U && forward.sensor_id == 0U);
++  assert(log[0][0].timestamp == 10000U);
++
++  /* A failed queue attempt does not advance the slot or start the interval. */
++  can_tem_snapshot_forward_t retry;
++  assert(can_tem_snapshot_peek(&state, 11U, 500U, &retry));
++  assert(retry.buffer == forward.buffer && retry.sensor_id == forward.sensor_id);
++  can_tem_snapshot_commit(&state, 10U);
++  assert(!can_tem_snapshot_peek(&state, 509U, 500U, &forward));
++  assert(can_tem_snapshot_peek(&state, 510U, 500U, &forward));
++  assert(forward.sensor_id == 1U);
++}
++
++static void test_gap_duplicate_and_invalid_id_discard_partial_cycle(void) {
++  can_tem_snapshot_state_t state;
++  fake_log_t log[CAN_TEM_SNAPSHOT_BUFFER_COUNT][CAN_TEM_SNAPSHOT_SENSOR_COUNT] = {0};
++  can_tem_snapshot_init(&state);
++
++  for (uint8_t sensor_id = 0U; sensor_id <= 20U; sensor_id++) {
++    assert(capture(&state, sensor_id, sensor_id * 100U, log).store);
++  }
++  assert(!capture(&state, 22U, 2200U, log).store); /* gap */
++  for (uint8_t sensor_id = 21U; sensor_id < CAN_TEM_SNAPSHOT_SENSOR_COUNT; sensor_id++) {
++    assert(!capture(&state, sensor_id, 5000U + sensor_id * 100U, log).store);
++  }
++  assert(!state.transmitting);
++
++  assert(capture(&state, 0U, 10000U, log).store);
++  assert(capture(&state, 0U, 10001U, log).store); /* duplicate restarts at zero */
++  assert(log[state.capture_buffer][0].timestamp == 10001U);
++  assert(capture(&state, 1U, 10100U, log).store);
++  can_tem_snapshot_invalidate_capture(&state);      /* models LOG()!=pdTRUE */
++  assert(!capture(&state, 2U, 10200U, log).store);
++
++  uint8_t invalid[8] = {0};
++  invalid[3] = 45U;
++  assert(!can_tem_snapshot_capture(&state, invalid).store);
++
++  capture_scan(&state, 20000U, log);
++  assert(state.transmitting);
++  assert(log[state.transmit_buffer][44].timestamp == 24400U);
++
++  can_tem_snapshot_state_t fault_state;
++  can_tem_snapshot_init(&fault_state);
++  assert(capture(&fault_state, 0x80U, 1U, log).store); /* fault bit is not part of ID */
++}
++
++static void test_three_buffers_keep_transmitter_and_freshest_pending_immutable(void) {
++  can_tem_snapshot_state_t state;
++  fake_log_t log[CAN_TEM_SNAPSHOT_BUFFER_COUNT][CAN_TEM_SNAPSHOT_SENSOR_COUNT] = {0};
++  can_tem_snapshot_init(&state);
++
++  capture_scan(&state, 10000U, log); /* buffer 0 -> TX */
++  capture_scan(&state, 20000U, log); /* buffer 1 -> pending */
++  assert(state.transmit_buffer == 0U && state.pending_buffer == 1U && state.capture_buffer == 2U);
++  capture_scan(&state, 30000U, log); /* buffer 2 replaces pending, buffer 1 becomes capture */
++  assert(state.transmit_buffer == 0U && state.pending_buffer == 2U && state.capture_buffer == 1U);
++  capture_scan(&state, 40000U, log); /* buffer 1 replaces pending, buffer 2 becomes capture */
++  assert(state.transmit_buffer == 0U && state.pending_buffer == 1U && state.capture_buffer == 2U);
++
++  forward_whole_snapshot(&state, 0U, 1000U, log, 10000U);
++
++  /* TX switches to the most recently completed snapshot, never the stale 20s/30s ones. */
++  assert(state.transmitting && state.transmit_buffer == 1U && !state.pending);
++  can_tem_snapshot_forward_t forward;
++  assert(!can_tem_snapshot_peek(&state, 1000U + 44U * 500U + 499U, 500U, &forward));
++  assert(can_tem_snapshot_peek(&state, 1000U + 45U * 500U, 500U, &forward));
++  assert(forward.buffer == 1U && forward.sensor_id == 0U);
++  assert(log[1][0].timestamp == 40000U);
++  assert(log[1][44].timestamp == 44400U);
++}
++
++static void test_sd_drop_invalidates_capture_but_not_tx_or_pending(void) {
++  can_tem_snapshot_state_t state;
++  fake_log_t log[CAN_TEM_SNAPSHOT_BUFFER_COUNT][CAN_TEM_SNAPSHOT_SENSOR_COUNT] = {0};
++  can_tem_snapshot_init(&state);
++  capture_scan(&state, 10000U, log);
++  capture_scan(&state, 20000U, log);
++  assert(state.transmitting && state.pending);
++
++  assert(capture(&state, 0U, 30000U, log).store);
++  assert(capture(&state, 1U, 30100U, log).store);
++  can_tem_snapshot_invalidate_capture(&state);
++  assert(state.transmitting && state.pending);
++  assert(!state.capture_started);
++  assert(!capture(&state, 2U, 30200U, log).store);
++
++  forward_whole_snapshot(&state, 0U, 0U, log, 10000U);
++  assert(state.transmitting && state.transmit_buffer == 1U);
++  assert(log[1][0].timestamp == 20000U);
++}
++
++static void test_deleted_live_queue_replays_immutable_snapshot_from_zero(void) {
++  can_tem_snapshot_state_t state;
++  fake_log_t log[CAN_TEM_SNAPSHOT_BUFFER_COUNT][CAN_TEM_SNAPSHOT_SENSOR_COUNT] = {0};
++  can_tem_snapshot_init(&state);
++  capture_scan(&state, 10000U, log);
++
++  can_tem_snapshot_forward_t forward;
++  for (uint8_t sensor_id = 0U; sensor_id < 10U; sensor_id++) {
++    assert(can_tem_snapshot_peek(&state, sensor_id * 500U, 500U, &forward));
++    can_tem_snapshot_commit(&state, sensor_id * 500U);
++  }
++  assert(state.transmit_sensor_id == 10U);
++
++  /* Models free_queue(): accepted records may be deleted before MQTT publish. */
++  can_tem_snapshot_restart_transmit(&state);
++  assert(state.transmitting && state.transmit_sensor_id == 0U);
++  assert(!can_tem_snapshot_peek(&state, 10U * 500U - 1U, 500U, &forward));
++  assert(can_tem_snapshot_peek(&state, 10U * 500U, 500U, &forward));
++  assert(forward.buffer == 0U && forward.sensor_id == 0U);
++  assert(log[0][0].timestamp == 10000U);
++}
++
++static void test_tick_wrap_preserves_interval(void) {
++  can_tem_snapshot_state_t state;
++  fake_log_t log[CAN_TEM_SNAPSHOT_BUFFER_COUNT][CAN_TEM_SNAPSHOT_SENSOR_COUNT] = {0};
++  can_tem_snapshot_init(&state);
++  capture_scan(&state, 0U, log);
++
++  can_tem_snapshot_forward_t forward;
++  assert(can_tem_snapshot_peek(&state, UINT32_MAX - 199U, 500U, &forward));
++  can_tem_snapshot_commit(&state, UINT32_MAX - 199U);
++  assert(!can_tem_snapshot_peek(&state, 299U, 500U, &forward));
++  assert(can_tem_snapshot_peek(&state, 300U, 500U, &forward));
++}
++
++int main(void) {
++  test_target_and_interval_policy();
++  test_mid_scan_boot_waits_for_coherent_zero_to_44_cycle();
++  test_gap_duplicate_and_invalid_id_discard_partial_cycle();
++  test_three_buffers_keep_transmitter_and_freshest_pending_immutable();
++  test_sd_drop_invalidates_capture_but_not_tx_or_pending();
++  test_deleted_live_queue_replays_immutable_snapshot_from_zero();
++  test_tick_wrap_preserves_interval();
++  return 0;
++}

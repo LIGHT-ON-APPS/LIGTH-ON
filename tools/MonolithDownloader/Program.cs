@@ -321,7 +321,7 @@ namespace LightOn.MonolithDownloader
                     if (result.ThermistorCsvSucceeded)
                     {
                         summary += string.Format(CultureInfo.CurrentCulture,
-                            "\r\n45채널 온도 CSV: {0}\r\n온도 스캔: {1:N0}개",
+                            "\r\n45채널 온도 CSV: {0}\r\n온도 스냅샷: {1:N0}개",
                             result.ThermistorCsvPath,
                             result.ThermistorCsvRows);
                     }
@@ -381,6 +381,9 @@ namespace LightOn.MonolithDownloader
         private const string DatabaseContainer = "monolith-v2-postgres-1";
         private const string DatabaseUser = "monolith";
         private const string DatabaseName = "monolith";
+        private const int ThermistorChannelCount = 45;
+        private const int ThermistorMeasurementSpanLimitMs = 6000;
+        private const int ThermistorBoundaryPaddingSeconds = 35;
 
         private readonly string workspaceRoot;
         private readonly Action<string> log;
@@ -423,7 +426,7 @@ namespace LightOn.MonolithDownloader
                     result.ThermistorCsvBytes = thermistors.Bytes;
                     if (thermistors.Rows == 0)
                     {
-                        result.Warnings.Add("선택한 날짜에 완성되거나 부분 수신된 TEM 온도 스캔이 없습니다.");
+                        result.Warnings.Add("선택한 날짜에 완성되거나 부분 수신된 TEM 온도 스냅샷이 없습니다.");
                     }
                 }
                 catch (Exception ex)
@@ -726,16 +729,22 @@ namespace LightOn.MonolithDownloader
         private static string BuildThermistorCsvSql(string dateText, string nextDateText)
         {
             StringBuilder channels = new StringBuilder();
-            for (int sensor = 0; sensor < 45; sensor++)
+            for (int sensor = 0; sensor < ThermistorChannelCount; sensor++)
             {
                 channels.AppendFormat(CultureInfo.InvariantCulture,
                     ",\n    max(temperature_c) FILTER (WHERE sample_rank = 1 AND sensor_id = {0}) AS temp_{1:00}_c",
                     sensor, sensor + 1);
             }
-            for (int sensor = 0; sensor < 45; sensor++)
+            for (int sensor = 0; sensor < ThermistorChannelCount; sensor++)
             {
                 channels.AppendFormat(CultureInfo.InvariantCulture,
                     ",\n    bool_or(fault) FILTER (WHERE sample_rank = 1 AND sensor_id = {0}) AS fault_{1:00}",
+                    sensor, sensor + 1);
+            }
+            for (int sensor = 0; sensor < ThermistorChannelCount; sensor++)
+            {
+                channels.AppendFormat(CultureInfo.InvariantCulture,
+                    ",\n    max(device_ts_ms) FILTER (WHERE sample_rank = 1 AND sensor_id = {0}) AS measurement_device_ts_{1:00}_ms",
                     sensor, sensor + 1);
             }
 
@@ -747,19 +756,29 @@ namespace LightOn.MonolithDownloader
       lag(t.sensor_id) OVER (
         PARTITION BY t.session_id, t.module_address
         ORDER BY t.received_at, t.id
-      ) AS previous_sensor_id
+      ) AS previous_sensor_id,
+      lag(t.device_ts_ms) OVER (
+        PARTITION BY t.session_id, t.module_address
+        ORDER BY t.received_at, t.id
+      ) AS previous_device_ts_ms
     FROM thermistor_samples AS t
     JOIN sessions AS s ON s.id = t.session_id
     JOIN devices AS d ON d.id = s.device_id
-    WHERE t.received_at >= timestamptz '" + dateText + @" 00:00:00 Asia/Seoul' - interval '6 seconds'
-      AND t.received_at <  timestamptz '" + nextDateText + @" 00:00:00 Asia/Seoul' + interval '6 seconds'
+    WHERE t.received_at >= timestamptz '" + dateText + @" 00:00:00 Asia/Seoul' - interval '" +
+                ThermistorBoundaryPaddingSeconds.ToString(CultureInfo.InvariantCulture) + @" seconds'
+      AND t.received_at <  timestamptz '" + nextDateText + @" 00:00:00 Asia/Seoul' + interval '" +
+                ThermistorBoundaryPaddingSeconds.ToString(CultureInfo.InvariantCulture) + @" seconds'
       AND t.module_address = 128
       AND t.sensor_id BETWEEN 0 AND 44
   ), ordered AS (
     SELECT
       stream.*,
       sum(CASE
-            WHEN previous_sensor_id IS NULL OR sensor_id < previous_sensor_id THEN 1
+            WHEN previous_sensor_id IS NULL
+              OR sensor_id < previous_sensor_id
+              OR ((device_ts_ms - previous_device_ts_ms + 4294967296::bigint)
+                % 4294967296::bigint) > " +
+                ThermistorMeasurementSpanLimitMs.ToString(CultureInfo.InvariantCulture) + @" THEN 1
             ELSE 0
           END) OVER (
         PARTITION BY session_id, module_address
@@ -802,19 +821,22 @@ namespace LightOn.MonolithDownloader
     channel,
     session_id,
     '0x' || lpad(to_hex(module_address::integer), 2, '0') AS module_address,
-    scan_no,
-    scan_started_at AT TIME ZONE 'Asia/Seoul' AS scan_started_at_kst,
-    scan_completed_at AT TIME ZONE 'Asia/Seoul' AS scan_completed_at_kst,
-    device_ts_start_ms,
-    device_ts_end_ms,
+    scan_no AS snapshot_no,
+    scan_started_at AT TIME ZONE 'Asia/Seoul' AS server_delivery_started_at_kst,
+    scan_completed_at AT TIME ZONE 'Asia/Seoul' AS server_delivery_completed_at_kst,
+    round(extract(epoch FROM (scan_completed_at - scan_started_at)) * 1000)::bigint
+      AS server_delivery_duration_ms,
+    device_ts_start_ms AS measurement_started_device_ts_ms,
+    device_ts_end_ms AS measurement_completed_device_ts_ms,
     ((device_ts_end_ms - device_ts_start_ms + 4294967296::bigint)
-      % 4294967296::bigint) AS scan_duration_ms,
+      % 4294967296::bigint) AS measurement_span_ms,
     received_sensor_count,
     fault_sensor_count,
     (
-      received_sensor_count = 45
+      received_sensor_count = " + ThermistorChannelCount.ToString(CultureInfo.InvariantCulture) + @"
       AND ((device_ts_end_ms - device_ts_start_ms + 4294967296::bigint)
-        % 4294967296::bigint) <= 6000
+        % 4294967296::bigint) <= " +
+                ThermistorMeasurementSpanLimitMs.ToString(CultureInfo.InvariantCulture) + @"
     ) AS complete,
     max_temperature_c,
     max_sensor_id" +
@@ -830,15 +852,20 @@ namespace LightOn.MonolithDownloader
         private static string BuildThermistorChannelSelectList()
         {
             StringBuilder columns = new StringBuilder();
-            for (int sensor = 1; sensor <= 45; sensor++)
+            for (int sensor = 1; sensor <= ThermistorChannelCount; sensor++)
             {
                 columns.AppendFormat(CultureInfo.InvariantCulture,
                     ",\n    temp_{0:00}_c", sensor);
             }
-            for (int sensor = 1; sensor <= 45; sensor++)
+            for (int sensor = 1; sensor <= ThermistorChannelCount; sensor++)
             {
                 columns.AppendFormat(CultureInfo.InvariantCulture,
                     ",\n    fault_{0:00}", sensor);
+            }
+            for (int sensor = 1; sensor <= ThermistorChannelCount; sensor++)
+            {
+                columns.AppendFormat(CultureInfo.InvariantCulture,
+                    ",\n    measurement_device_ts_{0:00}_ms", sensor);
             }
             return columns.ToString();
         }

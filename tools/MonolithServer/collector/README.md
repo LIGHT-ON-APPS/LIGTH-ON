@@ -3,7 +3,9 @@
 이 폴더는 운영 서버의 Monolith collector에 Orion Thermistor Expansion
 Module(TEM) 개별 온도 프레임을 추가하기 위한 **검토·배포 패키지**다.
 DB migration과 collector는 2026-08-14 운영 VM에 적용했다. 당시 TMA가 연결되어
-있지 않아 실제 10 Hz/45채널 수신 검증은 남아 있다. 상세 백업·image·검증 기록은
+있지 않아 실제 차량 CAN 원본 약 10 Hz와 TMA frozen snapshot 최대 2 Hz 전달에서
+45채널이 모두 저장되는지는 아직 검증하지 못했다. 서버 decoder에는 별도 10 Hz
+요구가 없으며 들어온 유효 프레임을 그대로 저장한다. 상세 백업·image·검증 기록은
 `TEM_45CH_DATA_PIPELINE_CHANGE.md`를 따른다.
 
 ## 범위와 전제
@@ -18,8 +20,9 @@ DB migration과 collector는 2026-08-14 운영 VM에 적용했다. 당시 TMA가
   `0..79`는 wire 값 그대로 DB에 저장한다. disabled 채널을 건너뛰면 활성 센서가
   45개여도 ID가 `0..44`로 연속하지 않을 수 있기 때문이다.
 - 현재 Downloader의 45열 mapping은 ID `0..44`를 사용자 표기 `1..45`로
-  변환한다. 배포 전 실제 활성 ID 집합이 정확히 `0..44`인지 확인하고, sparse하면
-  Downloader mapping을 차량 설정에 맞춰 변경해야 한다.
+  변환한다. 배포 전 실제 활성 ID 집합이 정확히 `0..44`인지 확인한다. sparse하면
+  strict TMA snapshot이 live로 나오지 않으므로 TEM 설정을 연속 ID로 바꾸거나,
+  TMA 상태 머신과 Downloader mapping을 함께 차량 설정에 맞춰 변경해야 한다.
 - `data[3] & 0x80`는 해당 thermistor의 fault flag다.
 - 한 프레임은 센서 하나다. 센서 45개가 활성화돼 있으면 100 ms 프레임을
   순환하므로 완전한 한 세트는 약 4.5초에 걸쳐 만들어진다.
@@ -65,7 +68,7 @@ DB migration과 collector는 2026-08-14 운영 VM에 적용했다. 당시 TMA가
 
 ## 저장 형태와 영향
 
-`can_frames`는 계속 모든 프레임의 canonical raw 원본이다. target frame이면
+`can_frames`는 계속 **서버에 도착한 범위에서** canonical raw 원본이다. target frame이면
 `thermistor_samples`에 다음 projection을 한 행 더 만든다.
 
 | 열 | 의미 |

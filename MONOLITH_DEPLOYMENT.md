@@ -3,7 +3,7 @@
 `ORACLE_MONOLITH_LOGGER.md`(설계 매뉴얼)에 따라 실제로 구축한 결과와, 그 과정에서 막혔던 지점을 남긴다.
 설계 근거는 매뉴얼을, **실제로 무엇이 어떻게 되어 있는지와 왜 그렇게 했는지는 이 문서**를 본다.
 
-최종 갱신: 2026-08-14 (TEM 서버 배포 기록 추가, 기존 상태 스냅샷 날짜는 유지)
+최종 갱신: 2026-08-14 (TEM 서버 배포 및 2 Hz snapshot 설계 기록 추가)
 
 ---
 
@@ -13,7 +13,7 @@
 STM32L432KC ──CAN 500k──┬── Bamocar (0x201 / 0x181)
   APPS 제어              └── TMA-1 (Monolith v2, ESP32-S3)
                                 │
-                                ├── SD 카드 (원본 전량, 20 Hz)
+                                ├── SD 카드 (CAN 원수신 주기)
                                 │
                                 └── wss://168.110.48.114.sslip.io:443
                                           │
@@ -103,7 +103,8 @@ DB가 죽어도 수신은 계속되고, 복구되면 checkpoint부터 재생한�
 
 ### 스키마
 
-`schema_meta`, `devices`, `sessions`, `raw_messages`, `can_frames`, `samples`, `events` + `collector_health` 뷰.
+`schema_meta`, `devices`, `sessions`, `raw_messages`, `can_frames`, `samples`, `events`,
+`thermistor_samples` + `collector_health` 뷰.
 
 원본은 `raw_messages`에 **파싱 성공 여부와 무관하게** 보존한다. 파서를 고치면 과거 데이터를 다시 해석할 수 있다.
 
@@ -314,16 +315,18 @@ if (last && now - *last >= interval && canlogqueue)   // can.c:170, interval = i
 
 | 경로 | 진단 프레임 |
 |---|---|
-| **SD 카드** | 20 Hz 전량 (`LOG()`는 무조건 실행) |
-| **서버 (live)** | 기본 CAN ID당 **2 Hz**. Orion TEM `0x1838F380` 예외 패치는 아직 미배포 |
+| **SD 카드** | CAN 원수신 주기로 기록 (`LOG()` 경로 유지; 진단 프레임 예시는 20 Hz, TEM은 약 10 Hz) |
+| **서버 (live)** | 기본 CAN ID당 **2 Hz**. Orion TEM은 45개 frozen snapshot을 최대 2 Hz로 순차 전달하는 패치가 준비됐으나 아직 TMA에 미플래시 |
 
 서버에서 일반 CAN의 20 Hz가 안 보이는 건 정상이다. 정밀 분석은 SD 원본, 서버는 실시간 감시·장기 보관용.
 
 Orion TEM 45채널 서버 수집의 설계, 운영 영향, 배포 및 롤백 절차는
 `TEM_45CH_DATA_PIPELINE_CHANGE.md`를 따른다. DB migration과 collector는
-2026-08-14 운영 VM에 배포했다. 확장 `0x1838F380`의 interval 우회 TMA 펌웨어는
+2026-08-14 운영 VM에 배포했다. TMA 패치는 원본 CAN의 연속 ID `0..44` 한 순환을
+동결하고 센서별 원래 timestamp를 보존한 채 500 ms 간격, 최대 2 Hz로 전달한다.
 작업 PC에 보드가 연결되어 있지 않아 아직 플래시하지 않았다. 따라서 현재는 서버
-schema와 decode/export 경로만 준비된 상태이며 10 Hz/45채널 실데이터 검증은 남아 있다.
+schema와 decode/export 경로만 준비된 상태이며, 차량 CAN 원본 약 10 Hz와 서버
+최대 2 Hz 전달에서 45채널 `complete=true`가 되는 실데이터 검증은 남아 있다.
 
 ### LED
 

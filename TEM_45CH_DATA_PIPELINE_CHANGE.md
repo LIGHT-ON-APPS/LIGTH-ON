@@ -15,21 +15,22 @@
 
 > 운영 VM의 DB migration과 collector 배포는 2026-08-14 완료했다. TMA 펌웨어는
 > 작업 PC에 보드가 연결되어 있지 않아 아직 빌드·플래시하지 않았고, 따라서 실제
-> 45채널 수신률과 `complete=true` 스캔은 아직 검증하지 않았다. 차량 MCU와
+> 45채널 수신률과 `complete=true` 스냅샷은 아직 검증하지 않았다. 차량 MCU와
 > 계기판은 결정대로 변경하지 않았다.
 
 ## 1. 결정 요약
 
 이번 변경은 **서버 수집 경로에만** 45채널 온도를 추가한다.
 
-- TMA는 확장 CAN ID `0x1838F380`에 한해 기존 500 ms live 제한을 우회한다.
+- TMA는 `0x1838F380`의 연속 `0..44`를 frozen snapshot으로 만들고 기존
+  500 ms 간격(최대 2 Hz)으로 순차 전달한다.
 - 서버는 각 프레임을 `sensor_id`, `temperature_c`, `fault`, `received_at`으로
   디코딩해 원본 CAN과 함께 저장한다.
 - Downloader는 한 순환을 한 행으로 묶은 45채널 CSV를 별도로 만든다.
 - 계기판은 변경하지 않는다. 기존처럼 BMS 사용자 설정 프레임 `0x6B0`의
   Byte 6~7에 있는 최고 온도 1개만 표시한다.
-- 장기 보존 정책 추가는 이번 범위가 아니다. 보관 기간은 기존 서버 운영 정책을
-  따른다.
+- 장기 보존 정책 추가는 이번 범위가 아니다. 현재 PostgreSQL 행에는 자동 TTL이
+  없으므로 단기 운용이라도 실제 보관 기간과 정리 작업은 운영 항목으로 별도 정한다.
 
 검토 중에는 계기판에 최고 온도 센서 번호를 추가하기 위해 `0x1839F380`을
 L432에서 해석하는 안도 구현했으나, 2026-08-13 결정으로 철회했다. 최종 차량
@@ -41,10 +42,10 @@ L432에서 해석하는 안도 구현했으나, 2026-08-13 결정으로 철회�
 |---|---|---|---|
 | 차량 CAN | TEM이 개별 센서를 100 ms마다 순환 송신 | 동일 | CAN 송신량 변화 없음 |
 | TMA SD | 수신 CAN을 원본 로그로 기록 | 동일 | SD 경로 로직 변화 없음 |
-| TMA live | CAN ID별 500 ms 제한 | 확장 `0x1838F380`만 매 프레임 전송 시도 | 해당 ID 약 2 Hz → 약 10 Hz |
+| TMA live | CAN ID별 단순 500 ms 샘플링 | TEM 45개 frozen snapshot 순차 전달 | 최대 2 Hz 유지, 첫~마지막 전달 약 22.0초 |
 | 서버 raw | `can_frames`에 원본 CAN 저장 | 동일 | 기존 조회와 호환 |
 | 서버 decoded | 개별 TEM 테이블 없음 | `thermistor_samples` 추가 | 센서별 검색 가능 |
-| Downloader | 기본 telemetry CSV만 생성 | 별도 `thermistors-YYYY-MM-DD.csv` 추가 | 45개 온도/fault 열 제공 |
+| Downloader | 기본 telemetry CSV만 생성 | 별도 `thermistors-YYYY-MM-DD.csv` 추가 | 온도 45 + fault 45 + 센서별 원수집 시각 45, 총 150열 |
 | 계기판 | `0x6B0` 최고 온도 1개 | 동일 | 표시 및 차량 MCU 변경 없음 |
 
 ## 3. 데이터 흐름
@@ -54,7 +55,7 @@ flowchart LR
     TEM["Orion TEM<br/>0x1838F380, 약 10 Hz"] --> BUS["차량 CAN<br/>500 kbit/s"]
     BUS --> TMA["Monolith TMA"]
     TMA -->|"기존과 동일"| SD["SD 원본 로그"]
-    TMA -->|"500 ms 제한 우회<br/>해당 ID만"| MQTT["MQTT QoS 0"]
+    TMA -->|"45개 frozen snapshot<br/>최대 2 Hz"| MQTT["MQTT QoS 0"]
     MQTT --> COL["Monolith collector"]
     COL --> RAW["can_frames<br/>원본"]
     COL --> DEC["thermistor_samples<br/>decoded"]
@@ -91,15 +92,16 @@ flowchart LR
 - 45개 값은 동시 측정값이 아니다. 정상 순환 한 행은 약 4.4~4.5초에 걸친
   값을 묶은 스냅샷이다.
 
-TEM 주소 변경 또는 두 번째 모듈을 추가하면 현재 TMA 우회 ID와 Downloader의
+TEM 주소 변경 또는 두 번째 모듈을 추가하면 현재 TMA snapshot 대상 ID와 Downloader의
 모듈 필터를 명시적으로 확장해야 한다. 다른 ID도 raw CAN에는 남지만 decoded
 테이블과 45채널 CSV에는 포함되지 않는다.
 
 또한 활성 센서가 45개라는 사실만으로 ID가 `0..44`라고 단정할 수 없다. disabled
 위치는 순환에서 빠져도 물리 ID는 유지될 수 있다. 배포 전 TEM Utility 또는
 10~15초 raw CAN capture에서 distinct `data[3] & 0x7F`가 정확히 `0..44`인지
-확인한다. sparse ID이면 서버 저장은 유지되지만 현재 CSV는 일부를 누락하므로
-Downloader mapping을 먼저 수정한다.
+확인한다. sparse ID이면 서버 raw 저장은 유지되지만 strict TMA snapshot은 live로
+전달되지 않는다. TEM 설정을 연속 `0..44`로 바꾸거나, TMA 상태 머신과 Downloader
+mapping을 함께 수정해야 한다.
 
 ## 5. 구현 내용
 
@@ -107,26 +109,23 @@ Downloader mapping을 먼저 수정한다.
 
 준비 파일:
 
-- `tools/monolith_tma_firmware/monolith-v2.3.0-tem-live-10hz.patch`
+- `tools/monolith_tma_firmware/monolith-v2.3.0-tem-snapshot-2hz.patch`
 - `tools/monolith_tma_firmware/README.md`
 
-패치는 TMA의 CAN 수신 처리에서 다음 조건만 live interval 검사 없이 queue로
-보낸다.
+패치는 TMA의 CAN 수신 처리에서 다음 조건의 sensor ID `0..44`가 순서대로 모두
+수신된 경우만 하나의 snapshot으로 확정한다.
 
 ```text
 extended == true && remote == false && DLC == 8
 && identifier == 0x1838F380
 ```
 
-표준 프레임의 같은 숫자 ID, 요약 ID `0x1839F380`, 다른 source address 및
-기타 모든 CAN ID는 기존 500 ms 제한을 그대로 적용한다. CAN 버스에 프레임을
-새로 송신하지 않으며, 수신한 프레임의 live 복사 정책만 바뀐다. `LOG()` 호출은
-제한 판정보다 먼저 수행되므로 SD 기록 경로는 변경하지 않았다.
-
-이 패치는 정확히 10 Hz로 재제한하는 구현이 아니라 유효한 target의 interval 검사를
-완전히 우회한다. RTR 또는 DLC 8이 아닌 frame은 기존 500 ms 정책을 적용한다.
-그러나 같은 유효 extended ID를 비정상적으로 고속 송신하면 모두 queue 입력을
-시도할 수 있으므로 실차 배포 전에 ID 충돌과 burst 부하를 벤치에서 확인한다.
+3개 버퍼로 전송 중 snapshot, 최신 complete pending, 현재 capture를 분리한다.
+pending은 매 완성 순환마다 최신 값으로 교체하고, frozen `log_t`의 원래 device
+timestamp/checksum을 유지한 채 센서 0부터 44까지 500 ms 간격으로 보낸다. ID gap,
+순서 오류 또는 SD queue 실패가 있으면 partial capture를 폐기한다. 표준 프레임의
+같은 숫자 ID, `0x1839F380`, 다른 source address 및 기타 CAN ID의 기존 live 정책은
+유지한다. CAN 송신과 SD `LOG()` 호출 경로는 변경하지 않는다.
 
 ### 5.2 서버 collector와 DB
 
@@ -172,21 +171,38 @@ FK 검사 비용을 줄이기 위해 `raw_id` 인덱스도 추가했다.
 
 CSV 주요 열:
 
-- 메타데이터: channel, session, module address, scan 시각/시간
+- 전달 메타데이터: channel, session, module address, snapshot 번호,
+  `server_delivery_started_at_kst`, `server_delivery_completed_at_kst`,
+  `server_delivery_duration_ms`
+- 측정 메타데이터: 원래 TMA 수집 시각의 시작/끝과
+  `measurement_span_ms`
 - 품질: `received_sensor_count`, `fault_sensor_count`, `complete`
 - 요약: fault가 없는 센서 중 `max_temperature_c`, `max_sensor_id`
 - 채널: `temp_01_c`~`temp_45_c`
 - fault: `fault_01`~`fault_45`
+- 채널별 원수집 시각: `measurement_device_ts_01_ms`~
+  `measurement_device_ts_45_ms`
 
-스캔 결합 규칙:
+스냅샷 결합 규칙:
 
 - 서버 수신 순서인 `received_at, id`를 사용한다.
-- 센서 ID가 감소하는 지점을 다음 순환 시작으로 본다.
-- 같은 센서가 중복 수신되면 해당 순환에서 마지막 값 하나를 사용한다.
+- 센서 ID가 감소하거나, 인접한 원수집 `device_ts_ms`의 wrap-safe 간격이
+  6초를 초과하는 지점을 다음 스냅샷 시작으로 본다.
+- 같은 센서가 중복 수신되면 해당 스냅샷에서 마지막 값 하나를 사용한다.
 - TMA 32-bit millisecond timestamp wrap을 고려한다.
-- 45개 값이 있고 순환 시간이 6초 이내면 `complete=true`다.
+- 45개 값이 있고 **원수집 측정 범위**가 6초 이내면 `complete=true`다.
+  서버의 첫 프레임부터 마지막 프레임까지 약 22.0초 걸리는 것은 complete 판정에서
+  제외한다. 다음 snapshot의 첫 프레임까지 포함한 처리 주기는 약 22.5초다.
 - 누락값은 빈 칸으로 남기며 이전 값으로 보간하지 않는다.
-- 자정 전후 6초를 함께 조회하되 완료시각이 속한 날짜의 CSV에만 한 번 기록한다.
+- 자정 전후 35초를 함께 조회하되 서버 전달 완료시각이 속한 날짜의 CSV에만
+  한 번 기록한다.
+
+CSV는 총 150열이다. 한 행은 같은 순간의 45개 값이 아니라, TEM이 약 4.5초에
+걸쳐 수집한 한 순환을 동결해 최대 2 Hz로 첫 프레임부터 마지막 프레임까지 약
+22.0초 동안 서버에 전달한 결과다.
+정상 연결에서도 CSV가 완성되는 시점에는 각 값이 대략 22~31초 전 데이터일 수
+있다. MQTT 재연결 뒤 queue가 배치로 비워지면 서버 수신 간격은 이보다 짧거나
+불규칙할 수 있으므로 원수집 시점은 반드시 `measurement_device_ts_*_ms`로 판단한다.
 
 ## 6. 계기판 변경 철회 기록
 
@@ -224,24 +240,27 @@ Git 기록 방식은 계기판 변경안을 먼저 독립 커밋했다가 revert
 ### 트래픽과 저장량
 
 - 차량 CAN 부하: **변화 없음**
-- 해당 ID의 live 전송 시도: 약 2 frame/s에서 약 10 frame/s로 증가
-- 추가 live 프레임: 약 8 frame/s
-- 24시간 연속 수신 시 이론상 target raw 약 864,000행/일
-- decoded 테이블도 이론상 약 864,000행/일
-- 기존 2 Hz raw 대비 raw+decoded 총 증분은 이론상 약 1,555,200행/일
+- 해당 ID의 live queue 입력: 기존과 같은 최대 약 2 frame/s
+- 24시간 연속 수신 시 이론상 target `can_frames` 약 172,800행/일
+- decoded `thermistor_samples`도 이론상 약 172,800행/일
+- target raw+decoded 합계는 이론상 약 345,600행/일
+- 기존 2 Hz raw와 비교하면 raw 수신률 증가는 거의 없고, decoded projection
+  약 172,800행/일이 추가된다. 폐기한 10 Hz 전량안보다 target 행 수가 약 80% 적다.
 - 실제 저장량은 차량/TMA가 켜져 있고 서버에 연결된 시간에 비례
 
 장기 저장 목적이 아니더라도 **현재 migration에는 TTL이나 자동 DELETE가 없다**.
 기존 문서의 14일/lifecycle 설정은 backup 또는 spool 파일 정책이며 PostgreSQL
-행을 자동으로 지워 주지 않는다. raw와 decoded 두 테이블의 증가량을 배포 후
-측정하고, 배포 전에 PostgreSQL 보관 기간·삭제 작업·용량 경보를 별도 승인해야
-한다. 자동 정리 정책이 확정되지 않았다면 운영 장기 활성화 승인을 보류한다.
+행을 자동으로 지워 주지 않는다. TMA 플래시 후 raw와 decoded 두 테이블의 증가량을
+측정하고, 장기 운영 활성화 전에 PostgreSQL 보관 기간·삭제 작업·용량 경보를 별도
+승인해야 한다. 자동 정리 정책이 확정되지 않았다면 운영 장기 활성화 승인을 보류한다.
 
 ### 유실과 부하에 대한 현실적인 제한
 
-“10 Hz 전량 전송”은 TMA의 의도적인 500 ms 샘플링을 제거하고 모든 대상
-프레임을 live queue에 넣어 **전송 시도**한다는 뜻이다. 다음 원인까지 무손실로
-보장하지는 않는다.
+최종 결정은 10 Hz 전량 전송 대신 45채널을 한 순환으로 freeze한 뒤 최대 2 Hz로
+순차 전달하는 방식이다. 서버 부하는 기존 수준으로 유지되지만 한 snapshot의 서버
+첫 프레임부터 마지막 프레임의 도착에는 약 22.0초가 걸리고 다음 snapshot 전송
+시작까지의 주기는 약 22.5초다. 측정 구간 4.4초를 포함해 값은 약 22~31초 지연될 수
+있다. 다음 원인까지 무손실로 보장하지는 않는다.
 
 - MQTT QoS 0
 - Wi-Fi 또는 인터넷 단절
@@ -260,15 +279,16 @@ rate-limit을 추가하지 않는다.
 |---|---|---|
 | TEM migration 누락 | target decoded insert 실패 가능 | migration을 먼저 적용해 방지 |
 | TEM 프레임 없음 | 45채널 CSV가 비거나 경고 | 기본 telemetry CSV/SD 복사 정상 |
-| Wi-Fi/MQTT 유실 | 일부 scan `complete=false` | SD 원본 유지 가능 |
+| Wi-Fi/MQTT 유실 | 일부 snapshot `complete=false` 또는 행 누락 | SD 원본 유지 가능 |
 | decoded export 오류 | TEM CSV만 실패 | 기본 downloader 결과 유지 |
 | 서버 중단 | live 저장 중단 | 차량 제어/계기판 영향 없음 |
 
 ## 8. 배포 절차
 
-1. 벤치에서 extended `0x1838F380`이 약 10 Hz인지 확인한다.
+1. 벤치 CAN 원본에서 extended `0x1838F380`이 약 10 Hz인지 확인한다.
 2. 10~15초 capture에서 distinct sensor ID가 실제로 `0..44`인지 확인한다.
-   sparse하면 Downloader mapping을 배포 전에 변경한다.
+   sparse하면 TEM 설정을 연속 ID로 바꾸거나 TMA 상태 머신과 Downloader mapping을
+   함께 변경한다.
 3. 실제 TEM source address가 `0x80`, DLC가 8인지 확인한다.
 4. DB 여유 용량, PostgreSQL 보관 기간, 삭제 작업 및 용량 경보를 확정한다.
 5. 기존 TMA 펌웨어, collector image 및 DB schema를 백업한다.
@@ -277,9 +297,10 @@ rate-limit을 추가하지 않는다.
 8. collector를 재시작하고 기존 2 Hz 입력에서 decode와 비대상 raw 저장을 확인한다.
 9. TMA v2.3.0 소스에 패치를 적용해 ESP-IDF full build한다.
 10. 벤치 검증 후 TMA에 flash한다.
-11. 서버에서 60초 동안 target 수신률, raw/decoded 비율, unique sensor 수를 확인한다.
-12. 같은 시간 구간의 SD target 수와 server raw 수를 비교해 live 유실률을 확인한다.
-13. Downloader를 배포하고 CSV header, complete 스캔 및 max sensor를 확인한다.
+11. 서버에서 target 수신률이 2 Hz 이하인지, raw/decoded 비율과 unique sensor 수를 확인한다.
+12. 같은 snapshot의 SD `0..44` 원본과 서버 replay `0..44`의 coverage를 비교한다.
+    설계상 SD 약 10 Hz와 서버 최대 2 Hz의 단순 frame 수 차이는 유실률로 보지 않는다.
+13. Downloader를 배포하고 150열 CSV header, complete snapshot 및 max sensor를 확인한다.
 
 migration보다 collector를 먼저 배포하면 target decoded insert가 실패하면서 같은
 batch 전체가 rollback/replay될 수 있으므로 순서를 바꾸면 안 된다.
@@ -323,38 +344,42 @@ CHECK/FK/UNIQUE 및 indexes를 조회해 migration 결과를 검증한다. colle
    `sha256:5132d36c3379634b2a029678b4f8f99c0dbd8bc94e7b53f6c2c5f5a42f2a5846`,
    parser marker는 `1.1.0+monolith-v2.3.1-orion-tem`이다. MQTT 구독,
    PostgreSQL 연결 및 schema 초기화 로그가 정상이고 재시작 루프는 없었다.
-7. 운영 DB를 대상으로 Downloader를 실행해 온도 45열과 fault 45열을 포함한
-   104컬럼 `thermistors-2026-08-14.csv` 생성을 확인했다.
+7. 운영 배포 당시 Downloader로 온도 45열과 fault 45열을 포함한 구형
+   104컬럼 `thermistors-2026-08-14.csv` 생성을 확인했다. 이후 2 Hz frozen
+   snapshot 지원 변경에서 전달/측정 시각을 분리하고 센서별 원수집 시각 45열을
+   추가해 현재 형식은 150열이다.
 
 배포 당시 TMA의 마지막 서버 수신은 약 12시간 전이었고 작업 PC에는 COM/USB-UART
 장치가 없었다. 따라서 생성된 CSV는 header-only이며 TEM 데이터 행은 0개다. 이는
 서버/Downloader 오류가 아니라 TMA 미접속 상태다. TMA 연결 후 ESP-IDF 5.5.1 기준
-펌웨어 build·flash와 9~11 Hz/45 unique ID/`complete=true` 검증이 남아 있다.
+펌웨어 build·flash와 최대 2 Hz/45 unique ID/`complete=true` 검증이 남아 있다.
 
 ## 10. 검증 결과와 미검증 항목
 
 | 항목 | 결과 |
 |---|---|
 | TMA patch clean apply | PASS |
-| TMA live policy C test | ARM GCC `-Wall -Wextra -Werror` compile PASS; `-O2` 결과 모든 assert 통과 경로로 `main=0` 확인 |
+| TMA snapshot C test | host GCC `-std=c11 -Wall -Wextra -Werror` compile/run PASS |
 | TMA ESP-IDF full build | 미실행 (작업 PC에는 기준 5.5.1이 아닌 6.0.2만 설치) |
 | 서버 decoder/integration unit test | 11/11 PASS |
 | PostgreSQL migration + collector container 통합 | 운영 적용 PASS (2026-08-14) |
 | Downloader build | PASS |
 | Downloader SQL, PostgreSQL 17 read-only 합성 검증 | PASS |
-| 정상 45개/4.4초 complete | PASS |
-| 중복 sensor 0, sensor 0 누락, uint32 wrap | PASS |
-| 자정 횡단 스캔 중복 방지 | PASS |
+| 합성 정상 45개/4.4초 complete 회귀 | PASS |
+| 합성 중복 sensor 0, sensor 0 누락, uint32 wrap 회귀 | PASS |
+| 합성 자정 횡단 snapshot 중복 방지 회귀 | PASS |
 | 실제 차량 45채널 CAN capture | 미실행 |
 | 운영 VM/DB 배포 | PASS (DB migration + collector, 2026-08-14) |
 | TMA flash | 미실행 |
-| 운영 Downloader export | 104컬럼/온도 45/fault 45 PASS, 실데이터 0행 |
+| 2 Hz Downloader build/generated SQL | 150컬럼 PASS |
+| 운영 DB read-only 150컬럼 export | PASS, 장치 미접속으로 실데이터 0행 |
 | 계기판 변경 | 철회 / 기존 유지 |
 
 ## 11. 배포 승인 기준
 
-- [ ] extended `0x1838F380`: 60초 평균 9~11 Hz
-- [ ] 6초 이내 unique sensor ID: 45개 (`0..44`)
+- [ ] 차량 CAN 원본 `0x1838F380`: 60초 평균 9~11 Hz
+- [ ] 안정 연결 시 서버 TEM 전달: 최대 2 Hz, 첫~마지막 delivery 약 22.0초
+- [ ] 원수집 `measurement_span_ms <= 6000`에서 unique sensor ID: 45개 (`0..44`)
 - [ ] target `can_frames : thermistor_samples`: 1:1
 - [ ] Downloader 한 행의 온도 45개와 `complete=true`
 - [ ] fault 채널과 fault 제외 최고온도 계산 확인
