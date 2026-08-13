@@ -67,6 +67,15 @@ extern "C" {
 #define APPS_TORQUE_MAX                    BAMOCAR_TORQUE_CMD_MAX
 
 /*
+ * Installed drivetrain command direction. Keep the pedal and cutoff math as a
+ * positive magnitude, then apply this sign only to the command sent on CAN.
+ * Use -1 to reverse the motor direction, or +1 for the original direction.
+ */
+#define APPS_TORQUE_COMMAND_SIGN           (-1)
+#define APPS_TORQUE_FULL_COMMAND           \
+  (APPS_TORQUE_COMMAND_SIGN * APPS_TORQUE_MAX)
+
+/*
  * Anything at or below this is sent as 0. Unit: Bamocar raw command.
  * 655 is about 2% of APPS_TORQUE_MAX, so ADC noise around a released pedal
  * cannot leave a standing torque request on the bus.

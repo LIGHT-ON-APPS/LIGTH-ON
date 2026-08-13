@@ -19,6 +19,10 @@
 #error "_DEF_VER must be _DEF_VER1 or _DEF_VER2 for APPS fault output"
 #endif
 
+#if (APPS_TORQUE_COMMAND_SIGN != -1) && (APPS_TORQUE_COMMAND_SIGN != 1)
+#error "APPS_TORQUE_COMMAND_SIGN must be -1 or 1"
+#endif
+
 /* "apps trace" live view: bar width in characters and sample period in ms. */
 #define APPS_TRACE_BAR_LEN     16U
 #define APPS_TRACE_PERIOD_MS   50U
@@ -497,6 +501,9 @@ static bool appsSendCommand(int16_t prepared_command)
     apps.cutoff = APPS_CUTOFF_HIGH;
   }
 
+  command_to_send = (int16_t)((int32_t)command_to_send *
+                              (int32_t)APPS_TORQUE_COMMAND_SIGN);
+
   if (canIsOpen(APPS_CAN_CH) != true)
   {
     (void)canOpen(APPS_CAN_CH, CAN_NORMAL, CAN_CLASSIC, CAN_500K, CAN_500K);
@@ -602,7 +609,7 @@ static void appsCli(cli_args_t *args)
                 apps.pedal_per_mille % 10U);
       cliPrintf("command : %d / %d\n",
                 apps.command_sent,
-                APPS_TORQUE_MAX);
+                APPS_TORQUE_FULL_COMMAND);
       if (apps.can_tx_muted == true)
       {
         cliPrintf("can tx : muted\n");
@@ -743,6 +750,7 @@ static void appsCli(cli_args_t *args)
   {
     uint16_t pedal_min    = (uint16_t)APPS_PER_MILLE_MAX;
     uint16_t pedal_max    = 0U;
+    int16_t  command_min  = 0;
     int16_t  command_max  = 0;
     uint32_t cutoff_count = 0U;
     uint32_t full_count   = 0U;
@@ -812,6 +820,10 @@ static void appsCli(cli_args_t *args)
       {
         command_max = apps.command_sent;
       }
+      if (apps.command_sent < command_min)
+      {
+        command_min = apps.command_sent;
+      }
       if (apps.cutoff == APPS_CUTOFF_LOW)
       {
         cutoff_count++;
@@ -835,7 +847,8 @@ static void appsCli(cli_args_t *args)
     cliPrintf("pedal   : %u.%u%% .. %u.%u%%\n",
               pedal_min / 10U, pedal_min % 10U,
               pedal_max / 10U, pedal_max % 10U);
-    cliPrintf("command : 0 .. %d / %d\n", command_max, APPS_TORQUE_MAX);
+    cliPrintf("command : %d .. %d / %d\n",
+              command_min, command_max, APPS_TORQUE_FULL_COMMAND);
     cliPrintf("cutoff  : %lu samples\n", (unsigned long)cutoff_count);
     cliPrintf("full    : %lu samples\n", (unsigned long)full_count);
     return;
