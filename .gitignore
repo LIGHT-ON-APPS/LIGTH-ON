@@ -33,3 +33,8 @@ Desktop.ini
 /ssh-key-*.key
 /.ssh/
 /.oracle_known_hosts
+
+# Local Monolith downloader build and downloaded telemetry (vehicle data)
+/MonolithDownloader.exe
+/exports/
+/tmp/
