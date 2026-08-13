@@ -1,0 +1,4 @@
+# TouchGFX generates source and project files with LF line endings. Pinning
+# them here prevents Windows core.autocrlf from making the whole tree appear
+# modified after regeneration or a GitHub restore.
+stm32f411_fw/TouchGFX/** text=auto eol=lf
