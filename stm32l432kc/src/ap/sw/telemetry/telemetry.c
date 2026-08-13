@@ -45,6 +45,14 @@
 #define TELEMETRY_ORION_SOC_PERMILLE_PER_BIT  5L
 #define TELEMETRY_ORION_TEMP_DECIC_PER_BIT    10L
 
+/* Orion's optional battery-cell broadcast sends one cell per frame. The BMS
+ * profile must enable this broadcast on the vehicle CAN interface and use the
+ * same standard identifier. Instant voltage is big-endian and scaled at
+ * 0.1 mV/bit. */
+#define TELEMETRY_ORION_CELL_CAN_ID            0x36U
+#define TELEMETRY_ORION_CELL_VOLT_MAX_DECIMV   50000U
+#define TELEMETRY_ORION_CELL_TIMEOUT_MS         3000U
+
 typedef struct
 {
   uint16_t raw;
@@ -55,6 +63,14 @@ typedef struct
 {
   bool                        initialized;
   telemetry_signal_snapshot_t signal;
+  bool                        cell_scan_active;
+  bool                        cell_scan_contiguous;
+  uint8_t                     cell_scan_last_id;
+  uint16_t                    cell_scan_count;
+  uint16_t                    cell_scan_min_decimv;
+  bool                        cell_expected_last_id_valid;
+  uint8_t                     cell_expected_last_id;
+  uint32_t                    cell_min_last_update_ms;
 } telemetry_t;
 
 static telemetry_t telemetry;
@@ -159,6 +175,96 @@ static bool telemetryDecodeOrion(const can_msg_t *p_msg)
   return true;
 }
 
+static bool telemetryDecodeOrionCell(const can_msg_t *p_msg)
+{
+  uint32_t checksum;
+  uint16_t voltage_decimv;
+  uint8_t cell_id;
+
+  if ((p_msg->id_type != CAN_STD) ||
+      (p_msg->id != TELEMETRY_ORION_CELL_CAN_ID) ||
+      (p_msg->length != 8U))
+  {
+    return false;
+  }
+
+  checksum = p_msg->id + p_msg->length;
+  for (uint8_t i = 0U; i < 7U; i++)
+  {
+    checksum += p_msg->data[i];
+  }
+  if ((uint8_t)checksum != p_msg->data[7])
+  {
+    return false;
+  }
+
+  cell_id = p_msg->data[0];
+  voltage_decimv = telemetryReadU16Be(&p_msg->data[1]);
+  if ((voltage_decimv == 0U) ||
+      (voltage_decimv > TELEMETRY_ORION_CELL_VOLT_MAX_DECIMV))
+  {
+    return false;
+  }
+
+  /* A new cell-zero frame closes the preceding scan. The first contiguous
+   * scan learns the pack's last cell ID; later scans are published only when
+   * they reach that same ID. A longer scan raises the learned boundary and is
+   * itself used only for relearning, which prevents a dropped tail from making
+   * the displayed minimum look safer than it really is. */
+  if (cell_id == 0U)
+  {
+    const bool scan_contiguous =
+        telemetry.cell_scan_active &&
+        telemetry.cell_scan_contiguous &&
+        (telemetry.cell_scan_count > 1U) &&
+        (telemetry.cell_scan_count ==
+         ((uint16_t)telemetry.cell_scan_last_id + 1U));
+
+    if (scan_contiguous &&
+        ((!telemetry.cell_expected_last_id_valid) ||
+         (telemetry.cell_scan_last_id > telemetry.cell_expected_last_id)))
+    {
+      telemetry.cell_expected_last_id = telemetry.cell_scan_last_id;
+      telemetry.cell_expected_last_id_valid = true;
+    }
+    else if (scan_contiguous &&
+             (telemetry.cell_scan_last_id ==
+              telemetry.cell_expected_last_id))
+    {
+      telemetry.signal.bms_min_cell_mv =
+          (uint16_t)((telemetry.cell_scan_min_decimv + 5U) / 10U);
+      telemetry.signal.valid_mask |= TELEMETRY_SIGNAL_BMS_MIN_CELL_MV;
+      telemetry.cell_min_last_update_ms = p_msg->timestamp;
+    }
+
+    telemetry.cell_scan_active = true;
+    telemetry.cell_scan_contiguous = true;
+    telemetry.cell_scan_last_id = 0U;
+    telemetry.cell_scan_count = 1U;
+    telemetry.cell_scan_min_decimv = voltage_decimv;
+    telemetry.signal.last_update_ms = p_msg->timestamp;
+    return true;
+  }
+
+  if (telemetry.cell_scan_active != true)
+  {
+    return true;
+  }
+
+  if (cell_id != (uint8_t)(telemetry.cell_scan_last_id + 1U))
+  {
+    telemetry.cell_scan_contiguous = false;
+  }
+  telemetry.cell_scan_last_id = cell_id;
+  telemetry.cell_scan_count++;
+  if (voltage_decimv < telemetry.cell_scan_min_decimv)
+  {
+    telemetry.cell_scan_min_decimv = voltage_decimv;
+  }
+  telemetry.signal.last_update_ms = p_msg->timestamp;
+  return true;
+}
+
 static bool telemetryDecodeBamocar(const can_msg_t *p_msg)
 {
   uint8_t reg_id;
@@ -259,6 +365,7 @@ static void telemetryDecodeCan(const can_msg_t *p_msg)
   }
 
   (void)telemetryDecodeOrion(p_msg);
+  (void)telemetryDecodeOrionCell(p_msg);
   (void)telemetryDecodeBamocar(p_msg);
 }
 
@@ -289,6 +396,16 @@ void telemetryUpdate(void)
   can_ch = telemetry.signal.can_ch;
   if (canIsOpen(can_ch) != true)
   {
+    if ((telemetry.signal.valid_mask &
+         TELEMETRY_SIGNAL_BMS_MIN_CELL_MV) != 0U)
+    {
+      if ((millis() - telemetry.cell_min_last_update_ms) >=
+          TELEMETRY_ORION_CELL_TIMEOUT_MS)
+      {
+        telemetry.signal.valid_mask &=
+            ~TELEMETRY_SIGNAL_BMS_MIN_CELL_MV;
+      }
+    }
     return;
   }
 
@@ -302,6 +419,14 @@ void telemetryUpdate(void)
     }
 
     available--;
+  }
+
+  if (((telemetry.signal.valid_mask &
+        TELEMETRY_SIGNAL_BMS_MIN_CELL_MV) != 0U) &&
+      ((millis() - telemetry.cell_min_last_update_ms) >=
+       TELEMETRY_ORION_CELL_TIMEOUT_MS))
+  {
+    telemetry.signal.valid_mask &= ~TELEMETRY_SIGNAL_BMS_MIN_CELL_MV;
   }
 }
 
@@ -350,6 +475,9 @@ static void cliTelemetry(cli_args_t *args)
     cliPrintf("bms temp   : %d.%d C\n",
               (int)(signal.bms_max_temp_decic / 10),
               (int)abs(signal.bms_max_temp_decic % 10));
+    cliPrintf("bms min V  : %u.%03u V\n",
+              (unsigned int)(signal.bms_min_cell_mv / 1000U),
+              (unsigned int)(signal.bms_min_cell_mv % 1000U));
     cliPrintf("bam rpm    : %ld rpm\n", (long)signal.bamocar_rpm);
     cliPrintf("bam torque : %ld raw\n", (long)signal.bamocar_torque_raw);
     cliPrintf("bam dc bus : %ld mV\n", (long)signal.bamocar_dc_bus_mv);

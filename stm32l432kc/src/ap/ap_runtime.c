@@ -30,23 +30,6 @@
 #define BAMOCAR_REQUEST_INTERVAL_MS        100U
 #define BAMOCAR_REQUEST_TX_TIMEOUT_MS      1U
 
-/*
- * 도로 속도 환산 계수. 팀에서 값을 확정하기 전에는 speed valid bit를
- * 설정하지 않는다.
- *
- *   바퀴 회전수 = 모터 회전수 * DRIVE_DEN / DRIVE_NUM
- */
-#define VEHICLE_DRIVE_NUM                  0U
-#define VEHICLE_DRIVE_DEN                  1U
-#define VEHICLE_WHEEL_CIRCUMFERENCE_MM     0U
-
-#if (VEHICLE_DRIVE_NUM > 0U) && (VEHICLE_WHEEL_CIRCUMFERENCE_MM > 0U)
-#define VEHICLE_SPEED_CONFIGURED           1
-#else
-#define VEHICLE_SPEED_CONFIGURED           0
-#endif
-
-
 typedef bool (*diag_can_encoder_t)(uint8_t *p_data,
                                    size_t data_size,
                                    const apps_diag_can_sample_t *p_sample);
@@ -81,6 +64,8 @@ _Static_assert(TELEMETRY_SIGNAL_BAMOCAR_MOTOR_TEMP_DECIC == DISPLAY_PROTOCOL_TLM
                "motor temperature mask layouts differ");
 _Static_assert(TELEMETRY_SIGNAL_BAMOCAR_IGBT_TEMP_DECIC == DISPLAY_PROTOCOL_TLM_IGBT_TEMP,
                "IGBT temperature mask layouts differ");
+_Static_assert(TELEMETRY_SIGNAL_BMS_MIN_CELL_MV == DISPLAY_PROTOCOL_TLM_CELL_MIN_V,
+               "minimum cell voltage mask layouts differ");
 
 
 /* APPS 제어 루프 주기 상태. */
@@ -212,50 +197,12 @@ static void apDisplaySendSnapshot(void)
   }
 }
 
-/* 설정된 감속비와 바퀴 둘레로 모터 RPM을 0.1 km/h 단위로 환산한다. */
-static uint16_t apDisplayComputeRoadSpeedDkph(int32_t motor_rpm,
-                                               bool *p_valid)
-{
-  *p_valid = false;
-
-#if VEHICLE_SPEED_CONFIGURED
-  {
-    int32_t wheel_rpm;
-    int32_t mm_per_min;
-    int32_t dkph;
-
-    if (motor_rpm < 0)
-    {
-      motor_rpm = -motor_rpm;
-    }
-
-    wheel_rpm = (motor_rpm * (int32_t)VEHICLE_DRIVE_DEN) /
-                (int32_t)VEHICLE_DRIVE_NUM;
-    mm_per_min = wheel_rpm * (int32_t)VEHICLE_WHEEL_CIRCUMFERENCE_MM;
-    dkph = (mm_per_min * 3) / 5000;
-
-    if (dkph > (int32_t)UINT16_MAX)
-    {
-      dkph = (int32_t)UINT16_MAX;
-    }
-
-    *p_valid = true;
-    return (uint16_t)dkph;
-  }
-#else
-  (void)motor_rpm;
-  return 0U;
-#endif
-}
-
 /* 수집한 차량 신호를 표시용 텔레메트리 패킷으로 변환해 UART2로 보낸다. */
 static void apDisplaySendTelemetry(void)
 {
   telemetry_signal_snapshot_t signal;
   display_protocol_telemetry_t packet_data;
   uint8_t packet[DISPLAY_PROTOCOL_TELEMETRY_SIZE];
-  bool speed_valid = false;
-  uint16_t speed_dkph;
 
   if ((display_uart_open != true) ||
       (telemetryGetSignalSnapshot(&signal) != true))
@@ -263,13 +210,11 @@ static void apDisplaySendTelemetry(void)
     return;
   }
 
-  speed_dkph = apDisplayComputeRoadSpeedDkph(signal.bamocar_rpm, &speed_valid);
-
   packet_data.sequence = display_tlm_sequence++;
   packet_data.source_time_ms = millis();
   packet_data.valid_mask = signal.valid_mask;
   packet_data.motor_rpm = signal.bamocar_rpm;
-  packet_data.road_speed_dkph = speed_dkph;
+  packet_data.cell_min_mv = signal.bms_min_cell_mv;
 
   /* mV -> 0.1 V, mA -> 0.1 A. 팩 전류는 회생 중 음수가 된다. */
   packet_data.pack_dv = (uint16_t)((signal.bms_pack_mv < 0) ? 0 :
@@ -284,11 +229,6 @@ static void apDisplaySendTelemetry(void)
   packet_data.cell_max_temp_decic = signal.bms_max_temp_decic;
   packet_data.igbt_temp_decic = signal.bamocar_igbt_temp_decic;
   packet_data.motor_temp_decic = signal.bamocar_motor_temp_decic;
-
-  if (speed_valid == true)
-  {
-    packet_data.valid_mask |= DISPLAY_PROTOCOL_TLM_SPEED;
-  }
 
   if (displayProtocolEncodeTelemetry(packet, sizeof(packet), &packet_data) == true)
   {

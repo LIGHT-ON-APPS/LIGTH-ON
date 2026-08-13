@@ -25,6 +25,7 @@ extern "C" {
 #define TELEMETRY_SIGNAL_BAMOCAR_IGBT_TEMP_DECIC  (1UL << 9)
 #define TELEMETRY_SIGNAL_BAMOCAR_STATUS           (1UL << 10)
 #define TELEMETRY_SIGNAL_BAMOCAR_ERROR_WARNING    (1UL << 11)
+#define TELEMETRY_SIGNAL_BMS_MIN_CELL_MV           (1UL << 16)
 
 typedef struct
 {
@@ -36,6 +37,7 @@ typedef struct
   int32_t  bms_pack_ma;
   uint16_t bms_soc_permille;
   int16_t  bms_max_temp_decic;
+  uint16_t bms_min_cell_mv;
   uint32_t bms_status;
 
   int32_t  bamocar_rpm;
