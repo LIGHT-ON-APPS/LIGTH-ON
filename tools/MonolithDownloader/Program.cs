@@ -318,6 +318,14 @@ namespace LightOn.MonolithDownloader
                         "CSV 다운로드 완료\r\n{0}\r\n데이터 행: {1:N0}개\r\nSD .log 복사: {2:N0}개",
                         result.CsvPath, result.CsvRows, result.SdCopied);
 
+                    if (result.ThermistorCsvSucceeded)
+                    {
+                        summary += string.Format(CultureInfo.CurrentCulture,
+                            "\r\n45채널 온도 CSV: {0}\r\n온도 스캔: {1:N0}개",
+                            result.ThermistorCsvPath,
+                            result.ThermistorCsvRows);
+                    }
+
                     if (result.Warnings.Count > 0)
                     {
                         summary += "\r\n\r\n참고:\r\n- " + string.Join("\r\n- ", result.Warnings.ToArray());
@@ -405,6 +413,26 @@ namespace LightOn.MonolithDownloader
                 result.CsvPath = csv.Path;
                 result.CsvRows = csv.Rows;
                 result.CsvBytes = csv.Bytes;
+
+                try
+                {
+                    CsvExportResult thermistors = ExportThermistorCsv(date, outputDirectory);
+                    result.ThermistorCsvSucceeded = true;
+                    result.ThermistorCsvPath = thermistors.Path;
+                    result.ThermistorCsvRows = thermistors.Rows;
+                    result.ThermistorCsvBytes = thermistors.Bytes;
+                    if (thermistors.Rows == 0)
+                    {
+                        result.Warnings.Add("선택한 날짜에 완성되거나 부분 수신된 TEM 온도 스캔이 없습니다.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    /* 기존 telemetry CSV는 계속 유효하다. 서버 migration이 아직
+                     * 배포되지 않은 경우에도 전체 다운로드를 실패시키지 않는다. */
+                    result.Warnings.Add("45채널 온도 CSV 생성 실패: " + ex.Message);
+                    log("45채널 온도 CSV 생성 실패: " + ex.Message);
+                }
             }
             catch (Exception ex)
             {
@@ -459,20 +487,35 @@ namespace LightOn.MonolithDownloader
         {
             string dateText = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             string nextDateText = date.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            string nonce = Guid.NewGuid().ToString("N");
-            string remotePath = "/home/ubuntu/monolith-telemetry-" + dateText + "-" + nonce + ".csv";
-            string localPath = MakeUniquePath(Path.Combine(outputDirectory,
-                "telemetry-" + dateText + ".csv"));
-            string localPartPath = localPath + ".part-" + nonce;
+            return ExportQueryCsv(dateText, outputDirectory,
+                "telemetry", "telemetry", BuildCsvSql(dateText, nextDateText));
+        }
 
-            string sql = BuildCsvSql(dateText, nextDateText);
+        private CsvExportResult ExportThermistorCsv(DateTime date, string outputDirectory)
+        {
+            string dateText = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            string nextDateText = date.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            return ExportQueryCsv(dateText, outputDirectory,
+                "thermistors", "45채널 TEM 온도",
+                BuildThermistorCsvSql(dateText, nextDateText));
+        }
+
+        private CsvExportResult ExportQueryCsv(string dateText,
+            string outputDirectory, string filePrefix, string description, string sql)
+        {
+            string nonce = Guid.NewGuid().ToString("N");
+            string remotePath = "/home/ubuntu/monolith-" + filePrefix + "-" +
+                dateText + "-" + nonce + ".csv";
+            string localPath = MakeUniquePath(Path.Combine(outputDirectory,
+                filePrefix + "-" + dateText + ".csv"));
+            string localPartPath = localPath + ".part-" + nonce;
             string sqlBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(sql));
             string remoteCommand = "umask 077; printf %s '" + sqlBase64 +
                 "' | base64 -d | docker exec -i " + DatabaseContainer +
                 " psql -X -q -v ON_ERROR_STOP=1 -U " + DatabaseUser + " -d " + DatabaseName +
                 " > '" + remotePath + "'";
 
-            log(dateText + " PostgreSQL 데이터를 CSV로 내보내는 중...");
+            log(dateText + " " + description + " 데이터를 CSV로 내보내는 중...");
             try
             {
                 CommandResult export = RunProcess(sshPath,
@@ -678,6 +721,126 @@ namespace LightOn.MonolithDownloader
   ORDER BY s.received_at, s.id
 ) TO STDOUT WITH (FORMAT CSV, HEADER TRUE, ENCODING 'UTF8');
 ", dateText, nextDateText);
+        }
+
+        private static string BuildThermistorCsvSql(string dateText, string nextDateText)
+        {
+            StringBuilder channels = new StringBuilder();
+            for (int sensor = 0; sensor < 45; sensor++)
+            {
+                channels.AppendFormat(CultureInfo.InvariantCulture,
+                    ",\n    max(temperature_c) FILTER (WHERE sample_rank = 1 AND sensor_id = {0}) AS temp_{1:00}_c",
+                    sensor, sensor + 1);
+            }
+            for (int sensor = 0; sensor < 45; sensor++)
+            {
+                channels.AppendFormat(CultureInfo.InvariantCulture,
+                    ",\n    bool_or(fault) FILTER (WHERE sample_rank = 1 AND sensor_id = {0}) AS fault_{1:00}",
+                    sensor, sensor + 1);
+            }
+
+            return @"COPY (
+  WITH stream AS (
+    SELECT
+      t.*,
+      d.channel,
+      lag(t.sensor_id) OVER (
+        PARTITION BY t.session_id, t.module_address
+        ORDER BY t.received_at, t.id
+      ) AS previous_sensor_id
+    FROM thermistor_samples AS t
+    JOIN sessions AS s ON s.id = t.session_id
+    JOIN devices AS d ON d.id = s.device_id
+    WHERE t.received_at >= timestamptz '" + dateText + @" 00:00:00 Asia/Seoul' - interval '6 seconds'
+      AND t.received_at <  timestamptz '" + nextDateText + @" 00:00:00 Asia/Seoul' + interval '6 seconds'
+      AND t.module_address = 128
+      AND t.sensor_id BETWEEN 0 AND 44
+  ), ordered AS (
+    SELECT
+      stream.*,
+      sum(CASE
+            WHEN previous_sensor_id IS NULL OR sensor_id < previous_sensor_id THEN 1
+            ELSE 0
+          END) OVER (
+        PARTITION BY session_id, module_address
+        ORDER BY received_at, id
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+      ) AS scan_no
+    FROM stream
+  ), ranked AS (
+    SELECT
+      ordered.*,
+      row_number() OVER (
+        PARTITION BY session_id, module_address, scan_no, sensor_id
+        ORDER BY received_at DESC, id DESC
+      ) AS sample_rank
+    FROM ordered
+  ), scans AS (
+    SELECT
+      channel,
+      session_id,
+      module_address,
+      scan_no,
+      min(received_at) FILTER (WHERE sample_rank = 1) AS scan_started_at,
+      max(received_at) FILTER (WHERE sample_rank = 1) AS scan_completed_at,
+      (array_agg(device_ts_ms ORDER BY received_at, id)
+        FILTER (WHERE sample_rank = 1))[1] AS device_ts_start_ms,
+      (array_agg(device_ts_ms ORDER BY received_at DESC, id DESC)
+        FILTER (WHERE sample_rank = 1))[1] AS device_ts_end_ms,
+      count(*) FILTER (WHERE sample_rank = 1) AS received_sensor_count,
+      count(*) FILTER (WHERE sample_rank = 1 AND fault) AS fault_sensor_count,
+      max(temperature_c) FILTER (
+        WHERE sample_rank = 1 AND NOT fault
+      ) AS max_temperature_c,
+      (array_agg(sensor_id + 1 ORDER BY temperature_c DESC, sensor_id)
+        FILTER (WHERE sample_rank = 1 AND NOT fault))[1] AS max_sensor_id" +
+                channels.ToString() + @"
+    FROM ranked
+    GROUP BY channel, session_id, module_address, scan_no
+  )
+  SELECT
+    channel,
+    session_id,
+    '0x' || lpad(to_hex(module_address::integer), 2, '0') AS module_address,
+    scan_no,
+    scan_started_at AT TIME ZONE 'Asia/Seoul' AS scan_started_at_kst,
+    scan_completed_at AT TIME ZONE 'Asia/Seoul' AS scan_completed_at_kst,
+    device_ts_start_ms,
+    device_ts_end_ms,
+    ((device_ts_end_ms - device_ts_start_ms + 4294967296::bigint)
+      % 4294967296::bigint) AS scan_duration_ms,
+    received_sensor_count,
+    fault_sensor_count,
+    (
+      received_sensor_count = 45
+      AND ((device_ts_end_ms - device_ts_start_ms + 4294967296::bigint)
+        % 4294967296::bigint) <= 6000
+    ) AS complete,
+    max_temperature_c,
+    max_sensor_id" +
+                BuildThermistorChannelSelectList() + @"
+  FROM scans
+  WHERE scan_completed_at >= timestamptz '" + dateText + @" 00:00:00 Asia/Seoul'
+    AND scan_completed_at <  timestamptz '" + nextDateText + @" 00:00:00 Asia/Seoul'
+  ORDER BY scan_started_at, session_id, module_address, scan_no
+) TO STDOUT WITH (FORMAT CSV, HEADER TRUE, ENCODING 'UTF8');
+";
+        }
+
+        private static string BuildThermistorChannelSelectList()
+        {
+            StringBuilder columns = new StringBuilder();
+            for (int sensor = 1; sensor <= 45; sensor++)
+            {
+                columns.AppendFormat(CultureInfo.InvariantCulture,
+                    ",\n    temp_{0:00}_c", sensor);
+            }
+            for (int sensor = 1; sensor <= 45; sensor++)
+            {
+                columns.AppendFormat(CultureInfo.InvariantCulture,
+                    ",\n    fault_{0:00}", sensor);
+            }
+            return columns.ToString();
         }
 
         private List<string> BuildSshArguments(string target, string remoteCommand)
@@ -1021,6 +1184,10 @@ namespace LightOn.MonolithDownloader
         public string CsvPath = string.Empty;
         public long CsvRows;
         public long CsvBytes;
+        public bool ThermistorCsvSucceeded;
+        public string ThermistorCsvPath = string.Empty;
+        public long ThermistorCsvRows;
+        public long ThermistorCsvBytes;
         public int SdCopied;
         public int SdSkipped;
         public long SdBytes;
