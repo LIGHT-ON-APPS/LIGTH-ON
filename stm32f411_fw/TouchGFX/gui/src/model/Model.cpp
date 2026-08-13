@@ -96,7 +96,7 @@ void Model::tick()
                 snapshot.telemetry_fresh,
                 snapshot.telemetry.valid_mask,
                 snapshot.telemetry.motor_rpm,
-                snapshot.telemetry.road_speed_dkph,
+                snapshot.telemetry.cell_min_mv,
                 snapshot.telemetry.pack_dv,
                 snapshot.telemetry.pack_da,
                 snapshot.telemetry.soc_per_mille,
@@ -149,10 +149,12 @@ void Model::tick()
         DISPLAY_PROTOCOL_TLM_PACK_V | DISPLAY_PROTOCOL_TLM_PACK_A |
             DISPLAY_PROTOCOL_TLM_SOC | DISPLAY_PROTOCOL_TLM_CELL_TEMP |
             DISPLAY_PROTOCOL_TLM_RPM | DISPLAY_PROTOCOL_TLM_IGBT_TEMP |
-            DISPLAY_PROTOCOL_TLM_MOTOR_TEMP | DISPLAY_PROTOCOL_TLM_SPEED,
+            DISPLAY_PROTOCOL_TLM_MOTOR_TEMP |
+            DISPLAY_PROTOCOL_TLM_CELL_MIN_V,
         800L + (static_cast<int32_t>(driveWave) * 5700L / 1000L),
-        static_cast<uint16_t>(static_cast<uint32_t>(driveWave) * 2000U /
-                              1000U),
+        static_cast<uint16_t>(3400U +
+                              (static_cast<uint32_t>(socWave) * 700U /
+                               1000U)),
         static_cast<uint16_t>(3600U +
                               (static_cast<uint32_t>(socWave) * 450U /
                                1000U)),
@@ -161,15 +163,15 @@ void Model::tick()
         static_cast<uint16_t>(100U +
                               (static_cast<uint32_t>(socWave) * 850U /
                                1000U)),
-        static_cast<int16_t>(280L +
-                             (static_cast<int32_t>(tempWave) * 300L /
+        static_cast<int16_t>(400L +
+                             (static_cast<int32_t>(tempWave) * 180L /
                               1000L)),
-        static_cast<int16_t>(380L +
-                             (static_cast<int32_t>(tempWave) * 420L /
+        static_cast<int16_t>(420L +
+                             (static_cast<int32_t>(tempWave) * 250L /
                               1000L)),
         /* 모터는 인버터보다 천천히, 조금 낮게 오른다. */
-        static_cast<int16_t>(320L +
-                             (static_cast<int32_t>(tempWave) * 380L /
+        static_cast<int16_t>(650L +
+                             (static_cast<int32_t>(tempWave) * 500L /
                               1000L)));
 #endif
 }

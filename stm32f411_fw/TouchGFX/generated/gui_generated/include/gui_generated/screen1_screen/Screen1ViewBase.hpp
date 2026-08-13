@@ -32,8 +32,8 @@ protected:
     touchgfx::Box topDivider;
     touchgfx::Box socTrack;
     touchgfx::Box socFill;
-    touchgfx::Box voutTrack;
-    touchgfx::Box voutFill;
+    touchgfx::Box minCellTrack;
+    touchgfx::Box minCellFill;
     touchgfx::Box motorTrack;
     touchgfx::Box motorFill;
     touchgfx::Box igbtTrack;
@@ -47,8 +47,9 @@ protected:
     touchgfx::TextArea socText;
     touchgfx::TextArea rpmValue;
     touchgfx::TextArea rpmUnit;
-    touchgfx::TextArea voutLabel;
-    touchgfx::TextArea voutVal;
+    touchgfx::TextArea minCellLabel;
+    touchgfx::TextArea minCellValue;
+    touchgfx::TextArea minCellUnit;
     touchgfx::TextArea motorLabel;
     touchgfx::TextArea motorVal;
     touchgfx::TextArea igbtLabel;

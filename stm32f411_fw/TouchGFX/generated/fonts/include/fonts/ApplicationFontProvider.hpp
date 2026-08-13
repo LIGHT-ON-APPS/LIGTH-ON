@@ -13,25 +13,29 @@ class FlashDataReader;
 
 struct Typography
 {
-    static const touchgfx::FontId HUGE = 0;
-    static const touchgfx::FontId LARGE = 1;
-    static const touchgfx::FontId TILE = 2;
-    static const touchgfx::FontId DEFAULT = 3;
-    static const touchgfx::FontId VALUE = 4;
-    static const touchgfx::FontId LABEL = 5;
-    static const touchgfx::FontId SMALL = 6;
+    static const touchgfx::FontId RPM = 0;
+    static const touchgfx::FontId BATTERY = 1;
+    static const touchgfx::FontId HUGE = 2;
+    static const touchgfx::FontId LARGE = 3;
+    static const touchgfx::FontId TILE = 4;
+    static const touchgfx::FontId DEFAULT = 5;
+    static const touchgfx::FontId VALUE = 6;
+    static const touchgfx::FontId LABEL = 7;
+    static const touchgfx::FontId SMALL = 8;
 };
 
 struct TypographyFontIndex
 {
-    static const touchgfx::FontId HUGE = 0;    // BarlowCondensed_SemiBold_64_4bpp
-    static const touchgfx::FontId LARGE = 1;   // BarlowCondensed_SemiBold_52_4bpp
-    static const touchgfx::FontId TILE = 2;    // BarlowCondensed_SemiBold_40_4bpp
-    static const touchgfx::FontId DEFAULT = 3; // BarlowCondensed_SemiBold_20_4bpp
-    static const touchgfx::FontId VALUE = 4;   // BarlowCondensed_SemiBold_30_4bpp
-    static const touchgfx::FontId LABEL = 5;   // BarlowCondensed_Regular_15_4bpp
-    static const touchgfx::FontId SMALL = 6;   // BarlowCondensed_Regular_11_4bpp
-    static const uint16_t NUMBER_OF_FONTS = 7;
+    static const touchgfx::FontId RPM = 0;     // BarlowCondensed_SemiBold_68_4bpp
+    static const touchgfx::FontId BATTERY = 1; // BarlowCondensed_SemiBold_64_4bpp
+    static const touchgfx::FontId HUGE = 1;    // BarlowCondensed_SemiBold_64_4bpp
+    static const touchgfx::FontId LARGE = 2;   // BarlowCondensed_SemiBold_52_4bpp
+    static const touchgfx::FontId TILE = 3;    // BarlowCondensed_SemiBold_40_4bpp
+    static const touchgfx::FontId DEFAULT = 4; // BarlowCondensed_SemiBold_20_4bpp
+    static const touchgfx::FontId VALUE = 5;   // BarlowCondensed_SemiBold_30_4bpp
+    static const touchgfx::FontId LABEL = 6;   // BarlowCondensed_Regular_15_4bpp
+    static const touchgfx::FontId SMALL = 7;   // BarlowCondensed_Regular_11_4bpp
+    static const uint16_t NUMBER_OF_FONTS = 8;
 };
 
 class ApplicationFontProvider : public touchgfx::FontProvider

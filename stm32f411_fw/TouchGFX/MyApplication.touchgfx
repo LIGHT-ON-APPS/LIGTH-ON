@@ -59,7 +59,7 @@
                                                                },
                                                                {
                                                                    "Type":  "Box",
-                                                                   "Name":  "voutTrack",
+                                                                   "Name":  "minCellTrack",
                                                                    "X":  270,
                                                                    "Y":  102,
                                                                    "Width":  194,
@@ -72,7 +72,7 @@
                                                                },
                                                                {
                                                                    "Type":  "Box",
-                                                                   "Name":  "voutFill",
+                                                                   "Name":  "minCellFill",
                                                                    "X":  270,
                                                                    "Y":  102,
                                                                    "Width":  124,
@@ -213,10 +213,10 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "socText",
-                                                                   "X":  184,
-                                                                   "Y":  14,
-                                                                   "Width":  120,
-                                                                   "Height":  24,
+                                                                   "X":  5,
+                                                                   "Y":  142,
+                                                                   "Width":  168,
+                                                                   "Height":  80,
                                                                    "TextId":  "T_Soc",
                                                                    "TextRotation":  "0",
                                                                    "Color":  {
@@ -228,10 +228,10 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "rpmValue",
-                                                                   "X":  30,
-                                                                   "Y":  142,
-                                                                   "Width":  210,
-                                                                   "Height":  50,
+                                                                   "X":  176,
+                                                                   "Y":  70,
+                                                                   "Width":  128,
+                                                                   "Height":  92,
                                                                    "TextId":  "T_Rpm",
                                                                    "TextRotation":  "0",
                                                                    "Color":  {
@@ -243,9 +243,9 @@
                                                                {
                                                                    "Type":  "TextArea",
                                                                    "Name":  "rpmUnit",
-                                                                   "X":  30,
-                                                                   "Y":  192,
-                                                                   "Width":  210,
+                                                                   "X":  176,
+                                                                   "Y":  52,
+                                                                   "Width":  128,
                                                                    "Height":  20,
                                                                    "TextId":  "T_RpmUnit",
                                                                    "TextRotation":  "0",
@@ -257,12 +257,12 @@
                                                                },
                                                                {
                                                                    "Type":  "TextArea",
-                                                                   "Name":  "voutLabel",
-                                                                   "X":  270,
-                                                                   "Y":  72,
-                                                                   "Width":  96,
-                                                                   "Height":  24,
-                                                                   "TextId":  "T_VoutLabel",
+                                                                   "Name":  "minCellLabel",
+                                                                   "X":  307,
+                                                                   "Y":  80,
+                                                                   "Width":  168,
+                                                                   "Height":  20,
+                                                                   "TextId":  "T_MinCellLabel",
                                                                    "TextRotation":  "0",
                                                                    "Color":  {
                                                                                  "Red":  188,
@@ -272,17 +272,32 @@
                                                                },
                                                                {
                                                                    "Type":  "TextArea",
-                                                                   "Name":  "voutVal",
-                                                                   "X":  344,
-                                                                   "Y":  68,
-                                                                   "Width":  120,
-                                                                   "Height":  30,
-                                                                   "TextId":  "T_VoutVal",
+                                                                   "Name":  "minCellValue",
+                                                                   "X":  307,
+                                                                   "Y":  101,
+                                                                   "Width":  168,
+                                                                   "Height":  64,
+                                                                   "TextId":  "T_MinCellValue",
                                                                    "TextRotation":  "0",
                                                                    "Color":  {
                                                                                  "Red":  83,
                                                                                  "Green":  211,
                                                                                  "Blue":  255
+                                                                             }
+                                                               },
+                                                               {
+                                                                   "Type":  "TextArea",
+                                                                   "Name":  "minCellUnit",
+                                                                   "X":  307,
+                                                                   "Y":  164,
+                                                                   "Width":  168,
+                                                                   "Height":  20,
+                                                                   "TextId":  "T_MinCellUnit",
+                                                                   "TextRotation":  "0",
+                                                                   "Color":  {
+                                                                                 "Red":  188,
+                                                                                 "Green":  198,
+                                                                                 "Blue":  209
                                                                              }
                                                                },
                                                                {

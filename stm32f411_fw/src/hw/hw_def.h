@@ -48,7 +48,7 @@
 #define _USE_HW_TOUCHGFX
 /* 1: animated standalone values, 0: live STM32L432KC display link */
 #ifndef HW_USE_TOUCHGFX_DEMO
-#define      HW_USE_TOUCHGFX_DEMO    1
+#define      HW_USE_TOUCHGFX_DEMO    0
 #endif
 
 #endif /* SRC_HW_HW_DEF_H_ */

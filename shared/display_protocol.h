@@ -11,7 +11,7 @@ extern "C" {
 
 
 /*
- * L432 -> F411 display packets, protocol version 1.
+ * L432 -> F411 display packets, protocol version 2.
  *
  * All multi-byte fields are little-endian. Never transmit a C struct directly.
  * CRC-16/CCITT-FALSE covers bytes [0, length - 2).
@@ -50,7 +50,7 @@ extern "C" {
  *  8  source time          uint32 milliseconds
  * 12  valid mask           uint32 bit mask
  * 16  motor speed          int32  rpm
- * 20  road speed           uint16 0.1 km/h
+ * 20  minimum cell voltage uint16 1 mV
  * 22  pack voltage         uint16 0.1 V
  * 24  pack current         int16  0.1 A   (+ = discharge)
  * 26  pack SOC             uint16 per-mille
@@ -62,7 +62,7 @@ extern "C" {
 
 #define DISPLAY_PROTOCOL_MAGIC_0                  0x4CU
 #define DISPLAY_PROTOCOL_MAGIC_1                  0x4FU
-#define DISPLAY_PROTOCOL_VERSION                  1U
+#define DISPLAY_PROTOCOL_VERSION                  2U
 #define DISPLAY_PROTOCOL_TYPE_APPS_STATUS         1U
 #define DISPLAY_PROTOCOL_TYPE_TELEMETRY           2U
 #define DISPLAY_PROTOCOL_PACKET_SIZE              34U
@@ -85,10 +85,9 @@ extern "C" {
 #define DISPLAY_PROTOCOL_TLM_RPM                  (1UL << 5)
 #define DISPLAY_PROTOCOL_TLM_MOTOR_TEMP           (1UL << 8)
 #define DISPLAY_PROTOCOL_TLM_IGBT_TEMP            (1UL << 9)
-/* Road speed is derived from rpm, so it needs its own bit: the L432 only sets
- * it when the drivetrain ratio has actually been configured. Showing a
- * fabricated speed to a driver is worse than showing nothing. */
-#define DISPLAY_PROTOCOL_TLM_SPEED                (1UL << 16)
+/* Lowest instantaneous Orion cell voltage collected from a complete cell
+ * broadcast scan. */
+#define DISPLAY_PROTOCOL_TLM_CELL_MIN_V           (1UL << 16)
 
 #define DISPLAY_PROTOCOL_FLAG_VALID               (1U << 0)
 #define DISPLAY_PROTOCOL_FLAG_CONFIGURED          (1U << 1)
@@ -119,7 +118,7 @@ typedef struct
   uint32_t source_time_ms;
   uint32_t valid_mask;
   int32_t  motor_rpm;
-  uint16_t road_speed_dkph;      /* 0.1 km/h */
+  uint16_t cell_min_mv;          /* 1 mV     */
   uint16_t pack_dv;              /* 0.1 V    */
   int16_t  pack_da;              /* 0.1 A    */
   uint16_t soc_per_mille;
@@ -355,7 +354,7 @@ static inline bool displayProtocolEncodeTelemetry(
   displayProtocolPutU32Le(&p_packet[8], p_telemetry->source_time_ms);
   displayProtocolPutU32Le(&p_packet[12], p_telemetry->valid_mask);
   displayProtocolPutU32Le(&p_packet[16], (uint32_t)p_telemetry->motor_rpm);
-  displayProtocolPutU16Le(&p_packet[20], p_telemetry->road_speed_dkph);
+  displayProtocolPutU16Le(&p_packet[20], p_telemetry->cell_min_mv);
   displayProtocolPutU16Le(&p_packet[22], p_telemetry->pack_dv);
   displayProtocolPutU16Le(&p_packet[24], (uint16_t)p_telemetry->pack_da);
   displayProtocolPutU16Le(&p_packet[26], p_telemetry->soc_per_mille);
@@ -417,7 +416,7 @@ static inline display_protocol_result_t displayProtocolDecodeTelemetry(
   p_telemetry->source_time_ms = displayProtocolGetU32Le(&p_packet[8]);
   p_telemetry->valid_mask = displayProtocolGetU32Le(&p_packet[12]);
   p_telemetry->motor_rpm = (int32_t)displayProtocolGetU32Le(&p_packet[16]);
-  p_telemetry->road_speed_dkph = displayProtocolGetU16Le(&p_packet[20]);
+  p_telemetry->cell_min_mv = displayProtocolGetU16Le(&p_packet[20]);
   p_telemetry->pack_dv = displayProtocolGetU16Le(&p_packet[22]);
   p_telemetry->pack_da = (int16_t)displayProtocolGetU16Le(&p_packet[24]);
   p_telemetry->soc_per_mille = displayProtocolGetU16Le(&p_packet[26]);

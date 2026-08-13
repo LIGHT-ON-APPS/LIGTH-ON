@@ -56,7 +56,7 @@ public:
     void updateTelemetry(bool fresh,
                          uint32_t validMask,
                          int32_t motorRpm,
-                         uint16_t speedDkph,
+                         uint16_t minCellMv,
                          uint16_t packDv,
                          int16_t packDa,
                          uint16_t socPerMille,
@@ -78,14 +78,14 @@ protected:
     touchgfx::TextAreaWithOneWildcard socValue;
     touchgfx::TextArea socLabel;
 
-    /* Right speed gauge. */
-    touchgfx::Circle speedTrack;
-    touchgfx::PainterRGB565 speedTrackPainter;
-    touchgfx::CircleProgress speedArc;
-    touchgfx::PainterRGB565 speedArcPainter;
-    touchgfx::TextAreaWithOneWildcard speedValue;
-    touchgfx::TextArea speedLabel;
-    touchgfx::TextArea speedUnit;
+    /* Right minimum-cell-voltage gauge. */
+    touchgfx::Circle minCellTrack;
+    touchgfx::PainterRGB565 minCellTrackPainter;
+    touchgfx::CircleProgress minCellArc;
+    touchgfx::PainterRGB565 minCellArcPainter;
+    touchgfx::TextAreaWithOneWildcard minCellValue;
+    touchgfx::TextArea minCellLabel;
+    touchgfx::TextArea minCellUnit;
 
     /* Central RPM and system-state module. */
     touchgfx::BoxWithBorder centerPanel;
@@ -114,7 +114,7 @@ protected:
 
     touchgfx::Unicode::UnicodeChar rpmBuf[10];
     touchgfx::Unicode::UnicodeChar socBuf[10];
-    touchgfx::Unicode::UnicodeChar speedBuf[10];
+    touchgfx::Unicode::UnicodeChar minCellBuf[10];
     touchgfx::Unicode::UnicodeChar motorBuf[10];
     touchgfx::Unicode::UnicodeChar igbtBuf[10];
     touchgfx::Unicode::UnicodeChar cellBuf[10];
@@ -162,7 +162,6 @@ private:
 
     touchgfx::colortype shiftColor[SHIFT_SEGMENTS];
     touchgfx::colortype socFillColor;
-    touchgfx::colortype speedArcColor;
     bool shiftBlinkActive;
     bool shiftBlinkOn;
     uint8_t blinkTick;
@@ -171,7 +170,7 @@ private:
 
     DrawnField rpmDrawn;
     DrawnField socDrawn;
-    DrawnField speedDrawn;
+    DrawnField minCellDrawn;
     DrawnField motorDrawn;
     DrawnField igbtDrawn;
     DrawnField cellDrawn;

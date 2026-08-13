@@ -47,7 +47,7 @@ public:
     virtual void updateTelemetry(bool fresh,
                                  uint32_t validMask,
                                  int32_t motorRpm,
-                                 uint16_t speedDkph,
+                                 uint16_t minCellMv,
                                  uint16_t packDv,
                                  int16_t packDa,
                                  uint16_t socPerMille,
@@ -58,7 +58,7 @@ public:
         (void)fresh;
         (void)validMask;
         (void)motorRpm;
-        (void)speedDkph;
+        (void)minCellMv;
         (void)packDv;
         (void)packDa;
         (void)socPerMille;

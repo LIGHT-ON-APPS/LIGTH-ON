@@ -12,21 +12,18 @@ KEEP extern const touchgfx::GlyphNode glyphs_BarlowCondensed_Regular_15_4bpp[] F
     {   143, 0x0041,   6,  11,  11,   0,   6,   1,   3, 0x00 }, // A
     {   176, 0x0042,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // B
     {   209, 0x0043,   6,  11,  11,   0,   7,   0,   0, 0x00 }, // C
-    {   242, 0x0044,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // D
-    {   275, 0x0045,   5,  11,  11,   1,   6,   0,   0, 0x00 }, // E
-    {   308, 0x0048,   5,  11,  11,   1,   7,   0,   0, 0x00 }, // H
-    {   341, 0x0049,   2,  11,  11,   1,   3,   0,   0, 0x00 }, // I
-    {   352, 0x004B,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // K
-    {   385, 0x004C,   5,  11,  11,   1,   6,   0,   0, 0x00 }, // L
-    {   418, 0x004D,   6,  11,  11,   1,   8,   0,   0, 0x00 }, // M
-    {   451, 0x004E,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // N
-    {   484, 0x004F,   6,  11,  11,   0,   7,   0,   0, 0x00 }, // O
-    {   517, 0x0050,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // P
-    {   550, 0x0052,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // R
-    {   583, 0x0053,   6,  11,  11,   0,   6,   0,   0, 0x00 }, // S
-    {   616, 0x0054,   6,  11,  11,   0,   6,   4,   1, 0x00 }, // T
-    {   649, 0x0055,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // U
-    {   682, 0x0056,   6,  11,  11,   0,   7,   0,   0, 0x00 }  // V
+    {   242, 0x0045,   5,  11,  11,   1,   6,   0,   0, 0x00 }, // E
+    {   275, 0x0049,   2,  11,  11,   1,   3,   0,   0, 0x00 }, // I
+    {   286, 0x004B,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // K
+    {   319, 0x004C,   5,  11,  11,   1,   6,   0,   0, 0x00 }, // L
+    {   352, 0x004D,   6,  11,  11,   1,   8,   0,   0, 0x00 }, // M
+    {   385, 0x004E,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // N
+    {   418, 0x004F,   6,  11,  11,   0,   7,   0,   0, 0x00 }, // O
+    {   451, 0x0050,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // P
+    {   484, 0x0052,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // R
+    {   517, 0x0054,   6,  11,  11,   0,   6,   4,   1, 0x00 }, // T
+    {   550, 0x0055,   6,  11,  11,   1,   7,   0,   0, 0x00 }, // U
+    {   583, 0x0056,   6,  11,  11,   0,   7,   0,   0, 0x00 }  // V
 };
 
 FONT_SEARCHTABLE_LOCATION_FLASH_PRAGMA
@@ -39,9 +36,7 @@ KEEP extern const uint16_t unicodelist_BarlowCondensed_Regular_15_4bpp[] FONT_SE
     0x0041,
     0x0042,
     0x0043,
-    0x0044,
     0x0045,
-    0x0048,
     0x0049,
     0x004B,
     0x004C,
@@ -50,7 +45,6 @@ KEEP extern const uint16_t unicodelist_BarlowCondensed_Regular_15_4bpp[] FONT_SE
     0x004F,
     0x0050,
     0x0052,
-    0x0053,
     0x0054,
     0x0055,
     0x0056
@@ -71,6 +65,6 @@ touchgfx::UnmappedDataFont& getFont_BarlowCondensed_Regular_15_4bpp();
 
 touchgfx::UnmappedDataFont& getFont_BarlowCondensed_Regular_15_4bpp()
 {
-    static touchgfx::UnmappedDataFont BarlowCondensed_Regular_15_4bpp(glyphs_BarlowCondensed_Regular_15_4bpp, unicodelist_BarlowCondensed_Regular_15_4bpp, 23, 15, 15, 0, 0, 4, 1, 0, 0, unicodes_BarlowCondensed_Regular_15_4bpp, kerning_BarlowCondensed_Regular_15_4bpp, 63, 0, 0, 0);
+    static touchgfx::UnmappedDataFont BarlowCondensed_Regular_15_4bpp(glyphs_BarlowCondensed_Regular_15_4bpp, unicodelist_BarlowCondensed_Regular_15_4bpp, 20, 15, 15, 0, 0, 4, 1, 0, 0, unicodes_BarlowCondensed_Regular_15_4bpp, kerning_BarlowCondensed_Regular_15_4bpp, 63, 0, 0, 0);
     return BarlowCondensed_Regular_15_4bpp;
 }

@@ -411,9 +411,9 @@ static void displayLinkCli(cli_args_t *args)
                 (unsigned long)snapshot.telemetry.valid_mask);
       cliPrintf("rpm        : %ld\n",
                 (long)snapshot.telemetry.motor_rpm);
-      cliPrintf("speed      : %u.%u km/h\n",
-                snapshot.telemetry.road_speed_dkph / 10U,
-                snapshot.telemetry.road_speed_dkph % 10U);
+      cliPrintf("min_cell   : %u.%03u V\n",
+                snapshot.telemetry.cell_min_mv / 1000U,
+                snapshot.telemetry.cell_min_mv % 1000U);
       cliPrintf("pack       : %u.%u V / %d.%d A\n",
                 snapshot.telemetry.pack_dv / 10U,
                 snapshot.telemetry.pack_dv % 10U,

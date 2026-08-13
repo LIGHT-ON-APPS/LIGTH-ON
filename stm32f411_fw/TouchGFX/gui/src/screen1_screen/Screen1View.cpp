@@ -54,23 +54,24 @@ const uint32_t TLM_CELL_TEMP = 1UL << 3;
 const uint32_t TLM_RPM = 1UL << 5;
 const uint32_t TLM_MOTOR_TEMP = 1UL << 8;
 const uint32_t TLM_IGBT_TEMP = 1UL << 9;
-const uint32_t TLM_SPEED = 1UL << 16;
+const uint32_t TLM_CELL_MIN_V = 1UL << 16;
 
 const int32_t RPM_MAX = 6500;
-const int32_t SPEED_MAX_DKPH = 2000; /* 200.0 km/h */
+const int32_t RPM_GREEN_MAX = 3800;
+const int32_t RPM_RED_MIN = 4500;
 
 const int32_t SHIFT_AMBER_PM = 700;
 const int32_t SHIFT_RED_PM = 860;
 const int32_t SHIFT_BLINK_PM = 960;
 
-const int16_t CELL_WARN_DECIC = 450;
+const int16_t CELL_WARN_DECIC = 480;
 const int16_t CELL_CRIT_DECIC = 550;
-const int16_t IGBT_WARN_DECIC = 600;
-const int16_t IGBT_CRIT_DECIC = 750;
+const int16_t IGBT_WARN_DECIC = 500;
+const int16_t IGBT_CRIT_DECIC = 600;
 /* 모터 권선은 인버터보다 높은 온도를 견딘다. --- 팀에서 확정해야 하는 값 ---
  * 모터 사양서의 연속/최대 권선 온도로 반드시 대조할 것. */
-const int16_t MOTOR_WARN_DECIC = 900;   /* 90.0 C */
-const int16_t MOTOR_CRIT_DECIC = 1200;  /* 120.0 C */
+const int16_t MOTOR_WARN_DECIC = 800;   /* 80.0 C */
+const int16_t MOTOR_CRIT_DECIC = 1000;  /* 100.0 C */
 const int32_t SOC_WARN_PM = 300;
 const int32_t SOC_CRIT_PM = 150;
 
@@ -98,7 +99,9 @@ const int32_t RPM_DISPLAY_STEP = 1;
  *
  * 숫자는 그대로 1 % / 1 km/h 로 움직이므로 표시 해상도는 떨어지지 않는다.
  */
-const int32_t SPEED_ARC_STEP_DKPH = 20;  /* 2 km/h */
+const int32_t CELL_MIN_ARC_MIN_MV = 2500;
+const int32_t CELL_MIN_ARC_MAX_MV = 4300;
+const int32_t CELL_MIN_ARC_STEP_MV = 10;
 
 /* Two compact auxiliary gauges flank the central RPM module. */
 const int16_t GAUGE_BOX = 168;
@@ -196,7 +199,7 @@ void placeTrack(touchgfx::Circle& circle,
 
 void placeArc(touchgfx::CircleProgress& arc,
               touchgfx::PainterRGB565& painter,
-              int16_t x, int16_t y, int32_t range)
+              int16_t x, int16_t y, int32_t rangeMin, int32_t rangeMax)
 {
     arc.setXY(x, y);
     arc.setProgressIndicatorPosition(0, 0, GAUGE_BOX, GAUGE_BOX);
@@ -205,9 +208,9 @@ void placeArc(touchgfx::CircleProgress& arc,
     arc.setLineWidth(GAUGE_LINE_WIDTH);
     arc.setStartEndAngle(ARC_START, ARC_END);
     arc.setCapPrecision(180);
-    arc.setRange(0, static_cast<int>(range));
+    arc.setRange(static_cast<int>(rangeMin), static_cast<int>(rangeMax));
     arc.setPainter(painter);
-    arc.setValue(0);
+    arc.setValue(static_cast<int>(rangeMin));
 }
 
 void formatDeci(touchgfx::Unicode::UnicodeChar* buffer,
@@ -246,6 +249,14 @@ void formatPercent(touchgfx::Unicode::UnicodeChar* buffer,
     }
 }
 
+void formatMilliVolts(touchgfx::Unicode::UnicodeChar* buffer,
+                      uint16_t size, uint16_t millivolts)
+{
+    touchgfx::Unicode::snprintf(buffer, size, "%d.%03d",
+                                static_cast<int>(millivolts / 1000U),
+                                static_cast<int>(millivolts % 1000U));
+}
+
 void formatUnknown(touchgfx::Unicode::UnicodeChar* buffer, uint16_t size)
 {
     touchgfx::Unicode::snprintf(buffer, size, "--");
@@ -280,7 +291,6 @@ Screen1View::Screen1View()
     : appsFaultActive(false),
       linkConnected(false),
       socFillColor(0),
-      speedArcColor(0),
       shiftBlinkActive(false),
       shiftBlinkOn(true),
       blinkTick(0U),
@@ -288,7 +298,7 @@ Screen1View::Screen1View()
       lastRpmValid(false),
       rpmDrawn(),
       socDrawn(),
-      speedDrawn(),
+      minCellDrawn(),
       motorDrawn(),
       igbtDrawn(),
       cellDrawn(),
@@ -303,7 +313,7 @@ Screen1View::Screen1View()
 
     formatUnknown(rpmBuf, 10U);
     formatUnknown(socBuf, 10U);
-    formatUnknown(speedBuf, 10U);
+    formatUnknown(minCellBuf, 10U);
     formatUnknown(motorBuf, 10U);
     formatUnknown(igbtBuf, 10U);
     formatUnknown(cellBuf, 10U);
@@ -353,40 +363,40 @@ Screen1View::Screen1View()
     add(socLabel);
     /* 숫자는 흰색으로 두고 잔량 상태는 채움 색으로 말한다. 숫자까지 색을 입히면
      * 화면에서 RPM 보다 잔량이 먼저 눈에 들어온다. */
-    placeValue(socValue, socBuf, GAUGE_LEFT_X, 151, GAUGE_BOX, 55, T_T_SOC);
+    placeValue(socValue, socBuf, GAUGE_LEFT_X, 142, GAUGE_BOX, 80, T_T_SOC);
     add(socValue);
 
-    /* Speed gauge. */
-    placeTrack(speedTrack, speedTrackPainter, GAUGE_RIGHT_X, GAUGE_Y);
-    add(speedTrack);
-    placeArc(speedArc, speedArcPainter, GAUGE_RIGHT_X, GAUGE_Y,
-             SPEED_MAX_DKPH);
-    speedArcColor = rgb(FG_R, FG_G, FG_B);
-    speedArcPainter.setColor(speedArcColor);
-    add(speedArc);
+    /* Minimum cell voltage replaces road speed. */
+    placeTrack(minCellTrack, minCellTrackPainter, GAUGE_RIGHT_X, GAUGE_Y);
+    add(minCellTrack);
+    placeArc(minCellArc, minCellArcPainter, GAUGE_RIGHT_X, GAUGE_Y,
+             CELL_MIN_ARC_MIN_MV, CELL_MIN_ARC_MAX_MV);
+    minCellArcPainter.setColor(rgb(OK_R, OK_G, OK_B));
+    add(minCellArc);
 
-    placeLabel(speedLabel, GAUGE_RIGHT_X, 80, GAUGE_BOX, 20, T_T_VOUTLABEL);
-    add(speedLabel);
-    placeValue(speedValue, speedBuf, GAUGE_RIGHT_X, 101, GAUGE_BOX, 64,
-               T_T_VOUTVAL);
-    add(speedValue);
-    placeLabel(speedUnit, GAUGE_RIGHT_X, 164, GAUGE_BOX, 20,
-               T_T_SPEEDUNIT);
-    add(speedUnit);
+    placeLabel(minCellLabel, GAUGE_RIGHT_X, 80, GAUGE_BOX, 20,
+               T_T_MINCELLLABEL);
+    add(minCellLabel);
+    placeValue(minCellValue, minCellBuf, GAUGE_RIGHT_X, 101, GAUGE_BOX, 64,
+               T_T_MINCELLVALUE);
+    add(minCellValue);
+    placeLabel(minCellUnit, GAUGE_RIGHT_X, 164, GAUGE_BOX, 20,
+               T_T_MINCELLUNIT);
+    add(minCellUnit);
 
     /* Central RPM module replaces a decorative third gauge. */
-    placePanel(centerPanel, 176, 52, 128, 156);
+    placePanel(centerPanel, 176, 44, 128, 178);
     add(centerPanel);
-    placeLabel(rpmLabel, 176, 64, 128, 20, T_T_RPMUNIT);
+    placeLabel(rpmLabel, 176, 52, 128, 20, T_T_RPMUNIT);
     add(rpmLabel);
-    placeValue(rpmText, rpmBuf, 176, 82, 128, 78, T_T_RPM);
+    placeValue(rpmText, rpmBuf, 176, 70, 128, 92, T_T_RPM);
     add(rpmText);
 
-    placePanel(statusPanel, 184, 164, 112, 32);
+    placePanel(statusPanel, 184, 178, 112, 32);
     add(statusPanel);
-    placeBox(statusAccent, 184, 194, 112, 2, WARN_R, WARN_G, WARN_B);
+    placeBox(statusAccent, 184, 208, 112, 2, WARN_R, WARN_G, WARN_B);
     add(statusAccent);
-    placeLabel(statusText, 184, 168, 112, 24, T_T_DATALOST);
+    placeLabel(statusText, 184, 182, 112, 24, T_T_DATALOST);
     add(statusText);
 
     /* Bottom temperature tiles. Static initials/units stay outside the dirty
@@ -438,8 +448,8 @@ void Screen1View::setupScreen()
     Screen1ViewBase::topDivider.setVisible(false);
     Screen1ViewBase::socTrack.setVisible(false);
     Screen1ViewBase::socFill.setVisible(false);
-    Screen1ViewBase::voutTrack.setVisible(false);
-    Screen1ViewBase::voutFill.setVisible(false);
+    Screen1ViewBase::minCellTrack.setVisible(false);
+    Screen1ViewBase::minCellFill.setVisible(false);
     Screen1ViewBase::motorTrack.setVisible(false);
     Screen1ViewBase::motorFill.setVisible(false);
     Screen1ViewBase::igbtTrack.setVisible(false);
@@ -452,8 +462,9 @@ void Screen1View::setupScreen()
     Screen1ViewBase::socText.setVisible(false);
     Screen1ViewBase::rpmValue.setVisible(false);
     Screen1ViewBase::rpmUnit.setVisible(false);
-    Screen1ViewBase::voutLabel.setVisible(false);
-    Screen1ViewBase::voutVal.setVisible(false);
+    Screen1ViewBase::minCellLabel.setVisible(false);
+    Screen1ViewBase::minCellValue.setVisible(false);
+    Screen1ViewBase::minCellUnit.setVisible(false);
     Screen1ViewBase::motorLabel.setVisible(false);
     Screen1ViewBase::motorVal.setVisible(false);
     Screen1ViewBase::igbtLabel.setVisible(false);
@@ -706,7 +717,7 @@ void Screen1View::updateApps(bool connected,
 void Screen1View::updateTelemetry(bool fresh,
                                   uint32_t validMask,
                                   int32_t motorRpm,
-                                  uint16_t speedDkph,
+                                  uint16_t minCellMv,
                                   uint16_t packDv,
                                   int16_t packDa,
                                   uint16_t socPerMille,
@@ -716,7 +727,8 @@ void Screen1View::updateTelemetry(bool fresh,
 {
     const bool haveRpm = fresh && ((validMask & TLM_RPM) != 0U);
     const bool haveSoc = fresh && ((validMask & TLM_SOC) != 0U);
-    const bool haveSpeed = fresh && ((validMask & TLM_SPEED) != 0U);
+    const bool haveMinCell =
+        fresh && ((validMask & TLM_CELL_MIN_V) != 0U);
     const bool haveCell = fresh && ((validMask & TLM_CELL_TEMP) != 0U);
     const bool haveIgbt = fresh && ((validMask & TLM_IGBT_TEMP) != 0U);
     const bool haveMotor = fresh && ((validMask & TLM_MOTOR_TEMP) != 0U);
@@ -733,15 +745,23 @@ void Screen1View::updateTelemetry(bool fresh,
         const int32_t stepped =
             ((bounded + (RPM_DISPLAY_STEP / 2)) / RPM_DISPLAY_STEP) *
             RPM_DISPLAY_STEP;
-        const int32_t perMille =
-            (RPM_MAX > 0)
-                ? ((clampValue(bounded, 0, RPM_MAX) * 1000) / RPM_MAX)
-                : 0;
-        const touchgfx::colortype color =
-            haveRpm ? ((perMille >= SHIFT_RED_PM)
-                           ? rgb(FAULT_R, FAULT_G, FAULT_B)
-                           : rgb(FG_R, FG_G, FG_B))
-                    : rgb(DIM_R, DIM_G, DIM_B);
+        touchgfx::colortype color = rgb(DIM_R, DIM_G, DIM_B);
+
+        if (haveRpm)
+        {
+            if (bounded >= RPM_RED_MIN)
+            {
+                color = rgb(FAULT_R, FAULT_G, FAULT_B);
+            }
+            else if (bounded > RPM_GREEN_MAX)
+            {
+                color = rgb(WARN_R, WARN_G, WARN_B);
+            }
+            else
+            {
+                color = rgb(OK_R, OK_G, OK_B);
+            }
+        }
 
         if (fieldChanged(rpmDrawn, stepped, haveRpm, color))
         {
@@ -813,29 +833,32 @@ void Screen1View::updateTelemetry(bool fresh,
 
     /* ---------------- 속도 ---------------- */
     {
-        const int32_t boundedSpeed =
-            haveSpeed ? clampValue(speedDkph, 0, SPEED_MAX_DKPH) : 0;
-        const int32_t speedKph =
-            haveSpeed ? ((static_cast<int32_t>(speedDkph) + 5) / 10) : 0;
+        const int32_t boundedForArc =
+            haveMinCell
+                ? clampValue(minCellMv,
+                             CELL_MIN_ARC_MIN_MV,
+                             CELL_MIN_ARC_MAX_MV)
+                : CELL_MIN_ARC_MIN_MV;
         const touchgfx::colortype color =
-            haveSpeed ? rgb(FG_R, FG_G, FG_B) : rgb(DIM_R, DIM_G, DIM_B);
+            haveMinCell ? rgb(FG_R, FG_G, FG_B)
+                        : rgb(DIM_R, DIM_G, DIM_B);
 
-        speedArc.setValue(static_cast<int>(
-            (boundedSpeed / SPEED_ARC_STEP_DKPH) * SPEED_ARC_STEP_DKPH));
+        minCellArc.setValue(static_cast<int>(
+            (boundedForArc / CELL_MIN_ARC_STEP_MV) *
+            CELL_MIN_ARC_STEP_MV));
 
-        if (fieldChanged(speedDrawn, speedKph, haveSpeed, color))
+        if (fieldChanged(minCellDrawn, minCellMv, haveMinCell, color))
         {
-            if (haveSpeed)
+            if (haveMinCell)
             {
-                touchgfx::Unicode::snprintf(speedBuf, 10U, "%d",
-                                            static_cast<int>(speedKph));
+                formatMilliVolts(minCellBuf, 10U, minCellMv);
             }
             else
             {
-                formatUnknown(speedBuf, 10U);
+                formatUnknown(minCellBuf, 10U);
             }
-            speedValue.setColor(color);
-            speedValue.invalidate();
+            minCellValue.setColor(color);
+            minCellValue.invalidate();
         }
     }
 

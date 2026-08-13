@@ -31,13 +31,13 @@ Screen1ViewBase::Screen1ViewBase()
     socFill.setColor(touchgfx::Color::getColorFromRGB(65, 220, 114));
     add(socFill);
 
-    voutTrack.setPosition(270, 102, 194, 12);
-    voutTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
-    add(voutTrack);
+    minCellTrack.setPosition(270, 102, 194, 12);
+    minCellTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
+    add(minCellTrack);
 
-    voutFill.setPosition(270, 102, 124, 12);
-    voutFill.setColor(touchgfx::Color::getColorFromRGB(83, 211, 255));
-    add(voutFill);
+    minCellFill.setPosition(270, 102, 124, 12);
+    minCellFill.setColor(touchgfx::Color::getColorFromRGB(83, 211, 255));
+    add(minCellFill);
 
     motorTrack.setPosition(270, 162, 194, 12);
     motorTrack.setColor(touchgfx::Color::getColorFromRGB(34, 43, 54));
@@ -86,35 +86,41 @@ Screen1ViewBase::Screen1ViewBase()
     statusText.setTypedText(touchgfx::TypedText(T_T_STATUS));
     add(statusText);
 
-    socText.setPosition(184, 14, 120, 24);
+    socText.setPosition(5, 142, 168, 80);
     socText.setColor(touchgfx::Color::getColorFromRGB(230, 237, 243));
     socText.setLinespacing(0);
     socText.setTypedText(touchgfx::TypedText(T_T_SOC));
     add(socText);
 
-    rpmValue.setPosition(30, 142, 210, 50);
+    rpmValue.setPosition(176, 70, 128, 92);
     rpmValue.setColor(touchgfx::Color::getColorFromRGB(255, 255, 255));
     rpmValue.setLinespacing(0);
     rpmValue.setTypedText(touchgfx::TypedText(T_T_RPM));
     add(rpmValue);
 
-    rpmUnit.setPosition(30, 192, 210, 20);
+    rpmUnit.setPosition(176, 52, 128, 20);
     rpmUnit.setColor(touchgfx::Color::getColorFromRGB(188, 198, 209));
     rpmUnit.setLinespacing(0);
     rpmUnit.setTypedText(touchgfx::TypedText(T_T_RPMUNIT));
     add(rpmUnit);
 
-    voutLabel.setPosition(270, 72, 96, 24);
-    voutLabel.setColor(touchgfx::Color::getColorFromRGB(188, 198, 209));
-    voutLabel.setLinespacing(0);
-    voutLabel.setTypedText(touchgfx::TypedText(T_T_VOUTLABEL));
-    add(voutLabel);
+    minCellLabel.setPosition(307, 80, 168, 20);
+    minCellLabel.setColor(touchgfx::Color::getColorFromRGB(188, 198, 209));
+    minCellLabel.setLinespacing(0);
+    minCellLabel.setTypedText(touchgfx::TypedText(T_T_MINCELLLABEL));
+    add(minCellLabel);
 
-    voutVal.setPosition(344, 68, 120, 30);
-    voutVal.setColor(touchgfx::Color::getColorFromRGB(83, 211, 255));
-    voutVal.setLinespacing(0);
-    voutVal.setTypedText(touchgfx::TypedText(T_T_VOUTVAL));
-    add(voutVal);
+    minCellValue.setPosition(307, 101, 168, 64);
+    minCellValue.setColor(touchgfx::Color::getColorFromRGB(83, 211, 255));
+    minCellValue.setLinespacing(0);
+    minCellValue.setTypedText(touchgfx::TypedText(T_T_MINCELLVALUE));
+    add(minCellValue);
+
+    minCellUnit.setPosition(307, 164, 168, 20);
+    minCellUnit.setColor(touchgfx::Color::getColorFromRGB(188, 198, 209));
+    minCellUnit.setLinespacing(0);
+    minCellUnit.setTypedText(touchgfx::TypedText(T_T_MINCELLUNIT));
+    add(minCellUnit);
 
     motorLabel.setPosition(270, 132, 96, 24);
     motorLabel.setColor(touchgfx::Color::getColorFromRGB(188, 198, 209));

@@ -16,11 +16,11 @@ static void testGoldenPacket(void)
 {
   static const uint8_t expected[DISPLAY_PROTOCOL_PACKET_SIZE] =
   {
-    0x4CU, 0x4FU, 0x01U, 0x01U, 0x22U, 0x07U, 0x34U, 0x12U,
+    0x4CU, 0x4FU, 0x02U, 0x01U, 0x22U, 0x07U, 0x34U, 0x12U,
     0xEFU, 0xCDU, 0xABU, 0x89U, 0xE8U, 0x03U, 0xD0U, 0x07U,
     0xFAU, 0x00U, 0xFFU, 0x00U, 0xFCU, 0x00U, 0x2EU, 0xFBU,
     0x10U, 0x00U, 0x00U, 0x00U, 0x30U, 0x00U, 0x00U, 0x00U,
-    0x94U, 0x9EU,
+    0xB5U, 0x85U,
   };
   const display_protocol_status_t status =
   {
@@ -161,9 +161,10 @@ static const display_protocol_telemetry_t telemetry_reference =
   .source_time_ms = 0x89ABCDEFU,
   .valid_mask = DISPLAY_PROTOCOL_TLM_PACK_V | DISPLAY_PROTOCOL_TLM_PACK_A |
                 DISPLAY_PROTOCOL_TLM_SOC | DISPLAY_PROTOCOL_TLM_CELL_TEMP |
-                DISPLAY_PROTOCOL_TLM_RPM | DISPLAY_PROTOCOL_TLM_IGBT_TEMP,
+                DISPLAY_PROTOCOL_TLM_RPM | DISPLAY_PROTOCOL_TLM_IGBT_TEMP |
+                DISPLAY_PROTOCOL_TLM_CELL_MIN_V,
   .motor_rpm = 4820,
-  .road_speed_dkph = 0U,
+  .cell_min_mv = 3567U,
   .pack_dv = 3962U,
   .pack_da = 1523,
   .soc_per_mille = 784U,
@@ -176,11 +177,11 @@ static void testTelemetryGoldenPacket(void)
 {
   static const uint8_t expected[DISPLAY_PROTOCOL_TELEMETRY_SIZE] =
   {
-    0x4CU, 0x4FU, 0x01U, 0x02U, 0x24U, 0x00U, 0x34U, 0x12U,
-    0xEFU, 0xCDU, 0xABU, 0x89U, 0x2FU, 0x02U, 0x00U, 0x00U,
-    0xD4U, 0x12U, 0x00U, 0x00U, 0x00U, 0x00U, 0x7AU, 0x0FU,
+    0x4CU, 0x4FU, 0x02U, 0x02U, 0x24U, 0x00U, 0x34U, 0x12U,
+    0xEFU, 0xCDU, 0xABU, 0x89U, 0x2FU, 0x02U, 0x01U, 0x00U,
+    0xD4U, 0x12U, 0x00U, 0x00U, 0xEFU, 0x0DU, 0x7AU, 0x0FU,
     0xF3U, 0x05U, 0x10U, 0x03U, 0xA5U, 0x01U, 0x01U, 0x02U,
-    0x97U, 0xFFU, 0x01U, 0xA9U,
+    0x97U, 0xFFU, 0x8FU, 0x46U,
   };
   uint8_t packet[DISPLAY_PROTOCOL_TELEMETRY_SIZE];
 
@@ -205,7 +206,7 @@ static void testTelemetryRoundTrip(void)
   assert(output.source_time_ms == telemetry_reference.source_time_ms);
   assert(output.valid_mask == telemetry_reference.valid_mask);
   assert(output.motor_rpm == telemetry_reference.motor_rpm);
-  assert(output.road_speed_dkph == telemetry_reference.road_speed_dkph);
+  assert(output.cell_min_mv == telemetry_reference.cell_min_mv);
   assert(output.pack_dv == telemetry_reference.pack_dv);
   assert(output.pack_da == telemetry_reference.pack_da);
   assert(output.soc_per_mille == telemetry_reference.soc_per_mille);

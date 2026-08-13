@@ -27,13 +27,13 @@ public:
     virtual void updateTelemetry(bool fresh,
                                  uint32_t validMask,
                                  int32_t motorRpm,
-                                 uint16_t speedDkph,
+                                 uint16_t minCellMv,
                                  uint16_t packDv,
                                  int16_t packDa,
                                  uint16_t socPerMille,
                                  int16_t cellTempDecic,
                                  int16_t igbtTempDecic,
-                                       int16_t motorTempDecic);
+                                 int16_t motorTempDecic);
     virtual ~Screen1Presenter() {}
 
 private:
