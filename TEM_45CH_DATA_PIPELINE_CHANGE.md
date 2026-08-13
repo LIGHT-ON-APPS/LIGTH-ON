@@ -4,17 +4,19 @@
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | 구현 완료 / 운영 미배포 |
+| 상태 | 서버 배포 완료 / TMA 플래시·실차 검증 대기 |
 | 작성일 | 2026-08-13 KST |
 | 목적 | Orion TEM 45개 온도를 Monolith 서버에서 조회하고 CSV로 내보내기 |
 | TMA 기준 | Monolith v2.3.0, `d9067e9f2e4a6007b0157af1ced1846690d077b0` |
 | 계기판 결정 | 기존 `0x6B0` 최고 온도 1개 표시 유지 |
 | 승인자 | [ ] |
-| 운영 배포일 | [ ] |
+| 운영 배포일 | [x] 2026-08-14 KST (DB migration 및 collector) |
 | 실차 검증일 | [ ] |
 
-> 이 문서의 코드는 저장소에 준비했지만 운영 VM, 운영 DB, TMA 및 차량 MCU에는
-> 아직 배포하거나 플래시하지 않았다.
+> 운영 VM의 DB migration과 collector 배포는 2026-08-14 완료했다. TMA 펌웨어는
+> 작업 PC에 보드가 연결되어 있지 않아 아직 빌드·플래시하지 않았고, 따라서 실제
+> 45채널 수신률과 `complete=true` 스캔은 아직 검증하지 않았다. 차량 MCU와
+> 계기판은 결정대로 변경하지 않았다.
 
 ## 1. 결정 요약
 
@@ -299,23 +301,54 @@ CHECK/FK/UNIQUE 및 indexes를 조회해 migration 결과를 검증한다. colle
 4. Downloader는 이전 실행 파일로 복귀할 수 있다.
 5. 계기판/차량 MCU는 이번 최종 변경에 포함되지 않으므로 롤백 대상이 아니다.
 
+### 2026-08-14 운영 서버 배포 기록
+
+배포 시각은 2026-08-14 07:18~07:34 KST다. 다음 순서로 적용했다.
+
+1. PostgreSQL 수동 백업을 실행하고
+   `/srv/monolith/backup/db-20260813T221815Z.sql.gz`의 SHA-256 및 gzip 무결성을
+   확인했다.
+2. 기존 collector 소스를
+   `/opt/monolith/deploy-backups/20260814-tem-predeploy/collector`에 보관했다.
+3. 기존 collector 이미지
+   `sha256:20fa3793d68a0e66dfb25bb90a0a556878fe212df9fd8d65521b380d3ca91d51`를
+   `monolith-v2-collector:pre-tem-20260814`로 태그했다.
+4. `002_orion_tem_samples.sql`을 `--single-transaction -v ON_ERROR_STOP=1`로
+   적용했다. 10개 컬럼, 8개 제약조건 및 6개 인덱스를 운영 PostgreSQL에서
+   확인했고 `orion_tem_schema=1`을 확인했다.
+5. 운영 중이던 `collector.py`에 TEM helper만 병합하고 새 이미지를 빌드했다.
+   컨테이너 내부에서 sensor 7, -2 °C, fault=true 대표 프레임과 비대상 ID 거부를
+   검증한 뒤 collector만 재생성했다.
+6. 새 collector image는
+   `sha256:5132d36c3379634b2a029678b4f8f99c0dbd8bc94e7b53f6c2c5f5a42f2a5846`,
+   parser marker는 `1.1.0+monolith-v2.3.1-orion-tem`이다. MQTT 구독,
+   PostgreSQL 연결 및 schema 초기화 로그가 정상이고 재시작 루프는 없었다.
+7. 운영 DB를 대상으로 Downloader를 실행해 온도 45열과 fault 45열을 포함한
+   104컬럼 `thermistors-2026-08-14.csv` 생성을 확인했다.
+
+배포 당시 TMA의 마지막 서버 수신은 약 12시간 전이었고 작업 PC에는 COM/USB-UART
+장치가 없었다. 따라서 생성된 CSV는 header-only이며 TEM 데이터 행은 0개다. 이는
+서버/Downloader 오류가 아니라 TMA 미접속 상태다. TMA 연결 후 ESP-IDF 5.5.1 기준
+펌웨어 build·flash와 9~11 Hz/45 unique ID/`complete=true` 검증이 남아 있다.
+
 ## 10. 검증 결과와 미검증 항목
 
 | 항목 | 결과 |
 |---|---|
 | TMA patch clean apply | PASS |
 | TMA live policy C test | ARM GCC `-Wall -Wextra -Werror` compile PASS; `-O2` 결과 모든 assert 통과 경로로 `main=0` 확인 |
-| TMA ESP-IDF full build | 미실행 |
+| TMA ESP-IDF full build | 미실행 (작업 PC에는 기준 5.5.1이 아닌 6.0.2만 설치) |
 | 서버 decoder/integration unit test | 11/11 PASS |
-| PostgreSQL migration + collector container 통합 | 미실행 |
+| PostgreSQL migration + collector container 통합 | 운영 적용 PASS (2026-08-14) |
 | Downloader build | PASS |
 | Downloader SQL, PostgreSQL 17 read-only 합성 검증 | PASS |
 | 정상 45개/4.4초 complete | PASS |
 | 중복 sensor 0, sensor 0 누락, uint32 wrap | PASS |
 | 자정 횡단 스캔 중복 방지 | PASS |
 | 실제 차량 45채널 CAN capture | 미실행 |
-| 운영 VM/DB 배포 | 미실행 |
+| 운영 VM/DB 배포 | PASS (DB migration + collector, 2026-08-14) |
 | TMA flash | 미실행 |
+| 운영 Downloader export | 104컬럼/온도 45/fault 45 PASS, 실데이터 0행 |
 | 계기판 변경 | 철회 / 기존 유지 |
 
 ## 11. 배포 승인 기준

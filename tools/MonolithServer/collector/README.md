@@ -1,8 +1,10 @@
 # Monolith collector Orion TEM patch
 
 이 폴더는 운영 서버의 Monolith collector에 Orion Thermistor Expansion
-Module(TEM) 개별 온도 프레임을 추가하기 위한 **로컬 검토·배포 패키지**다.
-운영 VM의 코드나 DB에는 아직 적용하지 않았다.
+Module(TEM) 개별 온도 프레임을 추가하기 위한 **검토·배포 패키지**다.
+DB migration과 collector는 2026-08-14 운영 VM에 적용했다. 당시 TMA가 연결되어
+있지 않아 실제 10 Hz/45채널 수신 검증은 남아 있다. 상세 백업·image·검증 기록은
+`TEM_45CH_DATA_PIPELINE_CHANGE.md`를 따른다.
 
 ## 범위와 전제
 
@@ -103,5 +105,7 @@ python -B -m unittest discover -s tools/MonolithServer/collector/tests -v
 검증 항목은 양수·음수 온도, sensor/fault 비트 분리, extended/RTR/ID/DLC strict
 matching, raw-first 저장, traceability 필드, non-target raw-only 경로다.
 
-Docker/PostgreSQL 도구가 현재 개발 PC에 없어 실제 migration 실행과 collector
-container 통합 시험은 배포 전 staging 또는 운영 VM에서 별도로 수행해야 한다.
+개발 PC에는 Docker/PostgreSQL 도구가 없어 단위 테스트만 수행했다. 운영 VM에서는
+2026-08-14 migration 적용, image build, 컨테이너 내부 decoder probe, collector
+재기동 및 schema marker 확인을 완료했다. 실차 TEM 데이터가 들어온 뒤 raw:decoded
+1:1과 45 unique ID를 추가로 확인해야 한다.
