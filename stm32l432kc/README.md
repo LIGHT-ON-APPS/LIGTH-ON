@@ -7,9 +7,10 @@
 1. APPS 두 아날로그 출력 -> 아날로그 보호/분압 회로 -> STM32 ADC 2채널
 2. ADC raw 값을 각 채널별 보정값으로 0~1000 per-mille(0.1% 단위)로 변환
 3. 두 채널의 환산 페달 위치 차이가 10%p(=100 per-mille)를 넘으면 APPS fault
-4. 정상일 때만 상위 제어기에서 준비한 torque command를 사용
-5. CAN standard frame, ID `0x201`, DLC `3`, payload `{0x90, torque_lsb, torque_msb}` 전송
-6. fault 또는 not configured 상태에서는 torque command `0` 전송
+4. 정상일 때만 페달 위치를 `0..APPS_TORQUE_MAX` 크기의 torque command로 환산
+5. 양 끝을 스냅(cutoff)한 뒤 `APPS_TORQUE_COMMAND_SIGN`으로 구동 방향 부호를 적용
+6. CAN standard frame, ID `0x201`, DLC `3`, payload `{0x90, torque_lsb, torque_msb}` 전송
+7. fault 또는 not configured 상태에서는 torque command `0` 전송
 
 ## 현재 소프트웨어 구조
 
@@ -65,7 +66,22 @@ STM32의 CAN RX/TX 핀은 CAN bus가 아니라 로직 신호입니다. 반드시
 - CAN-H/CAN-L 양 끝단에만 120 Ohm termination
 - Bamocar 기본 CAN 설정: Rx ID `0x201`, Tx ID `0x181`, 500 kbaud
 
-Bamocar CAN manual 기준으로 master -> controller frame은 byte 0이 register ID, byte 1부터 little-endian data입니다. Torque command register는 `0x90`이고, 100% command는 `32767` 기준입니다. 예를 들어 50% torque는 `16380 = 0x3FFC`라서 payload가 `{0x90, 0xFC, 0x3F}`가 됩니다.
+Bamocar CAN manual 기준으로 master -> controller frame은 byte 0이 register ID, byte 1부터 little-endian data입니다. Torque command register는 `0x90`이고, 명령은 signed 16-bit로 100% 크기가 `32767`입니다. 예를 들어 크기 50%는 `16380 = 0x3FFC`라서 payload가 `{0x90, 0xFC, 0x3F}`가 됩니다.
+
+### 구동 방향 부호
+
+초기 시험에서 차가 반대 방향으로 달려서, 현재는 소프트웨어에서 토크 명령의 부호를 뒤집어 정방향을 맞추고 있습니다. 방향은 `apps.h`의 매크로 하나로 결정됩니다.
+
+```c
+/* -1 이면 모터 방향 반전, +1 이면 원래 방향 */
+#define APPS_TORQUE_COMMAND_SIGN           (-1)
+```
+
+따라서 **현재 빌드에서 정방향 가속은 음수 명령**입니다. 페달 100%는 `-32767`이고, 크기 50%는 `-16380 = 0xC004`라서 payload가 `{0x90, 0x04, 0xC0}`가 됩니다.
+
+부호는 `appsSendCommand()`의 CAN 송신 직전에서 딱 한 번만 곱합니다. 페달 환산, cutoff 판정, plausibility 판단은 모두 부호 없는 크기로 계산하므로 방향을 바꿔도 이 로직들은 그대로입니다. 진단 CAN(`0x7A1`)과 표시 UART의 `command` 필드는 signed 16-bit라서 음수 값이 그대로 실려 나갑니다.
+
+이 방식은 임시방편입니다. 인버터 입장에서는 역방향 토크 영역을 쓰고 있는 것이므로, Bamocar의 정/역 토크 리미트가 비대칭이면 페달 100%에서도 토크가 덜 나올 수 있습니다. 근본 수정은 모터 3상 중 2상 교환 + 리졸버 방향 보정, 또는 NDrive의 회전 방향 파라미터 반전입니다. 그쪽으로 옮기면 이 매크로를 `+1`로 되돌립니다.
 
 ## CLI가 출력되지 않았던 원인과 복구 방법
 
@@ -134,15 +150,14 @@ CLI 프롬프트가 출력되지만 입력이 동작하지 않는다면 그때�
 
 프롬프트 자체가 전혀 출력되지 않는 경우에는 UART RX보다 애플리케이션 부팅 여부를 먼저 확인하는 것이 빠릅니다.
 
-상위 제어 루프에서는 준비된 torque command를 `appsRun()`에 전달합니다.
+상위 제어 루프에서는 `appsRunPedalCommand()`를 주기적으로 호출하기만 하면 됩니다. 토크 명령을 밖에서 만들어 넘기지 않고, 함수 안에서 페달 위치로부터 직접 만듭니다.
 
 ```c
-int16_t prepared_command = controlGetPreparedTorqueCommand();
-
-appsRun(prepared_command);
+/* ap_runtime.c 에서 APPS_RUN_MS(10 ms) 주기로 호출 */
+(void)appsRunPedalCommand();
 ```
 
-`appsRun()`은 ADC를 읽고 같은 호출 안에서 판단 결과에 따라 CAN을 전송합니다. `valid == false`이면 전달받은 command와 관계없이 항상 0을 전송합니다.
+`appsRunPedalCommand()`는 ADC 읽기, 페달 위치의 토크 명령 환산, 방향 부호 적용, CAN 전송까지 한 호출 안에서 처리합니다. `valid == false`이면 페달 위치와 관계없이 항상 0을 전송합니다.
 
 `apps.c`는 fault가 100 ms 이상 지속되면 latch합니다. 실제 차에서는 fault가 사라진 즉시 다시 토크를 내는 것보다, 운전자가 페달을 놓고 시스템이 안전 상태임을 확인한 뒤 `appsClearFault()`를 호출하는 쪽이 안전합니다.
 
@@ -151,15 +166,15 @@ appsRun(prepared_command);
 현재 기본 fault 확정 시간은 `100 ms`입니다.
 
 ```c
-#define APPS_FAULT_CONFIRM_MS  100U
+#define APPS_FAULT_MS  100U
 ```
 
-코드에서는 이상 상태가 처음 발견된 시간을 `started_ms`에 저장하고, 이후 `appsRun()` 또는 `appsUpdate()`가 호출될 때마다 현재까지의 지속시간을 계산합니다.
+코드에서는 이상 상태가 처음 발견된 시간을 `started_ms`에 저장하고, 이후 `appsRunPedalCommand()` 또는 `appsUpdate()`가 호출될 때마다 현재까지의 지속시간을 계산합니다.
 
 ```c
 elapsed_ms = millis() - started_ms;
 
-if (elapsed_ms >= APPS_FAULT_CONFIRM_MS)
+if (elapsed_ms >= APPS_FAULT_MS)
 {
   fault_latched = true;
 }
@@ -170,7 +185,7 @@ if (elapsed_ms >= APPS_FAULT_CONFIRM_MS)
 - `millis()`: MCU가 부팅된 이후 현재까지 경과한 시간
 - `started_ms`: 같은 APPS 이상이 처음 감지된 시간
 - `elapsed_ms`: 해당 이상이 끊기지 않고 지속된 시간
-- `fault_confirm_ms`: fault를 확정하는 기준 시간이며 현재 기본값은 `100 ms`
+- `APPS_FAULT_MS`: fault를 확정하는 기준 시간이며 현재 기본값은 `100 ms`
 - `fault_latched`: 확정된 fault를 정상 복구 후에도 유지하는 상태
 
 예를 들어 이상이 `1000 ms` 시점에 시작되고 현재 시간이 `1060 ms`이면 `elapsed_ms`는 `60 ms`입니다. 아직 100 ms에 도달하지 않았으므로 latch되지 않습니다.
@@ -199,19 +214,28 @@ FAULT_LATCHED 발생하지 않음
 
 ### CAN command 동작
 
-100 ms는 CAN command를 0으로 만들기 전의 대기시간이 아닙니다. 이상이 감지되는 즉시 `valid`가 `false`가 되며, `appsRun()`이 호출될 때마다 CAN command `0`을 계속 전송합니다.
+100 ms는 CAN command를 0으로 만들기 전의 대기시간이 아닙니다. 이상이 감지되는 즉시 `valid`가 `false`가 되며, `appsRunPedalCommand()`가 호출될 때마다 CAN command `0`을 계속 전송합니다.
 
 ```text
-정상                         → prepared_command 전송
+정상                         → 페달 명령 전송
 이상 감지 직후               → command 0 전송
 이상 지속 중                 → command 0 계속 전송
-100 ms 전에 정상 복구        → prepared_command 전송 재개
+100 ms 전에 정상 복구        → 페달 명령 전송 재개
 100 ms 이상 지속             → fault latch, command 0 계속 전송
 센서 정상 복구 후에도 latch  → command 0 계속 전송
-appsClearFault() 후 정상 측정 → prepared_command 전송 재개
+appsClearFault() 후 정상 측정 → 페달 명령 전송 재개
 ```
 
-이 시간 계산은 `delay(100)`으로 CPU를 정지시키는 방식이 아닙니다. `millis()` 차이만 계산하는 non-blocking 방식이므로 CLI, CAN, LED 같은 다른 처리를 계속 실행할 수 있습니다. 단, 시간 검사와 CAN 전송은 `appsRun()` 또는 `appsUpdate()`가 호출될 때 진행되므로 실제 제어 루프에서는 이 함수를 일정한 주기로 반복 호출해야 합니다.
+정상 구간에서도 페달 명령이 그대로 나가지는 않고, 양 끝이 스냅됩니다.
+
+```c
+#define APPS_TORQUE_CUTOFF                 2949   /* 약 9%, 이하는 0 */
+#define APPS_TORQUE_CUTOFF_HIGH            32112  /* 약 98%, 이상은 100% */
+```
+
+아래쪽 cutoff는 페달을 놓았을 때 ADC 노이즈가 토크 요청으로 남지 않게 하고, 위쪽 cutoff는 기구 공차 때문에 완전히 밟아도 보정 최대치에 못 미치는(실측 99.1%) 상황에서 운전자가 100%를 낼 수 있게 합니다. 두 판정 모두 부호를 곱하기 전의 크기 기준이며, 결과는 `apps trace`의 `CUT` / `FULL` 상태로 확인할 수 있습니다.
+
+이 시간 계산은 `delay(100)`으로 CPU를 정지시키는 방식이 아닙니다. `millis()` 차이만 계산하는 non-blocking 방식이므로 CLI, CAN, LED 같은 다른 처리를 계속 실행할 수 있습니다. 단, 시간 검사와 CAN 전송은 `appsRunPedalCommand()` 또는 `appsUpdate()`가 호출될 때 진행되므로 실제 제어 루프에서는 이 함수를 일정한 주기로 반복 호출해야 합니다.
 
 STM32CubeIDE managed build를 쓰면 새 하위 폴더가 자동 빌드 목록에 들어가도록 project refresh 또는 makefile regeneration이 필요할 수 있습니다.
 
@@ -223,16 +247,23 @@ STM32CubeIDE managed build를 쓰면 새 하위 폴더가 자동 빌드 목록�
 4. CAN transceiver + USB-CAN으로 ID `0x201`, DLC `3`, payload 확인
 5. Bamocar는 고전압/모터 enable 없이 먼저 bus 수신 확인
 6. NDrive에서 command mode가 digital torque command를 받을 수 있게 설정되었는지 확인
-7. 바퀴가 떠 있거나 동력 전달이 끊긴 상태에서 작은 positive command부터 시험
-8. 회생제동은 배터리/전원장치가 braking energy를 흡수할 수 있는지 확인한 뒤 negative command 시험
+7. 바퀴가 떠 있거나 동력 전달이 끊긴 상태에서 페달을 살짝 밟아 작은 명령부터 시험. 현재 빌드의 구동 방향은 음수이므로 이때 나가는 값은 작은 negative command입니다
+8. 바퀴가 도는 방향을 반드시 눈으로 확인. 방향이 반대라면 `APPS_TORQUE_COMMAND_SIGN`을 뒤집기 전에 인버터 회전 방향 파라미터와 결선 쪽 수정을 먼저 검토합니다
+9. 정/역 토크 리미트가 대칭인지 NDrive에서 확인. 음수 쪽 리미트가 낮으면 페달 100%에서도 토크가 덜 나옵니다
+10. 회생제동은 배터리/전원장치가 braking energy를 흡수할 수 있는지 확인한 뒤 시험. 구동 부호가 음수인 현재 빌드에서 회생 방향은 positive command입니다
 
 ## 브레이크 유압센서 추가 시
 
 브레이크 압력은 별도 ADC 채널로 읽고, APPS와 동일하게 범위/단선/단락 fault를 먼저 만든 뒤 torque command에 합산합니다.
 
+합산은 부호 없는 크기끼리 하고, 방향 부호는 지금처럼 CAN 송신 직전에 한 번만 곱합니다.
+
 ```c
-net_cmd = accel_cmd - regen_cmd;
+net_magnitude = accel_magnitude - regen_magnitude;
+net_cmd       = net_magnitude * APPS_TORQUE_COMMAND_SIGN;
 ```
+
+이때 `appsSendCommand()`의 cutoff 판정을 함께 개정해야 합니다. 현재 판정은 `command_to_send > 0`으로 양수 크기만 가정하고 있어서, 회생이 가속을 넘어 `net_magnitude`가 음수가 되는 구간을 그대로 통과시킵니다.
 
 초기 안전 정책은 APPS fault 또는 brake sensor fault 중 하나라도 있으면 `net_cmd = 0`으로 두는 것을 추천합니다. 회생제동까지 안전하게 허용하려면 brake sensor의 별도 plausibility와 Bamocar/BMS의 DC bus overvoltage 대응이 먼저 검증되어야 합니다.
 
