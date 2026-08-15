@@ -77,7 +77,7 @@ extern "C" {
 
 /*
  * Anything at or below this is sent as 0. Unit: Bamocar raw command.
- * 655 is about 2% of APPS_TORQUE_MAX, so ADC noise around a released pedal
+ * 1500 is about 4.6% of APPS_TORQUE_MAX, so ADC noise around a released pedal
  * cannot leave a standing torque request on the bus.
  */
 /*
@@ -86,7 +86,7 @@ extern "C" {
  * pedal from reaching the calibrated maximum (measured 99.1%), so without this
  * the driver could never request full torque. 32112 is about 98%.
  */
-#define APPS_TORQUE_CUTOFF                 2949
+#define APPS_TORQUE_CUTOFF                 1500
 #define APPS_TORQUE_CUTOFF_HIGH            32112
 
 typedef enum
