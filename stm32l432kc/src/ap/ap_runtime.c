@@ -418,6 +418,9 @@ void apDiagCanGetStats(uint32_t *p_tx_total, uint32_t *p_tx_fail)
  * Bamocar는 요청받은 레지스터만 주기 송신한다(0x3D). 요청하는 쪽이 없으면
  * RPM도 온도도 버스에 나오지 않으므로 주기적으로 재무장한다. CAN 채널이
  * 닫혀 있으면 APPS 안전 인터록을 되돌리지 않고 이번 주기를 건너뛴다.
+ *
+ * 목록의 0x8F(에러/경고 워드)와 0xA8(실토크)은 APPS 자신은 쓰지 않는다.
+ * 계기판이 인버터 고장 표시와 derating 판별에 쓰므로 지우지 말 것.
  */
 static void apBamocarRequestTelemetry(void)
 {
@@ -428,6 +431,8 @@ static void apBamocarRequestTelemetry(void)
     0x4AU,   /* IGBT 온도        */
     0xEBU,   /* DC 버스 전압     */
     0x40U,   /* 인버터 상태      */
+    0x8FU,   /* 에러/경고 워드   */
+    0xA8U,   /* 실제 출력 토크   */
   };
   bamocar_can_frame_t frame;
   can_msg_t msg;
