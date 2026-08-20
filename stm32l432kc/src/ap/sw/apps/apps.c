@@ -27,6 +27,9 @@
 #define APPS_TRACE_BAR_LEN     16U
 #define APPS_TRACE_PERIOD_MS   50U
 
+/* "apps monitor" live table refresh period in ms. */
+#define APPS_MONITOR_PERIOD_MS 100U
+
 /* Which end of the torque range the last CAN command was snapped to. */
 typedef enum
 {
@@ -553,127 +556,423 @@ bool appsRunPedalCommand(void)
 
 #ifdef _USE_HW_CLI
 
+/* Absolute APPS1/APPS2 gap in per-mille, the value compared to APPS_DIFF_MAX. */
+static uint16_t appsCliDiffPerMille(void)
+{
+  if (apps.percent_per_mille[APPS_SIGNAL1] > apps.percent_per_mille[APPS_SIGNAL2])
+  {
+    return apps.percent_per_mille[APPS_SIGNAL1] -
+           apps.percent_per_mille[APPS_SIGNAL2];
+  }
+
+  return apps.percent_per_mille[APPS_SIGNAL2] -
+         apps.percent_per_mille[APPS_SIGNAL1];
+}
+
+/*
+ * One word for the whole plausibility state machine, shared by status,
+ * monitor and verify so the three views never disagree.
+ */
+static const char *appsCliStateName(void)
+{
+  if (apps.configured != true)
+  {
+    return "NOCFG";
+  }
+  if (apps.fault_latched == true)
+  {
+    return "FAULT";
+  }
+  if (apps.fault_timer_active == true)
+  {
+    return "PENDING";
+  }
+  if (apps.valid != true)
+  {
+    return "INVALID";
+  }
+
+  return "OK";
+}
+
+/* The fault timer never reads past the confirm time once the fault is latched. */
+static uint32_t appsCliFaultTimerMs(void)
+{
+  if (apps.fault_elapsed_ms > APPS_FAULT_MS)
+  {
+    return APPS_FAULT_MS;
+  }
+
+  return apps.fault_elapsed_ms;
+}
+
+static const char *appsCliCanText(void)
+{
+  if (apps.can_tx_muted == true)
+  {
+    return "MUTE";
+  }
+
+  return (apps.can_tx_ok == true) ? "OK" : "FAIL";
+}
+
+/*
+ * Active fault bits, one name per line. The first name continues the caller's
+ * line, every following name is indented to sit under it.
+ */
+static void appsCliPrintFaultNames(uint32_t status, const char *p_indent)
+{
+  bool printed = false;
+
+  if ((status & APPS_STATUS_NOT_CONFIGURED) != 0U)
+  {
+    cliPrintf("%sNOT_CONFIGURED\n", printed ? p_indent : "");
+    printed = true;
+  }
+  if ((status & APPS_STATUS_ADC_READ_FAULT) != 0U)
+  {
+    cliPrintf("%sADC_READ_FAULT\n", printed ? p_indent : "");
+    printed = true;
+  }
+  if ((status & APPS_STATUS_SIGNAL1_RANGE_FAULT) != 0U)
+  {
+    cliPrintf("%sSIGNAL1_RANGE_FAULT\n", printed ? p_indent : "");
+    printed = true;
+  }
+  if ((status & APPS_STATUS_SIGNAL2_RANGE_FAULT) != 0U)
+  {
+    cliPrintf("%sSIGNAL2_RANGE_FAULT\n", printed ? p_indent : "");
+    printed = true;
+  }
+  if ((status & APPS_STATUS_DIFF_FAULT) != 0U)
+  {
+    cliPrintf("%sDIFF_FAULT\n", printed ? p_indent : "");
+    printed = true;
+  }
+  if ((status & APPS_STATUS_CAN_TX_FAULT) != 0U)
+  {
+    cliPrintf("%sCAN_TX_FAULT\n", printed ? p_indent : "");
+    printed = true;
+  }
+
+  if (printed != true)
+  {
+    cliPrintf("NONE\n");
+  }
+}
+
 static void appsCli(cli_args_t *args)
 {
-  if ((args->argc == 1) &&
-      ((args->isStr(0, "info")) || (args->isStr(0, "show"))))
+	// 1회 출력
+  if ((args->argc == 1) && args->isStr(0, "status"))
   {
-    bool show = args->isStr(0, "show");
+    uint32_t status;
+    uint16_t difference_per_mille;
+    uint16_t signal1_mv;
+    uint16_t signal2_mv;
 
-    while (1)
+    (void)appsRunPedalCommand();
+
+    status               = apps.status;
+    difference_per_mille = appsCliDiffPerMille();
+    signal1_mv           = (uint16_t)adcConvMillivolts(APPS_SIGNAL1_ADC_CH,
+                                                       apps.raw[APPS_SIGNAL1]);
+    signal2_mv           = (uint16_t)adcConvMillivolts(APPS_SIGNAL2_ADC_CH,
+                                                       apps.raw[APPS_SIGNAL2]);
+
+    cliPrintf("========== APPS STATUS ==========\n");
+    cliPrintf("STATE        : %s\n", appsCliStateName());
+    cliPrintf("\n");
+    cliPrintf("SIGNAL1      : raw=%-5u %u.%03uV %5u.%u%%   [%s]\n",
+              apps.raw[APPS_SIGNAL1],
+              signal1_mv / 1000U, signal1_mv % 1000U,
+              apps.percent_per_mille[APPS_SIGNAL1] / 10U,
+              apps.percent_per_mille[APPS_SIGNAL1] % 10U,
+              ((status & APPS_STATUS_SIGNAL1_RANGE_FAULT) != 0U) ? "RANGE" : "OK");
+    cliPrintf("SIGNAL2      : raw=%-5u %u.%03uV %5u.%u%%   [%s]\n",
+              apps.raw[APPS_SIGNAL2],
+              signal2_mv / 1000U, signal2_mv % 1000U,
+              apps.percent_per_mille[APPS_SIGNAL2] / 10U,
+              apps.percent_per_mille[APPS_SIGNAL2] % 10U,
+              ((status & APPS_STATUS_SIGNAL2_RANGE_FAULT) != 0U) ? "RANGE" : "OK");
+    cliPrintf("\n");
+    cliPrintf("DIFFERENCE   : %u.%u%% / %u.%u%%      [%s]\n",
+              difference_per_mille / 10U, difference_per_mille % 10U,
+              APPS_DIFF_MAX / 10U, APPS_DIFF_MAX % 10U,
+              ((status & APPS_STATUS_DIFF_FAULT) != 0U) ? "FAULT" : "OK");
+    cliPrintf("\n");
+    cliPrintf("FAULT        : ");
+    appsCliPrintFaultNames(status, "               ");
+    cliPrintf("FAULT TIMER  : %lu / %lu ms\n",
+              (unsigned long)appsCliFaultTimerMs(),
+              (unsigned long)APPS_FAULT_MS);
+    cliPrintf("LATCHED      : %s\n", apps.fault_latched ? "YES" : "NO");
+    cliPrintf("STATUS       : 0x%08lX\n", (unsigned long)status);
+    cliPrintf("\n");
+    cliPrintf("PEDAL        : %u.%u%%\n",
+              apps.pedal_per_mille / 10U, apps.pedal_per_mille % 10U);
+    cliPrintf("COMMAND      : %d / %d\n",
+              apps.command_sent, APPS_TORQUE_FULL_COMMAND);
+    cliPrintf("READY        : %s\n",
+              gpioPinRead(APPS_READY_GPIO_CH) ? "HIGH" : "LOW");
+    cliPrintf("CAN TX       : %s\n", appsCliCanText());
+    cliPrintf("=================================\n");
+    return;
+  }
+
+  if ((args->argc == 1) && args->isStr(0, "monitor"))
+  {
+	// 100ms 마다 반복
+    cliPrintf("APPS MONITOR - press any key to stop\n");
+    cliPrintf("--------------------------------------------------------------------------------\n");
+    cliPrintf("STATE       S1       S2      DIFF      TIMER  VALID     CMD  READY   CAN\n");
+    cliPrintf("--------------------------------------------------------------------------------\n");
+
+    while (cliKeepLoop() == true)
     {
-      uint32_t status;
-      uint16_t signal1_voltage_mv;
-      uint16_t signal2_voltage_mv;
       uint16_t difference_per_mille;
-
-      if ((show == true) && (cliKeepLoop() != true))
-      {
-        break;
-      }
 
       (void)appsRunPedalCommand();
 
-      signal1_voltage_mv = (uint16_t)adcConvMillivolts(APPS_SIGNAL1_ADC_CH,
-                                                       apps.raw[APPS_SIGNAL1]);
-      signal2_voltage_mv = (uint16_t)adcConvMillivolts(APPS_SIGNAL2_ADC_CH,
-                                                       apps.raw[APPS_SIGNAL2]);
-      if (apps.percent_per_mille[APPS_SIGNAL1] > apps.percent_per_mille[APPS_SIGNAL2])
-      {
-        difference_per_mille = apps.percent_per_mille[APPS_SIGNAL1] -
-                               apps.percent_per_mille[APPS_SIGNAL2];
-      }
-      else
-      {
-        difference_per_mille = apps.percent_per_mille[APPS_SIGNAL2] -
-                               apps.percent_per_mille[APPS_SIGNAL1];
-      }
-      status = apps.status;
+      difference_per_mille = appsCliDiffPerMille();
 
-      cliPrintf("signal1 : raw=%u, %u.%03uV, %u.%u%%\n", apps.raw[APPS_SIGNAL1],
-                signal1_voltage_mv / 1000U,
-                signal1_voltage_mv % 1000U,
+      cliPrintf("%-9s %4u.%u%% %6u.%u%% %6u.%u%% %6lu/%-4lu %4s %7d %6s %5s\n",
+                appsCliStateName(),
                 apps.percent_per_mille[APPS_SIGNAL1] / 10U,
-                apps.percent_per_mille[APPS_SIGNAL1] % 10U);
-      cliPrintf("signal2 : raw=%u, %u.%03uV, %u.%u%%\n",
-                apps.raw[APPS_SIGNAL2],
-                signal2_voltage_mv / 1000U,
-                signal2_voltage_mv % 1000U,
+                apps.percent_per_mille[APPS_SIGNAL1] % 10U,
                 apps.percent_per_mille[APPS_SIGNAL2] / 10U,
-                apps.percent_per_mille[APPS_SIGNAL2] % 10U);
-      cliPrintf("difference : %u.%u%%\n",
+                apps.percent_per_mille[APPS_SIGNAL2] % 10U,
                 difference_per_mille / 10U,
-                difference_per_mille % 10U);
-      cliPrintf("pedal : %u.%u%%\n",
-                apps.pedal_per_mille / 10U,
-                apps.pedal_per_mille % 10U);
-      cliPrintf("command : %d / %d\n",
+                difference_per_mille % 10U,
+                (unsigned long)appsCliFaultTimerMs(),
+                (unsigned long)APPS_FAULT_MS,
+                apps.valid ? "YES" : "NO",
                 apps.command_sent,
-                APPS_TORQUE_FULL_COMMAND);
-      if (apps.can_tx_muted == true)
-      {
-        cliPrintf("can tx : muted\n");
-      }
-      else
-      {
-        cliPrintf("can tx : %s\n", apps.can_tx_ok ? "ok" : "fail");
-      }
-      cliPrintf("valid : %s\n", apps.valid ? "true" : "false");
-      cliPrintf("ready gpio : %s\n",
-                gpioPinRead(APPS_READY_GPIO_CH) ? "true" : "false");
-      cliPrintf("fault timer : %lums / %lums\n",
-                (unsigned long)apps.fault_elapsed_ms,
-                (unsigned long)APPS_FAULT_MS);
-      cliPrintf("status : 0x%08lX\n", (unsigned long)status);
-
-      if (status == APPS_STATUS_OK)
-      {
-        cliPrintf("  OK\n");
-      }
-      if ((status & APPS_STATUS_NOT_CONFIGURED) != 0U)
-      {
-        cliPrintf("  NOT_CONFIGURED\n");
-      }
-      if ((status & APPS_STATUS_ADC_READ_FAULT) != 0U)
-      {
-        cliPrintf("  ADC_READ_FAULT\n");
-      }
-      if ((status & APPS_STATUS_SIGNAL1_RANGE_FAULT) != 0U)
-      {
-        cliPrintf("  SIGNAL1_RANGE_FAULT\n");
-      }
-      if ((status & APPS_STATUS_SIGNAL2_RANGE_FAULT) != 0U)
-      {
-        cliPrintf("  SIGNAL2_RANGE_FAULT\n");
-      }
-      if ((status & APPS_STATUS_DIFF_FAULT) != 0U)
-      {
-        cliPrintf("  DIFF_FAULT\n");
-      }
-      if ((status & APPS_STATUS_FAULT_LATCHED) != 0U)
-      {
-        cliPrintf("  FAULT_LATCHED\n");
-      }
-      if ((status & APPS_STATUS_CAN_TX_FAULT) != 0U)
-      {
-        cliPrintf("  CAN_TX_FAULT\n");
-      }
-
-      cliPrintf("\n");
-
-      if (show != true)
-      {
-        break;
-      }
+                gpioPinRead(APPS_READY_GPIO_CH) ? "HIGH" : "LOW",
+                appsCliCanText());
 
       for (uint32_t wait_ms = 0U;
-           (wait_ms < 100U) && (cliKeepLoop() == true);
+           (wait_ms < APPS_MONITOR_PERIOD_MS) && (cliKeepLoop() == true);
+           wait_ms++)
+      {
+        delay(1);
+      }
+    }
+    return;
+  }
+
+  /*
+   * Field demonstration mode. Runs the real control loop and prints one time
+   * stamped block per state change, so a shorted APPS line can be shown to
+   * produce fault -> confirm -> latch -> torque inhibit -> READY low in order.
+   */
+  if ((args->argc == 1) && args->isStr(0, "verify"))
+  {
+    uint32_t start_ms;
+    bool     first_sample     = true;
+    bool     prev_pending     = false;
+    bool     prev_latched     = false;
+    bool     seen_detected    = false;
+    bool     seen_confirmed   = false;
+    bool     seen_torque_zero = false;
+    bool     seen_ready_low   = false;
+    bool     seen_recovered   = false;
+    bool     can_ok           = true;
+    uint32_t pending_ms       = 0U;
+
+    cliPrintf("========================================\n");
+    cliPrintf(" APPS PLAUSIBILITY VERIFICATION\n");
+    cliPrintf("========================================\n");
+    cliPrintf("Diff limit      : %u.%u %%\n",
+              APPS_DIFF_MAX / 10U, APPS_DIFF_MAX % 10U);
+    cliPrintf("Fault confirm   : %lu ms\n", (unsigned long)APPS_FAULT_MS);
+    cliPrintf("CAN channel     : %u\n", APPS_CAN_CH);
+    cliPrintf("\n");
+    cliPrintf("Short APPS signal to begin test.\n");
+    cliPrintf("Press any key to finish.\n\n");
+
+    /* Started after the banner so the log begins at 0 ms, not at the
+       time the header took to go out over the UART. */
+    start_ms = millis();
+
+    while (cliKeepLoop() == true)
+    {
+      uint32_t now_ms;
+      uint32_t status;
+      uint16_t difference_per_mille;
+
+      (void)appsRunPedalCommand();
+
+      now_ms               = millis() - start_ms;
+      status               = apps.status;
+      difference_per_mille = appsCliDiffPerMille();
+
+      if ((apps.can_tx_muted != true) && (apps.can_tx_ok != true))
+      {
+        can_ok = false;
+      }
+
+      /*
+       * A confirmed fault must release itself once the signals agree again:
+       * the rule asks for the drive to stay shut down while the implausibility
+       * is present, not until the car is power cycled.
+       */
+      if ((seen_confirmed == true) && (apps.valid == true) &&
+          (gpioPinRead(APPS_READY_GPIO_CH) == true))
+      {
+        seen_recovered = true;
+      }
+
+      /* Baseline line, so the log shows what the pedal read before the test. */
+      if (first_sample == true)
+      {
+        cliPrintf("[%06lu ms] %s\n", (unsigned long)now_ms,
+                  (apps.valid == true) ? "NORMAL" : appsCliStateName());
+        cliPrintf("            S1=%u.%u%%  S2=%u.%u%%  DIFF=%u.%u%%\n\n",
+                  apps.percent_per_mille[APPS_SIGNAL1] / 10U,
+                  apps.percent_per_mille[APPS_SIGNAL1] % 10U,
+                  apps.percent_per_mille[APPS_SIGNAL2] / 10U,
+                  apps.percent_per_mille[APPS_SIGNAL2] % 10U,
+                  difference_per_mille / 10U,
+                  difference_per_mille % 10U);
+        first_sample = false;
+      }
+
+      if ((apps.fault_timer_active == true) && (prev_pending != true))
+      {
+        seen_detected = true;
+
+        cliPrintf("[%06lu ms] PLAUSIBILITY FAULT DETECTED\n",
+                  (unsigned long)now_ms);
+        cliPrintf("            S1=%u.%u%%%s\n",
+                  apps.percent_per_mille[APPS_SIGNAL1] / 10U,
+                  apps.percent_per_mille[APPS_SIGNAL1] % 10U,
+                  ((status & APPS_STATUS_SIGNAL1_RANGE_FAULT) != 0U) ? " [RANGE]" : "");
+        cliPrintf("            S2=%u.%u%%%s\n",
+                  apps.percent_per_mille[APPS_SIGNAL2] / 10U,
+                  apps.percent_per_mille[APPS_SIGNAL2] % 10U,
+                  ((status & APPS_STATUS_SIGNAL2_RANGE_FAULT) != 0U) ? " [RANGE]" : "");
+        cliPrintf("            DIFF=%u.%u%%%s\n",
+                  difference_per_mille / 10U, difference_per_mille % 10U,
+                  ((status & APPS_STATUS_DIFF_FAULT) != 0U) ? " [FAULT]" : "");
+        cliPrintf("[%06lu ms] FAULT TIMER START\n\n", (unsigned long)now_ms);
+      }
+
+      if ((apps.fault_latched == true) && (prev_latched != true))
+      {
+        seen_confirmed = true;
+
+        cliPrintf("[%06lu ms] FAULT CONFIRMED\n", (unsigned long)now_ms);
+        cliPrintf("            elapsed=%lu ms\n",
+                  (unsigned long)appsCliFaultTimerMs());
+        cliPrintf("[%06lu ms] FAULT LATCHED\n", (unsigned long)now_ms);
+        cliPrintf("            ");
+        appsCliPrintFaultNames(apps.fault_latched_status, "            ");
+
+        if (apps.command_sent == 0)
+        {
+          seen_torque_zero = true;
+        }
+        cliPrintf("[%06lu ms] TORQUE INHIBITED\n", (unsigned long)now_ms);
+        cliPrintf("            command=%d\n", apps.command_sent);
+
+        if (gpioPinRead(APPS_READY_GPIO_CH) != true)
+        {
+          seen_ready_low = true;
+        }
+        cliPrintf("[%06lu ms] READY GPIO -> %s\n",
+                  (unsigned long)now_ms,
+                  gpioPinRead(APPS_READY_GPIO_CH) ? "HIGH" : "LOW");
+        cliPrintf("[%06lu ms] CAN TX -> %s\n\n",
+                  (unsigned long)now_ms, appsCliCanText());
+      }
+
+      /*
+       * Input came back inside the limits. Below the confirm time the timer
+       * just restarts, so nothing latches; past it the latch decides whether
+       * torque stays inhibited.
+       */
+      if ((apps.fault_timer_active != true) && (prev_pending == true))
+      {
+        cliPrintf("[%06lu ms] INPUT RETURNED PLAUSIBLE\n",
+                  (unsigned long)now_ms);
+        cliPrintf("            S1=%u.%u%%\n",
+                  apps.percent_per_mille[APPS_SIGNAL1] / 10U,
+                  apps.percent_per_mille[APPS_SIGNAL1] % 10U);
+        cliPrintf("            S2=%u.%u%%\n",
+                  apps.percent_per_mille[APPS_SIGNAL2] / 10U,
+                  apps.percent_per_mille[APPS_SIGNAL2] % 10U);
+        cliPrintf("            DIFF=%u.%u%%\n",
+                  difference_per_mille / 10U, difference_per_mille % 10U);
+
+        if (prev_latched != true)
+        {
+          cliPrintf("[%06lu ms] FAULT TIMER RESET (%lu / %lu ms)\n",
+                    (unsigned long)now_ms,
+                    (unsigned long)pending_ms,
+                    (unsigned long)APPS_FAULT_MS);
+          cliPrintf("            FAULT NOT LATCHED\n\n");
+        }
+        else
+        {
+          cliPrintf("[%06lu ms] FAULT CLEARED\n", (unsigned long)now_ms);
+          cliPrintf("[%06lu ms] TORQUE RE-ENABLED\n", (unsigned long)now_ms);
+          cliPrintf("            command=%d\n", apps.command_sent);
+          cliPrintf("[%06lu ms] READY GPIO -> %s\n\n",
+                    (unsigned long)now_ms,
+                    gpioPinRead(APPS_READY_GPIO_CH) ? "HIGH" : "LOW");
+        }
+      }
+
+      if (apps.fault_timer_active == true)
+      {
+        pending_ms = appsCliFaultTimerMs();
+      }
+      prev_pending = apps.fault_timer_active;
+      prev_latched = apps.fault_latched;
+
+      for (uint32_t wait_ms = 0U;
+           (wait_ms < APPS_RUN_MS) && (cliKeepLoop() == true);
            wait_ms++)
       {
         delay(1);
       }
     }
 
+    cliPrintf("\n========================================\n");
+    cliPrintf(" TEST RESULT\n");
+    cliPrintf("========================================\n");
+    cliPrintf("Plausibility fault detected  : %s\n",
+              seen_detected ? "PASS" : "FAIL");
+    cliPrintf("Fault confirmed >= %lu ms    : %s\n",
+              (unsigned long)APPS_FAULT_MS,
+              seen_confirmed ? "PASS" : "FAIL");
+    cliPrintf("Torque command inhibited     : %s\n",
+              seen_torque_zero ? "PASS" : "FAIL");
+    cliPrintf("READY GPIO LOW               : %s\n",
+              seen_ready_low ? "PASS" : "FAIL");
+    cliPrintf("CAN transmission             : %s\n",
+              can_ok ? "PASS" : "FAIL");
+    cliPrintf("Recovered when plausible     : %s\n",
+              (seen_confirmed != true) ? "NOT TESTED"
+                                       : (seen_recovered ? "PASS" : "FAIL"));
+    cliPrintf("\n");
+
+    if (seen_detected != true)
+    {
+      cliPrintf("RESULT                       : NO FAULT INJECTED\n");
+    }
+    else if ((seen_confirmed == true) &&
+             (seen_torque_zero == true) && (seen_ready_low == true) &&
+             (can_ok == true))
+    {
+      cliPrintf("RESULT                       : PASS\n");
+    }
+    else
+    {
+      cliPrintf("RESULT                       : FAIL\n");
+    }
+    cliPrintf("========================================\n");
     return;
   }
 
@@ -702,42 +1001,8 @@ static void appsCli(cli_args_t *args)
               APPS_DIFF_MAX / 10U,
               APPS_DIFF_MAX % 10U);
     cliPrintf("fault confirm : %lums\n", (unsigned long)APPS_FAULT_MS);
-    return;
-  }
-
-  if ((args->argc == 5) && args->isStr(0, "config"))
-  {
-    uint16_t raw_config[4];
-
-    for (uint8_t i = 0; i < 4U; i++)
-    {
-      int32_t value = args->getData((uint8_t)(i + 1U));
-
-      if (value < 0)
-      {
-        raw_config[i] = 0U;
-      }
-      else if (value > UINT16_MAX)
-      {
-        raw_config[i] = UINT16_MAX;
-      }
-      else
-      {
-        raw_config[i] = (uint16_t)value;
-      }
-    }
-
-    (void)appsSetConfig(raw_config[0],
-                        raw_config[1],
-                        raw_config[2],
-                        raw_config[3]);
-    cliPrintf("signal1 raw : %u..%u\n",
-              apps.raw_min[APPS_SIGNAL1],
-              apps.raw_max[APPS_SIGNAL1]);
-    cliPrintf("signal2 raw : %u..%u\n",
-              apps.raw_min[APPS_SIGNAL2],
-              apps.raw_max[APPS_SIGNAL2]);
-    cliPrintf("configured : %s\n", apps.configured ? "true" : "false");
+    cliPrintf("torque cutoff : <=%d, full >=%d, max %d\n",
+              APPS_TORQUE_CUTOFF, APPS_TORQUE_CUTOFF_HIGH, APPS_TORQUE_MAX);
     return;
   }
 
@@ -861,12 +1126,14 @@ static void appsCli(cli_args_t *args)
     return;
   }
 
-  cliPrintf("apps info\n");
-  cliPrintf("apps show\n");
-  cliPrintf("apps config\n");
-  cliPrintf("apps config signal1_min signal1_max signal2_min signal2_max\n");
-  cliPrintf("apps trace\n");
-  cliPrintf("apps clear\n");
+  cliPrintf("apps status                     : print current state once\n");
+  cliPrintf("apps monitor                    : live state, %ums period\n",
+            APPS_MONITOR_PERIOD_MS);
+  cliPrintf("apps verify                     : plausibility verification mode\n");
+  cliPrintf("apps trace                      : pedal / torque cutoff trace\n");
+  cliPrintf("apps clear                      : clear latched fault\n");
+  cliPrintf("apps config                     : print thresholds and ADC setup\n");
+  cliPrintf("apps help                       : this menu\n");
 }
 
 #endif
