@@ -358,7 +358,10 @@ MQTT는 **브로커에 실제로 붙어야** 해제되므로, 미연결 상태�
 | `anl` | `en` |
 | `dgt` | `en` |
 
-성공 시 `<name>/ack/set`에 `ok`.
+성공 시 `<name>/ack/set`에 `ok`. `<name>/cmd/rbt`로 원격 재부팅까지 되므로 설정 반영에 보드 접근은 필요 없다.
+
+> mosquitto는 `listener 9001` + `protocol websockets` **하나뿐이라 `mosquitto_pub`으로는 발행할 수 없다**(TCP 1883 리스너 없음). collector 이미지의 paho-mqtt(`transport="websockets"`)를 쓴다.
+> `en` 계열 payload는 **바이너리 `0x00`/`0x01`**이다. 펌웨어가 `evt->data[0] != 0`으로만 보므로 문자열 `"0"`(0x30)을 보내면 오히려 켜진다.
 
 ---
 
@@ -451,7 +454,11 @@ health.json   status: ok, alerts: []
 
 ### 급함
 
-- [ ] **`ADC_READ_FAIL` 폭주** — 아날로그 센서 미연결인데 `anl_en` 기본값이 true라 **분당 약 640건**(전체 이벤트의 99.6%, 하루 약 1 GB). `lighton/set/anl/en`에 `0x00` 발행 후 재부팅하면 꺼진다
+- [ ] **`ADC_READ_FAIL` 폭주** — 아날로그 센서 미연결인데 `anl_en` 기본값이 true라 **분당 약 640건**(전체 이벤트의 99.6%, 하루 약 1 GB). `lighton/set/anl/en`에 `0x00` 발행 후 재부팅하면 꺼진다.
+  2026-08-20 기준 누적 49,531건. 아날로그·디지털을 안 쓰기로 해서 **서버 저장은 이미 막았지만**(collector `SKIP_SAMPLE_KINDS`), 이 syslog는 `kind=SYSTEM`이라 안 걸린다. 장치를 꺼야 멈춘다.
+  TMA가 8/18부터 오프라인이라 발행은 대기 중. 온라인 되면
+  `docker exec monolith-v2-collector-1 python /tmp/tma_disable_anl_dgt.py --reboot`
+  (스크립트는 `tools/MonolithServer/ops/`와 서버 `/home/ubuntu/ops/`에 있다)
 - [ ] **Control Hub 접속 설정** — Device 페이지에서 3개 입력 (§8)
 
 ### 보통

@@ -1,0 +1,47 @@
+--- a/collector.py
++++ b/collector.py
+@@ -36,7 +36,7 @@
+ # 레이아웃이 바뀌면 이 값을 올리고, 과거 데이터는 저장된 parser_version 으로
+ # 어느 규칙으로 해석됐는지 구분한다.
+ MONOLITH_RELEASE = os.environ.get("MONOLITH_RELEASE", "v2.3.1")
+-PARSER_VERSION = "1.1.0+monolith-v2.3.1-orion-tem"
++PARSER_VERSION = "1.2.0+monolith-v2.3.1-orion-tem-no-anl-dgt"
+ 
+ # ---------------------------------------------------------- 프로토콜 상수
+ # 출처: web/src/service/protocol.js, device/firmware/main/main.h (v2.3.1)
+@@ -49,6 +49,15 @@
+ LOGBUF_SIZE = 104
+ LOGBUF_POS = {"TIMESTAMP": 0, "STATE": 4, "GPS": 8, "GYRO": 32, "ANALOG": 56, "DIGITAL": 80}
+ 
++# 아날로그 6채널(ain1~6)과 디지털 4채널(din1~4)은 이 차량에서 배선하지 않는다.
++# 값이 의미 없는데도 samples 행만 쌓이므로 decode 단계에서 버린다. raw_messages
++# 에는 logbuf payload 원본이 그대로 남으므로, 나중에 필요해지면 이 집합을 비우고
++# raw 로 재처리하면 복구된다(§7.1-5).
++SKIP_SAMPLE_KINDS = frozenset({"ANALOG", "DIGITAL"})
++
++# logbuf 블록 이름과 log record type 이름이 다른 것은 GYRO 뿐이다.
++LOGBUF_KIND = {"GPS": "GPS", "GYRO": "GYROSCOPE", "ANALOG": "ANALOG", "DIGITAL": "DIGITAL"}
++
+ SPOOL_MAGIC = b"MSPL"
+ SPOOL_VERSION = 1
+ 
+@@ -318,6 +327,8 @@
+         "errors": [],
+     }
+     for key in ("GPS", "GYRO", "ANALOG", "DIGITAL"):
++        if LOGBUF_KIND[key] in SKIP_SAMPLE_KINDS:
++            continue  # 수집 대상에서 뺀 센서. 파싱도 저장도 하지 않는다.
+         off = LOGBUF_POS[key]
+         block = payload[off : off + LOG_SIZE]
+         if block[0] == 0:
+@@ -560,6 +571,10 @@
+ def _store_record(cur, sid, raw_id, received_at, rec):
+     kind, ts = rec["type"], rec["timestamp"]
+ 
++    # /d 뿐 아니라 배열 토픽으로 들어오는 경로도 같이 막는다.
++    if kind in SKIP_SAMPLE_KINDS:
++        return
++
+     if kind == "CAN":
+         store_can_and_optional_tem(cur, sid, raw_id, received_at, rec)
+     elif kind == "GPS":

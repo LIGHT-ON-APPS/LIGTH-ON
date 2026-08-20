@@ -66,6 +66,28 @@ DB migration과 collector는 2026-08-14 운영 VM에 적용했다. 당시 TMA가
 6. collector Dockerfile에 두 Python 파일이 포함되도록 COPY를 수정하고 이미지를
    다시 build한다. 호스트 파일만 바꿔서는 기존 이미지에 반영되지 않는다.
 
+## 아날로그·디지털 샘플 제외 (2026-08-20 운영 적용)
+
+TMA의 아날로그 6채널(`ain1~6`)과 디지털 4채널(`din1~4`)은 이 차량에서 배선하지
+않았다. 값이 의미 없는데도 `samples` 행만 쌓여서 서버 decode 단계에서 버리도록
+했다. 변경 내용은 `collector-skip-anl-dgt.patch`에 그대로 있다.
+
+- `SKIP_SAMPLE_KINDS = {"ANALOG", "DIGITAL"}`를 추가하고 `parse_logbuf()`와
+  `_store_record()` 양쪽에서 건너뛴다. `/d` logbuf 경로와 배열 토픽 경로 모두 막힌다.
+- `PARSER_VERSION`을 `1.2.0+monolith-v2.3.1-orion-tem-no-anl-dgt`로 올렸다.
+- GPS와 자이로는 그대로 저장한다.
+- `raw_messages`에는 logbuf payload 원본이 계속 남는다. 되돌리려면 이 집합을 비우고
+  build·재기동한 뒤 raw로 재처리하면 복구된다.
+- 배포 전 `collector.py.bak-20260820`으로 백업했고, 운영 payload 표본으로 구·신 파서
+  결과를 비교해 `ANALOG`/`DIGITAL`만 빠지는 것을 확인한 뒤 이미지를 다시 build했다.
+
+이것은 **서버 저장만** 막는다. 장치는 여전히 ADC를 읽고 SD에 기록하며, ADC read
+실패 시 `ADC_READ_FAIL` syslog를 계속 올린다(2026-08-18까지 49,531건, 전체 이벤트의
+99.6%). 이 syslog는 `kind="SYSTEM"`이라 위 필터에 걸리지 않는다. 장치에서 멈추려면
+`lighton/set/anl/en`과 `lighton/set/dgt/en`에 **바이너리 `0x00`**을 발행하고 재부팅해야
+한다. 문자열 `"0"`은 `0x30`이라 참으로 해석되므로 쓰면 안 된다
+(`mqtt.c`: `nvs_set_u8(nvs, "anl_en", evt->data[0] != 0)`).
+
 ## 저장 형태와 영향
 
 `can_frames`는 계속 **서버에 도착한 범위에서** canonical raw 원본이다. target frame이면

@@ -1,5 +1,9 @@
 # Monolith TMA-1 TEM 45채널 스냅샷 2 Hz 패치
 
+> 이 폴더에는 패치가 두 개 있다. 이 문서는 `monolith-v2.3.0-tem-snapshot-2hz.patch`를
+> 다룬다. CAN 진단 강화 패치는 `README-can-diagnostics.md`를 본다. 둘 다 `can.c`를
+> 건드리지만 hunk가 겹치지 않아 순서에 상관없이 함께 적용된다.
+
 ## 목적
 
 Monolith TMA-1이 Orion Thermistor Expansion Module(TEM)의 45개 센서를 같은 측정

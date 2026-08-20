@@ -1,0 +1,343 @@
+diff --git a/device/firmware/main/main.c b/device/firmware/main/main.c
+index 3c1feb6..88a648b 100644
+--- a/device/firmware/main/main.c
++++ b/device/firmware/main/main.c
+@@ -240,17 +240,17 @@ static void nvs_init(void) {
+ 
+   // set CAN default values
+   if (nvs_get_u8(nvs, "can_bps", &storage.can.bps) != ESP_OK) {
+-    nvs_set_u8(nvs, "can_en", CAN_BPS_500K);
++    nvs_set_u8(nvs, "can_bps", CAN_BPS_500K);
+     storage.can.bps = CAN_BPS_500K;
+   }
+ 
+   if (nvs_get_u32(nvs, "can_filter", &storage.can.filter) != ESP_OK) {
+-    nvs_set_u32(nvs, "can_en", 0x00000000);
++    nvs_set_u32(nvs, "can_filter", 0x00000000);
+     storage.can.filter = 0x00000000;  // accept all
+   }
+ 
+   if (nvs_get_u32(nvs, "can_mask", &storage.can.mask) != ESP_OK) {
+-    nvs_set_u32(nvs, "can_en", 0xFFFFFFFF);
++    nvs_set_u32(nvs, "can_mask", 0xFFFFFFFF);
+     storage.can.mask = 0xFFFFFFFF;  // accept all
+   }
+ 
+diff --git a/device/firmware/main/network/mqtt.c b/device/firmware/main/network/mqtt.c
+index 74a6e7c..b449a10 100644
+--- a/device/firmware/main/network/mqtt.c
++++ b/device/firmware/main/network/mqtt.c
+@@ -259,6 +259,27 @@ static void task_file_list(void *arg) {
+   vTaskDelete(NULL);
+ }
+ 
++/* Parse the hexadecimal CAN ID out of a command topic. Returns 0 for anything
++ * that is not a usable ID; the caller already rejects 0 as invalid.
++ *
++ * atol() read this as decimal, so `.../cmd/can/7FF` transmitted ID 7 rather
++ * than 0x7FF, and a bare `.../cmd/can` reached atol(NULL) and crashed the
++ * device. Keep this in sync with test/test_can_diag.c. */
++static uint32_t can_id_from_token(const char *tok) {
++  if (tok == NULL || *tok == '\0') {
++    return 0;
++  }
++
++  char *end            = NULL;
++  unsigned long parsed = strtoul(tok, &end, 16);
++
++  if (end == NULL || *end != '\0' || parsed > 0x1FFFFFFF) {
++    return 0;
++  }
++
++  return (uint32_t)parsed;
++}
++
+ static void mqtt_handle_data(esp_mqtt_event_handle_t evt) {
+   char topic[64];
+   char pathbuf[64];
+@@ -386,7 +407,7 @@ static void mqtt_handle_data(esp_mqtt_event_handle_t evt) {
+ 
+     else if (STREQL(dir[2], "can")) {  // transmit CAN message
+       twai_message_t message = {
+-        .identifier       = atol(dir[3]),
++        .identifier       = can_id_from_token(dir[3]),
+         .extd             = false,
+         .rtr              = false,
+         .ss               = false,
+diff --git a/device/firmware/main/peripheral/can.c b/device/firmware/main/peripheral/can.c
+index 9548366..7fc154d 100644
+--- a/device/firmware/main/peripheral/can.c
++++ b/device/firmware/main/peripheral/can.c
+@@ -7,7 +7,89 @@
+     TWAI_ALERT_BUS_ERROR | TWAI_ALERT_TX_FAILED | TWAI_ALERT_RX_QUEUE_FULL | TWAI_ALERT_ERR_PASS |             \
+     TWAI_ALERT_BUS_OFF | TWAI_ALERT_RX_FIFO_OVERRUN)
+ 
+-#define CAN_ALERT_ENABLED (CAN_ALERT_ERROR)
++#define CAN_ALERT_ENABLED (CAN_ALERT_ERROR | TWAI_ALERT_BUS_RECOVERED)
++
++/***** CAN diagnostics *****/
++#define CAN_ALERT_REPEAT_LOG_MS 5000  // re-log a still-active alert this often
++#define CAN_STATUS_POLL_MS 1000       // controller counter sampling period
++
++typedef struct {
++  TickType_t last_poll;
++  bool valid;
++  uint32_t state;
++  uint32_t tec;
++  uint32_t rec;
++  uint32_t bus_error;
++  uint32_t rx_missed;
++  uint32_t rx_overrun;
++} can_status_snapshot_t;
++
++/* task_can is the only user. Keeping the diagnostic state at file scope leaves
++ * the task's local declarations untouched, which the TEM snapshot patch also
++ * edits, so the two patches stay independent. */
++static can_status_snapshot_t can_status;
++static uint32_t can_alert_repeat;
++static TickType_t can_alert_log_time;
++
++/* Report controller counters, and only what actually moved.
++ *
++ * A dead RX line and a wrong bitrate look identical from outside: no frames
++ * arrive either way. They differ here. A disconnected RX only raises
++ * tx_error_counter, because our own frames never get acknowledged, while
++ * rx_error_counter and bus_error_count stay at zero. A bitrate mismatch does
++ * the opposite: the controller sees edges but cannot decode them, so
++ * rx_error_counter and bus_error_count climb. Without these numbers the two
++ * cases are indistinguishable in the log. */
++static void can_report_status(can_status_snapshot_t *snap) {
++  TickType_t now = xTaskGetTickCount();
++
++  if (snap->valid && (now - snap->last_poll) < pdMS_TO_TICKS(CAN_STATUS_POLL_MS)) {
++    return;
++  }
++
++  snap->last_poll = now;
++
++  twai_status_info_t st;
++
++  if (twai_get_status_info(&st) != ESP_OK) {
++    return;
++  }
++
++  bool first = !snap->valid;
++  char buf[sizeof(system_event_t)];
++
++  /* Stay silent while nothing changes. This task runs for the whole trip and
++   * every syslog line is kept on SD and on the server. */
++  if (first || (uint32_t)st.state != snap->state || st.tx_error_counter != snap->tec ||
++      st.rx_error_counter != snap->rec) {
++    snprintf(buf, sizeof(buf), "CANEC:%02lX/%02lX/%d", (unsigned long)st.tx_error_counter,
++      (unsigned long)st.rx_error_counter, (int)st.state);
++    SYSLOG(buf);
++  }
++
++  if (first || st.bus_error_count != snap->bus_error) {
++    snprintf(buf, sizeof(buf), "CANBE:%lX", (unsigned long)st.bus_error_count);
++    SYSLOG(buf);
++  }
++
++  if (first || st.rx_missed_count != snap->rx_missed) {
++    snprintf(buf, sizeof(buf), "CANMS:%lX", (unsigned long)st.rx_missed_count);
++    SYSLOG(buf);
++  }
++
++  if (first || st.rx_overrun_count != snap->rx_overrun) {
++    snprintf(buf, sizeof(buf), "CANOV:%lX", (unsigned long)st.rx_overrun_count);
++    SYSLOG(buf);
++  }
++
++  snap->valid      = true;
++  snap->state      = (uint32_t)st.state;
++  snap->tec        = st.tx_error_counter;
++  snap->rec        = st.rx_error_counter;
++  snap->bus_error  = st.bus_error_count;
++  snap->rx_missed  = st.rx_missed_count;
++  snap->rx_overrun = st.rx_overrun_count;
++}
+ 
+ static inline twai_timing_config_t select_baud(uint8_t can_bps) {
+   switch (can_bps) {
+@@ -116,24 +198,56 @@ void task_can(void *pvParameters) {
+     twai_read_alerts(&alerts, 0);
+ 
+     if (alerts) {
++      TickType_t alert_now = xTaskGetTickCount();
++      char buf[sizeof(system_event_t)];
++
+       if (alerts != prev_alerts) {
+-        char buf[sizeof(system_event_t)];
+         snprintf(buf, sizeof(buf), "CANALT:%lX", alerts);
+         SYSLOG(buf);
++        can_alert_repeat   = 0;
++        can_alert_log_time = alert_now;
++      } else if ((alert_now - can_alert_log_time) >= pdMS_TO_TICKS(CAN_ALERT_REPEAT_LOG_MS)) {
++        /* Suppressing repeats entirely hid how bad the bus was: millions of SD
++         * records held a single CANALT line. Keep the repeat visible, with the
++         * count since the previous line, so frequency and duration are known. */
++        snprintf(buf, sizeof(buf), "CANRPT:%lX", (unsigned long)can_alert_repeat);
++        SYSLOG(buf);
++        can_alert_repeat   = 0;
++        can_alert_log_time = alert_now;
++      }
++
++      can_alert_repeat++;
++
++      if (alerts & CAN_ALERT_ERROR) {
++        SET_ERROR(&logbuf.run, CAN);
++      } else {
++        CLEAR_ERROR(&logbuf.run, CAN);
++      }
++
++      /* ESP-IDF never leaves the bus-off state on its own. Without an explicit
++       * recovery request the controller stays down until the next reboot, with
++       * both RX and TX dead for the rest of the trip. */
++      if (alerts & TWAI_ALERT_BUS_OFF) {
++        SYSLOG(twai_initiate_recovery() == ESP_OK ? "CANBOFF:REC" : "CANBOFF:ERR");
++      }
+ 
+-        if (alerts & CAN_ALERT_ERROR) {
+-          SET_ERROR(&logbuf.run, CAN);
++      if (alerts & TWAI_ALERT_BUS_RECOVERED) {
++        if (twai_start() == ESP_OK) {
++          SYSLOG("CANBOFF:UP");
+         } else {
+-          CLEAR_ERROR(&logbuf.run, CAN);
++          ERROR_SYSLOG(&logbuf.run, CAN, "restart after bus recovery failure", "CANBOFF:DOWN");
+         }
+       }
+ 
+       prev_alerts = alerts;
+     } else if (prev_alerts) {
+       CLEAR_ERROR(&logbuf.run, CAN);
+-      prev_alerts = 0;
++      prev_alerts  = 0;
++      can_alert_repeat = 0;
+     }
+ 
++    can_report_status(&can_status);
++
+     // transmit CAN messages
+     twai_message_t msg;
+ 
+diff --git a/device/firmware/test/test_can_diag.c b/device/firmware/test/test_can_diag.c
+new file mode 100644
+index 0000000..d90455c
+--- /dev/null
++++ b/device/firmware/test/test_can_diag.c
+@@ -0,0 +1,114 @@
++/* Host-side checks for the CAN diagnostics patch. No ESP-IDF, no hardware.
++ *
++ *   gcc -std=c11 -Wall -Wextra -Werror test_can_diag.c -o test_can_diag
++ *   ./test_can_diag
++ *
++ * Two things go wrong quietly. Diagnostic syslog lines are copied into
++ * system_event_t.msg, which is 16 bytes, so a tag that renders longer is cut
++ * and the number it carries becomes unreadable exactly when it matters. And
++ * the command ID parser has to read hex while rejecting the input that used to
++ * transmit the wrong ID or crash the device outright.
++ */
++
++#include <stdint.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++
++#define MSG_SIZE 16 /* sizeof(((system_event_t *)0)->msg) in main/main.h */
++
++static int failures = 0;
++
++static void check(int ok, const char *what) {
++  printf("%s %s\n", ok ? "ok  " : "FAIL", what);
++
++  if (!ok) {
++    failures++;
++  }
++}
++
++/* Copy of can_id_from_token() in main/network/mqtt.c. Keep both in sync. */
++static uint32_t can_id_from_token(const char *tok) {
++  if (tok == NULL || *tok == '\0') {
++    return 0;
++  }
++
++  char *end            = NULL;
++  unsigned long parsed = strtoul(tok, &end, 16);
++
++  if (end == NULL || *end != '\0' || parsed > 0x1FFFFFFF) {
++    return 0;
++  }
++
++  return (uint32_t)parsed;
++}
++
++/* snprintf() returns the length it *would* have produced, so anything that
++ * reaches the buffer size was truncated. */
++static void check_fits(const char *what, int written) {
++  if (written < 0 || written >= MSG_SIZE) {
++    printf("FAIL %s (needs %d bytes, buffer is %d)\n", what, written + 1, MSG_SIZE);
++    failures++;
++    return;
++  }
++
++  printf("ok   %s (%d bytes)\n", what, written);
++}
++
++static void test_syslog_tags_fit(void) {
++  char buf[MSG_SIZE];
++
++  /* Every alert bit set at once. */
++  check_fits("CANALT at 0xFFFFFFFF", snprintf(buf, sizeof(buf), "CANALT:%lX", (unsigned long)0xFFFFFFFFUL));
++  check_fits("CANRPT at 0xFFFFFFFF", snprintf(buf, sizeof(buf), "CANRPT:%lX", (unsigned long)0xFFFFFFFFUL));
++
++  /* TWAI error counters are the SJA1000-compatible 8-bit registers, so 255 is
++   * the widest they get even though ESP-IDF reports them as uint32_t. State is
++   * one of the four twai_state_t values. */
++  check_fits("CANEC at 255/255/3", snprintf(buf, sizeof(buf), "CANEC:%02lX/%02lX/%d", 255UL, 255UL, 3));
++
++  /* These are free-running 32-bit counters. */
++  check_fits("CANBE at 0xFFFFFFFF", snprintf(buf, sizeof(buf), "CANBE:%lX", (unsigned long)0xFFFFFFFFUL));
++  check_fits("CANMS at 0xFFFFFFFF", snprintf(buf, sizeof(buf), "CANMS:%lX", (unsigned long)0xFFFFFFFFUL));
++  check_fits("CANOV at 0xFFFFFFFF", snprintf(buf, sizeof(buf), "CANOV:%lX", (unsigned long)0xFFFFFFFFUL));
++
++  /* Fixed strings go through SYSLOG() directly, which strncpy()s 16 bytes. */
++  static const char *const fixed[] = { "CANBOFF:REC", "CANBOFF:ERR", "CANBOFF:UP", "CANBOFF:DOWN" };
++
++  for (size_t i = 0; i < sizeof(fixed) / sizeof(fixed[0]); i++) {
++    char label[64];
++    snprintf(label, sizeof(label), "fixed tag %s", fixed[i]);
++    check(strlen(fixed[i]) <= MSG_SIZE, label);
++  }
++}
++
++static void test_can_id_parsing(void) {
++  /* The case that made the 2026-08-18 bench test meaningless: atol("7FF")
++   * returned 7, so the device transmitted ID 7 and the log read CANTX:7. */
++  check(can_id_from_token("7FF") == 0x7FF, "7FF parses as 0x7FF, not 7");
++  check(can_id_from_token("7ff") == 0x7FF, "lowercase hex accepted");
++  check(can_id_from_token("6B0") == 0x6B0, "BMS frame id");
++  check(can_id_from_token("1838F380") == 0x1838F380UL, "29-bit TEM id");
++  check(can_id_from_token("1FFFFFFF") == 0x1FFFFFFFUL, "widest extended id");
++
++  /* A bare `.../cmd/can` left dir[3] NULL and atol(NULL) faulted the device. */
++  check(can_id_from_token(NULL) == 0, "NULL token rejected instead of crashing");
++  check(can_id_from_token("") == 0, "empty token rejected");
++  check(can_id_from_token("12G") == 0, "trailing junk rejected");
++  check(can_id_from_token("zz") == 0, "non-hex rejected");
++  check(can_id_from_token("20000000") == 0, "id above 29 bits rejected");
++  check(can_id_from_token("0") == 0, "zero stays invalid, as before");
++}
++
++int main(void) {
++  test_syslog_tags_fit();
++  test_can_id_parsing();
++
++  if (failures != 0) {
++    printf("\n%d check(s) failed\n", failures);
++    return 1;
++  }
++
++  printf("\nall checks passed\n");
++  return 0;
++}
