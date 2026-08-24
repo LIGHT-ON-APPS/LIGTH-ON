@@ -19,8 +19,8 @@ extern "C" {
 #define APPS_ADC_MAX                       HW_ADC_MAX_CH
 #define APPS_PER_MILLE_MAX                 1000U
 
-#define APPS_SIGNAL1_ADC_CH                _DEF_ADC1
-#define APPS_SIGNAL2_ADC_CH                _DEF_ADC2
+#define APPS_SIGNAL1_ADC_CH                _DEF_ADC2
+#define APPS_SIGNAL2_ADC_CH                _DEF_ADC1
 
 #define APPS_CAN_CH                        _DEF_CAN1
 
@@ -29,18 +29,20 @@ extern "C" {
 
 /*
  * Pedal-travel scaling, both ends measured on the car 2026-08-07.
- * Released: signal1 79..80 (0.064 V), signal2 106..109 (0.088 V).
- * Fully pressed: signal1 2075 (1.672 V), signal2 2740 (2.208 V).
+ * Released: signal1 106..109 (0.088 V), signal2 79..80 (0.064 V).
+ * Fully pressed: signal1 2740 (2.208 V), signal2 2075 (1.672 V).
  *
  * Readings outside raw_min..raw_max clamp to 0% / 100%, so no extra deadband
- * is needed at either end. Signal2 swings about 1.32x signal1; each channel is
+ * is needed at either end. Signal1 swings about 1.32x signal2; each channel is
  * normalised to per-mille before the plausibility comparison, so the differing
  * gains are expected and do not raise DIFF_FAULT.
  */
-#define APPS_SIGNAL1_RAW_MIN_DEFAULT       83U        //0.064v
-#define APPS_SIGNAL1_RAW_MAX_DEFAULT       2070U      //1.672v
-#define APPS_SIGNAL2_RAW_MIN_DEFAULT       121U       //0.085v
-#define APPS_SIGNAL2_RAW_MAX_DEFAULT       2740U      //2.208v
+
+// apps에서 adc 컷오프 설정 값
+#define APPS_SIGNAL1_RAW_MIN_DEFAULT       121U       //0.085v
+#define APPS_SIGNAL1_RAW_MAX_DEFAULT       2740U      //2.208v
+#define APPS_SIGNAL2_RAW_MIN_DEFAULT       83U        //0.064v
+#define APPS_SIGNAL2_RAW_MAX_DEFAULT       2070U      //1.672v
 
 /*
  * Independent electrical plausibility limits. A reading outside this window
@@ -49,19 +51,26 @@ extern "C" {
  * a sensor that rests near 0 V leaves almost no room to detect a short to
  * ground. Raise these once the sensor's real rest offset is confirmed.
  */
+
+//apps에서 adc상에서 유효하게 찍히는 전압의 최대 최솟값
 #define APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT 0U
-#define APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT 2792U
+#define APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT 3685U
 #define APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT 0U
-#define APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT 3685U
+#define APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT 2792U
 
 /* Max allowed APPS1/APPS2 difference. Unit: per-mille, 100 = 10.0%. */
 #define APPS_DIFF_MAX                      100U
 
-/* Fault must last this long before it is confirmed. Unit: ms. */
-#define APPS_FAULT_MS                      100U
-
 /* APPS control loop period. Unit: ms. */
 #define APPS_RUN_MS                        10U
+#define APPS_ADC_STALE_MS                  APPS_RUN_MS
+
+/* Regulatory maximum for continuous APPS implausibility. Unit: ms. */
+#define APPS_FAULT_MS                      100U
+
+/* Number of consecutive 1 kHz ADC samples spanning the 100 ms rule window. */
+#define APPS_DIFF_CONFIRM_SAMPLES          \
+  (((APPS_FAULT_MS * ADC_SAMPLE_HZ) + 999U) / 1000U)
 
 /* Torque command sent at 100% pedal. Unit: Bamocar raw command. */
 #define APPS_TORQUE_MAX                    BAMOCAR_TORQUE_CMD_MAX
@@ -86,6 +95,7 @@ extern "C" {
  * pedal from reaching the calibrated maximum (measured 99.1%), so without this
  * the driver could never request full torque. 32112 is about 98%.
  */
+// apps에서 토크 컷오프 설정 값
 #define APPS_TORQUE_CUTOFF                 1500
 #define APPS_TORQUE_CUTOFF_HIGH            32112
 

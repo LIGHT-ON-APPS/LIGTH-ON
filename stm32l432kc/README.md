@@ -6,11 +6,11 @@
 
 1. APPS 두 아날로그 출력 -> 아날로그 보호/분압 회로 -> STM32 ADC 2채널
 2. ADC raw 값을 각 채널별 보정값으로 0~1000 per-mille(0.1% 단위)로 변환
-3. 두 채널의 환산 페달 위치 차이가 10%p(=100 per-mille)를 넘으면 APPS fault
+3. 두 채널의 환산 페달 위치 차이가 10%p(=100 per-mille) 이상이면 APPS DIFF 검증 시작
 4. 정상일 때만 페달 위치를 `0..APPS_TORQUE_MAX` 크기의 torque command로 환산
 5. 양 끝을 스냅(cutoff)한 뒤 `APPS_TORQUE_COMMAND_SIGN`으로 구동 방향 부호를 적용
 6. CAN standard frame, ID `0x201`, DLC `3`, payload `{0x90, torque_lsb, torque_msb}` 전송
-7. fault 또는 not configured 상태에서는 torque command `0` 전송
+7. 확정된 DIFF 또는 즉시 RANGE/ADC failure 상태에서는 torque command `0` 전송
 
 ## 현재 소프트웨어 구조
 
@@ -159,83 +159,90 @@ CLI 프롬프트가 출력되지만 입력이 동작하지 않는다면 그때�
 
 `appsRunPedalCommand()`는 ADC 읽기, 페달 위치의 토크 명령 환산, 방향 부호 적용, CAN 전송까지 한 호출 안에서 처리합니다. `valid == false`이면 페달 위치와 관계없이 항상 0을 전송합니다.
 
-`apps.c`는 fault가 100 ms 이상 지속되면 latch합니다. 실제 차에서는 fault가 사라진 즉시 다시 토크를 내는 것보다, 운전자가 페달을 놓고 시스템이 안전 상태임을 확인한 뒤 `appsClearFault()`를 호출하는 쪽이 안전합니다.
+`apps.c`는 이상 원인을 두 종류로 나눠 처리합니다. 두 채널의 환산 페달 위치 차이(`DIFF`)는 규정상 최대 100 ms 안에 failure로 전환하고, ADC 읽기 실패나 각 채널의 유효 raw 범위 이탈(`RANGE`)은 첫 제어 주기부터 즉시 failure로 처리합니다.
 
 ## APPS fault 지속시간 계산
 
-현재 기본 fault 확정 시간은 `100 ms`입니다.
+`DIFF >= 10.0%`의 규정상 최대 시간은 `100 ms`입니다. 별도의 90 ms 보정값은 사용하지 않습니다. TIM6가 1 kHz로 시작하는 ADC 변환 완료 인터럽트에서 DIFF를 매 샘플 확인하고, 연속 100개 샘플에서 DIFF가 유지되면 failure로 확정합니다. RANGE/ADC failure에는 이 타이머를 적용하지 않습니다.
 
 ```c
-#define APPS_FAULT_MS  100U
+#define ADC_SAMPLE_HZ               1000U
+#define APPS_FAULT_MS               100U
+#define APPS_DIFF_CONFIRM_SAMPLES   100U
 ```
 
-코드에서는 이상 상태가 처음 발견된 시간을 `started_ms`에 저장하고, 이후 `appsRunPedalCommand()` 또는 `appsUpdate()`가 호출될 때마다 현재까지의 지속시간을 계산합니다.
+ADC 인터럽트는 첫 DIFF 샘플을 1개로 세고, 이후 연속 샘플마다 카운트를 증가시킵니다. 1 kHz에서 100개 연속 샘플은 약 100 ms 판정창에 해당합니다.
 
 ```c
-elapsed_ms = millis() - started_ms;
-
-if (elapsed_ms >= APPS_FAULT_MS)
+if (difference_per_mille >= APPS_DIFF_MAX)
 {
-  fault_latched = true;
+  bad_sample_count++;
+  if (bad_sample_count >= APPS_DIFF_CONFIRM_SAMPLES)
+  {
+    fault_latched = true;
+  }
+}
+else
+{
+  bad_sample_count = 0U;
 }
 ```
 
 각 값의 의미는 다음과 같습니다.
 
-- `millis()`: MCU가 부팅된 이후 현재까지 경과한 시간
-- `started_ms`: 같은 APPS 이상이 처음 감지된 시간
-- `elapsed_ms`: 해당 이상이 끊기지 않고 지속된 시간
-- `APPS_FAULT_MS`: fault를 확정하는 기준 시간이며 현재 기본값은 `100 ms`
-- `fault_latched`: 확정된 fault를 정상 복구 후에도 유지하는 상태
+- `ADC_SAMPLE_HZ`: APPS ADC 샘플링 주파수 `1000 Hz`
+- `bad_sample_count`: 연속으로 DIFF가 검출된 ADC 샘플 수
+- `APPS_FAULT_MS`: 규정에 명시된 최대 비타당성 지속시간 `100 ms`
+- `APPS_DIFF_CONFIRM_SAMPLES`: 100 ms 판정창에 해당하는 연속 ADC 샘플 수
+- `fault_latched`: 현재 모터 출력을 차단해야 하는 failure가 활성 상태인지 나타내는 호환 필드
 
-예를 들어 이상이 `1000 ms` 시점에 시작되고 현재 시간이 `1060 ms`이면 `elapsed_ms`는 `60 ms`입니다. 아직 100 ms에 도달하지 않았으므로 latch되지 않습니다.
+DIFF가 99개 샘플까지만 유지되면 pending이고, 100번째 연속 DIFF 샘플에서 failure로 확정됩니다. 샘플 사이에 정상 샘플이 하나라도 들어오면 카운트는 즉시 0으로 초기화됩니다.
 
 ```text
-1060 - 1000 = 60 ms
+DIFF 99 samples  → PENDING
+DIFF 100 samples → FAILURE, READY LOW
 ```
 
-같은 이상이 `1100 ms`까지 연속으로 유지되면 `elapsed_ms`가 `100 ms`가 되어 fault가 latch됩니다.
+### 100개 샘플 전에 정상으로 복구되는 경우
+
+DIFF가 100개 연속 샘플 전에 사라지면 카운터가 0으로 초기화되며 failure로 확정되지 않습니다.
 
 ```text
-1100 - 1000 = 100 ms → FAULT_LATCHED
-```
-
-### 100 ms 전에 정상으로 복구되는 경우
-
-이상이 100 ms 전에 사라지면 fault 타이머가 0으로 초기화되며 latch되지 않습니다.
-
-```text
-이상 발생 → 60 ms 지속 → 정상 복구
+DIFF 발생 → 60 ms 지속 → 정상 복구
 fault timer 초기화
-FAULT_LATCHED 발생하지 않음
+DIFF failure 발생하지 않음
 ```
 
-이후 다시 이상이 발생하면 이전 60 ms에 이어서 계산하지 않고 0 ms부터 새로 측정합니다.
+이후 다시 DIFF가 발생하면 이전 카운트에 이어서 계산하지 않고 첫 샘플부터 새로 측정합니다. RANGE/ADC 비트가 DIFF와 동시에 추가되거나 해제되어도 DIFF 자체가 계속 존재하는 한 카운터는 초기화되지 않습니다.
 
 ### CAN command 동작
 
-100 ms는 CAN command를 0으로 만들기 전의 대기시간이 아닙니다. 이상이 감지되는 즉시 `valid`가 `false`가 되며, `appsRunPedalCommand()`가 호출될 때마다 CAN command `0`을 계속 전송합니다.
+DIFF와 RANGE/ADC failure의 CAN 동작은 서로 다릅니다.
 
 ```text
-정상                         → 페달 명령 전송
-이상 감지 직후               → command 0 전송
-이상 지속 중                 → command 0 계속 전송
-100 ms 전에 정상 복구        → 페달 명령 전송 재개
-100 ms 이상 지속             → fault latch, command 0 계속 전송
-센서 정상 복구 후에도 latch  → command 0 계속 전송
-appsClearFault() 후 정상 측정 → 페달 명령 전송 재개
+정상                                  → 페달 명령 전송
+DIFF 연속 1..99 samples                → PENDING, 페달 명령 전송
+DIFF 연속 100 samples                  → ISR에서 failure, READY 즉시 LOW
+다음 APPS 메인 제어 실행               → command 0 전송
+DIFF가 100 samples 전에 완전히 사라짐 → 카운터 초기화
+RANGE failure 첫 ADC 샘플              → ISR에서 failure, READY 즉시 LOW
+다음 APPS 메인 제어 실행               → command 0 전송
+failure 활성 중 다른 이상이 남음       → command 0 유지
+모든 APPS 이상이 사라짐                → 정상 명령 전송 재개
 ```
+
+중요: RANGE 즉시 failure는 단선된 ADC 입력이 반드시 유효 raw 범위 밖으로 이동할 때만 단선을 검출합니다. 현재 보드처럼 ADC 입력이 부동인 상태에서 단선값이 93% 같은 정상 범위에 머물고 다른 채널과의 차이까지 10% 미만이 되면, 두 ADC 값만으로는 정상 입력과 구분할 수 없습니다. 현재 유효 하한도 `0`이므로 단순 풀다운은 `raw=0`을 정상 범위로 만들 수 있습니다. 단선 시 3.3 V 쪽 범위 밖으로 확실히 이동하도록 외부 풀업을 적용하고, 실측한 정상 최대값과 단선 최저값 사이에 `VALID_RAW_MAX`를 설정·검증해야 합니다.
 
 정상 구간에서도 페달 명령이 그대로 나가지는 않고, 양 끝이 스냅됩니다.
 
 ```c
-#define APPS_TORQUE_CUTOFF                 2949   /* 약 9%, 이하는 0 */
+#define APPS_TORQUE_CUTOFF                 1500   /* 약 4.6%, 이하는 0 */
 #define APPS_TORQUE_CUTOFF_HIGH            32112  /* 약 98%, 이상은 100% */
 ```
 
 아래쪽 cutoff는 페달을 놓았을 때 ADC 노이즈가 토크 요청으로 남지 않게 하고, 위쪽 cutoff는 기구 공차 때문에 완전히 밟아도 보정 최대치에 못 미치는(실측 99.1%) 상황에서 운전자가 100%를 낼 수 있게 합니다. 두 판정 모두 부호를 곱하기 전의 크기 기준이며, 결과는 `apps trace`의 `CUT` / `FULL` 상태로 확인할 수 있습니다.
 
-이 시간 계산은 `delay(100)`으로 CPU를 정지시키는 방식이 아닙니다. `millis()` 차이만 계산하는 non-blocking 방식이므로 CLI, CAN, LED 같은 다른 처리를 계속 실행할 수 있습니다. 단, 시간 검사와 CAN 전송은 `appsRunPedalCommand()` 또는 `appsUpdate()`가 호출될 때 진행되므로 실제 제어 루프에서는 이 함수를 일정한 주기로 반복 호출해야 합니다.
+DIFF 시간 판정은 1 kHz ADC 인터럽트에서 정수 카운터와 GPIO/flag 갱신만 수행합니다. ISR에서 대기 가능성이 있는 CAN API는 호출하지 않습니다. 따라서 100번째 DIFF 샘플에서 READY는 바로 LOW가 되지만 CAN command 0은 다음 `appsRunPedalCommand()`에서 전송됩니다. READY가 실제 인버터 enable/torque gate를 차단하지 않는 단순 진단선이라면 CAN 전송·중재·인버터 반응 지연까지 포함한 100 ms 규정 충족은 이 코드만으로 보장되지 않습니다. 경기용 빌드에서는 blocking CLI를 비활성화하고 APPS 물리 고장 시점부터 READY LOW 및 실제 CAN 0 도달시간을 각각 계측해야 합니다.
 
 STM32CubeIDE managed build를 쓰면 새 하위 폴더가 자동 빌드 목록에 들어가도록 project refresh 또는 makefile regeneration이 필요할 수 있습니다.
 

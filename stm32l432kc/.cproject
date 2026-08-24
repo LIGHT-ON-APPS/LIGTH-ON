@@ -79,7 +79,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="src/hw/driver/cli.c|src/hw/driver/sd.c|src/hw/driver/rtc.c|src/hw/driver/lcd|src/hw/driver/hangul|src/hw/driver/fatfs.c|src/hw/driver/fatfs|src/hw/driver/spi.c|src/hw/driver/lcd.c|src/hw/driver/led.c|src/hw/driver/fd_can.c|src/lib/cube_l432/Core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/hw/driver/sd.c|src/hw/driver/rtc.c|src/hw/driver/lcd|src/hw/driver/hangul|src/hw/driver/fatfs.c|src/hw/driver/fatfs|src/hw/driver/spi.c|src/hw/driver/lcd.c|src/hw/driver/led.c|src/hw/driver/fd_can.c|src/lib/cube_l432/Core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -151,7 +151,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="src/hw/driver/cli.c|src/hw/driver/sd.c|src/hw/driver/rtc.c|src/hw/driver/lcd|src/hw/driver/hangul|src/hw/driver/fatfs.c|src/hw/driver/fatfs|src/hw/driver/spi.c|src/hw/driver/lcd.c|src/hw/driver/led.c|src/hw/driver/fd_can.c|src/lib/cube_l432/Core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/hw/driver/sd.c|src/hw/driver/rtc.c|src/hw/driver/lcd|src/hw/driver/hangul|src/hw/driver/fatfs.c|src/hw/driver/fatfs|src/hw/driver/spi.c|src/hw/driver/lcd.c|src/hw/driver/led.c|src/hw/driver/fd_can.c|src/lib/cube_l432/Core" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
