@@ -17,6 +17,7 @@ extern "C" {
 #ifdef _USE_HW_ADC
 
 #define ADC_MAX_CH                  HW_ADC_MAX_CH
+#define ADC_SAMPLE_HZ               1000U
 
 typedef void (*adc_update_callback_t)(void);
 
@@ -24,6 +25,11 @@ bool adcInit(void);
 bool adcIsInit(void);
 bool adcUpdate(void);
 void adcSetUpdateCallback(adc_update_callback_t callback);
+
+/* Optional display name for a channel, e.g. "SIGNAL1". Shown by the "adc"
+ * CLI so a caller-assigned channel meaning stays visible next to the raw
+ * value, without this generic driver knowing what that meaning is. */
+void adcSetChannelLabel(uint8_t ch, const char *label);
 
 int32_t adcRead(uint8_t ch);
 int32_t adcRead8(uint8_t ch);

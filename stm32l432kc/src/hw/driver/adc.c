@@ -15,7 +15,6 @@
 #define ADC_12BIT_FULL_SCALE         4095U
 #define ADC_REFERENCE_MV             3300U
 #define ADC_REFERENCE_VOLTAGE        3.3f
-#define ADC_SAMPLE_HZ                1000U
 #define ADC_TIM_BASE_HZ              1000000U
 
 
@@ -45,6 +44,7 @@ static TIM_HandleTypeDef htim6;
 static adc_update_callback_t adc_update_callback = NULL;
 static uint16_t adc_dma_buf[ADC_MAX_CH];
 static volatile bool adc_sample_ready = false;
+static const char *adc_channel_label[ADC_MAX_CH] = {NULL,};
 
 static adc_t adc_tbl[ADC_MAX_CH] =
 {
@@ -273,6 +273,16 @@ void adcSetUpdateCallback(adc_update_callback_t callback)
   adc_update_callback = callback;
 }
 
+void adcSetChannelLabel(uint8_t ch, const char *label)
+{
+  if (ch >= ADC_MAX_CH)
+  {
+    return;
+  }
+
+  adc_channel_label[ch] = label;
+}
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *p_hadc)
 {
   if (p_hadc->Instance != ADC1)
@@ -441,12 +451,15 @@ static void cliAdcPrintChannel(uint8_t ch)
 {
   uint32_t raw;
   uint32_t voltage_mv;
+  const char *label;
 
   raw = (uint32_t)adcRead(ch);
   voltage_mv = adcConvMillivolts(ch, raw);
+  label = (adc_channel_label[ch] != NULL) ? adc_channel_label[ch] : "-";
 
-  cliPrintf("%02d. raw=%4d, voltage=%d.%03dV (%dmV)\n",
+  cliPrintf("%02d. [%-8s] raw=%4d, voltage=%d.%03dV (%dmV)\n",
             ch,
+            label,
             (int)raw,
             (int)(voltage_mv / 1000U),
             (int)(voltage_mv % 1000U),
