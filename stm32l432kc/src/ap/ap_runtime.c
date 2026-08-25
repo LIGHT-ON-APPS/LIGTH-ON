@@ -423,7 +423,11 @@ void apDiagCanGetStats(uint32_t *p_tx_total, uint32_t *p_tx_fail)
  *
  * 주기 송신 슬롯은 최대 8개다(CAN-BUS 매뉴얼 2024/V2 15쪽:
  * "max. 8 state values which send their status cyclically").
- * 지금 정확히 8개로 꽉 찼다. 새 레지스터를 주기로 넣으려면 하나를 빼야 한다.
+ * 지금 7개를 쓰므로 한 칸 남는다.
+ *
+ * 0xA8(REGID_SPEED_ACTUAL_FILT)을 뺀 자리다. 오래 실토크로 알고 요청했지만
+ * 실은 드라이브가 필터를 먹인 실회전수라(NDrive settings/regid.txt) 0x30 과
+ * 같은 값이었다. 계기판은 0x30 을 쓰므로 잃는 정보가 없다.
  *
  * interval 이 0 이면 1회만 보낸다(매뉴얼 5.2절, Byte 2 = 0x00). 값이 변하지
  * 않는 설정 레지스터는 이쪽을 쓴다 — 슬롯을 먹지 않고, 재무장 주기마다 한 번씩
@@ -437,17 +441,13 @@ static void apBamocarRequestTelemetry(void)
     uint8_t interval_ms;   /* 0 = 단발 */
   } request_regs[] =
   {
-    /* --- 주기 송신 8/8 (한도 꽉 참) --- */
+    /* --- 주기 송신 7/8 (한 칸 여유) --- */
     { 0x30U, BAMOCAR_REQUEST_INTERVAL_MS },   /* 실제 모터 회전수 */
     { 0x49U, BAMOCAR_REQUEST_INTERVAL_MS },   /* 모터 온도        */
     { 0x4AU, BAMOCAR_REQUEST_INTERVAL_MS },   /* IGBT 온도        */
     { 0xEBU, BAMOCAR_REQUEST_INTERVAL_MS },   /* DC 버스 전압     */
     { 0x40U, BAMOCAR_REQUEST_INTERVAL_MS },   /* 인버터 상태      */
     { 0x8FU, BAMOCAR_REQUEST_INTERVAL_MS },   /* 에러/경고 워드   */
-    /* 0xA8 은 실토크가 아니라 REGID_SPEED_ACTUAL_FILT, 즉 드라이브가 필터를
-     * 먹인 실회전수다(NDrive settings/regid.txt). 오래 실토크로 알고 있었다.
-     * 슬롯이 아쉬우면 0x30 과 같은 값이므로 여기부터 빼면 된다. */
-    { 0xA8U, BAMOCAR_REQUEST_INTERVAL_MS },   /* 필터된 실회전수  */
     { 0xA0U, BAMOCAR_REQUEST_INTERVAL_MS },   /* 실제 출력 토크   */
 
     /* --- 단발 (슬롯을 쓰지 않는다) --- */
