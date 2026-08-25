@@ -17,13 +17,18 @@ extern "C" {
 #ifdef _USE_HW_ADC
 
 #define ADC_MAX_CH                  HW_ADC_MAX_CH
-#define ADC_SAMPLE_HZ               1000U
+#define ADC_SAMPLE_HZ               10000U
 
 typedef void (*adc_update_callback_t)(void);
 
 bool adcInit(void);
 bool adcIsInit(void);
 bool adcUpdate(void);
+bool adcIsRuntimeHealthy(void);
+uint32_t adcGetLastSampleUs(void);
+uint32_t adcGetSampleSequence(void);
+uint32_t adcGetTimingFaultCount(void);
+uint32_t adcGetCallbackMaxCycles(void);
 void adcSetUpdateCallback(adc_update_callback_t callback);
 
 /* Optional display name for a channel, e.g. "SIGNAL1". Shown by the "adc"

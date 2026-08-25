@@ -434,8 +434,8 @@ bool canMsgWrite(uint8_t ch, can_msg_t *p_msg, uint32_t timeout)
   pre_time = millis();
   if(HAL_CAN_AddTxMessage(p_can, &tx_header, p_msg->data, &tx_mailbox) == HAL_OK)
   {
-    /* Wait transmission complete */
-    while(HAL_CAN_GetTxMailboxesFreeLevel(p_can) == 0)
+    /* timeout=0 is a bounded enqueue-only operation for safety-critical use. */
+    while ((timeout > 0U) && (HAL_CAN_GetTxMailboxesFreeLevel(p_can) == 0U))
     {
       if (millis()-pre_time >= timeout)
       {
@@ -883,11 +883,11 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     GPIO_InitStruct.Alternate = GPIO_AF9_CAN1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    HAL_NVIC_SetPriority(CAN1_TX_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(CAN1_TX_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(CAN1_TX_IRQn);
-    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
-    HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
   }
 }

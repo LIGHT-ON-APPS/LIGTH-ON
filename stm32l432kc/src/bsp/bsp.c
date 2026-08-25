@@ -10,10 +10,16 @@
 #include "uart.h"
 
 
+#define BSP_MICROS_TIMER_HZ  1000000U
+
 
 void SystemClock_Config(void);
 
 static bool is_delay_us_init = false;
+static bool is_micros_init = false;
+
+static bool microsInit(void);
+static uint32_t microsTim2GetClockHz(void);
 
 static uint32_t delayUsGetTickPerUs(void)
 {
@@ -35,6 +41,11 @@ void bspInit(void)
   HAL_Init();
   SystemClock_Config();
   delayUsInit();
+
+  if (microsInit() != true)
+  {
+    Error_Handler();
+  }
 
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -118,21 +129,71 @@ uint32_t millis(void)
   return HAL_GetTick();
 }
 
-uint32_t micros(void)
+static uint32_t microsTim2GetClockHz(void)
 {
-  uint32_t tick_per_us;
+  RCC_ClkInitTypeDef clk_init;
+  uint32_t flash_latency;
+  uint32_t tim_clk;
 
-  if(is_delay_us_init != true)
+  tim_clk = HAL_RCC_GetPCLK1Freq();
+  HAL_RCC_GetClockConfig(&clk_init, &flash_latency);
+
+  if (clk_init.APB1CLKDivider != RCC_HCLK_DIV1)
   {
-    if(delayUsInit() != true)
-    {
-      return 0;
-    }
+    tim_clk *= 2U;
   }
 
-  tick_per_us = delayUsGetTickPerUs();
+  return tim_clk;
+}
 
-  return DWT->CYCCNT / tick_per_us;
+static bool microsInit(void)
+{
+  uint32_t tim_clk;
+  uint32_t prescaler_div;
+
+  is_micros_init = false;
+  tim_clk = microsTim2GetClockHz();
+
+  if ((tim_clk < BSP_MICROS_TIMER_HZ) ||
+      ((tim_clk % BSP_MICROS_TIMER_HZ) != 0U))
+  {
+    return false;
+  }
+
+  prescaler_div = tim_clk / BSP_MICROS_TIMER_HZ;
+  if ((prescaler_div == 0U) || (prescaler_div > ((uint32_t)UINT16_MAX + 1U)))
+  {
+    return false;
+  }
+
+  __HAL_RCC_TIM2_CLK_ENABLE();
+
+  TIM2->CR1 = 0U;
+  TIM2->PSC = prescaler_div - 1U;
+  TIM2->ARR = UINT32_MAX;
+  TIM2->EGR = TIM_EGR_UG;
+  TIM2->SR = 0U;
+  TIM2->CNT = 0U;
+  TIM2->CR1 = TIM_CR1_CEN;
+
+  is_micros_init = true;
+  return true;
+}
+
+bool microsIsInit(void)
+{
+  return (is_micros_init == true) &&
+         ((TIM2->CR1 & TIM_CR1_CEN) != 0U);
+}
+
+uint32_t micros(void)
+{
+  if (microsIsInit() != true)
+  {
+    return 0U;
+  }
+
+  return TIM2->CNT;
 }
 
 int __io_putchar(int ch)

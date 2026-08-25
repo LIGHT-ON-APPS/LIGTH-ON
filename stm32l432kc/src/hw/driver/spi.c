@@ -461,9 +461,9 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
 
       __HAL_LINKDMA(spiHandle,hdmatx,hdma_spi1_tx);
 
-      HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
+      HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 1, 0);
       HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
-      HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
+      HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 1, 0);
       HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 
     /* USER CODE BEGIN SPI1_MspInit 1 */
@@ -526,9 +526,9 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
 
         __HAL_LINKDMA(spiHandle,hdmarx,hdma_spi3_rx);
 
-        HAL_NVIC_SetPriority(DMA2_Channel1_IRQn, 0, 0);
+        HAL_NVIC_SetPriority(DMA2_Channel1_IRQn, 1, 0);
         HAL_NVIC_EnableIRQ(DMA2_Channel1_IRQn);
-        HAL_NVIC_SetPriority(DMA2_Channel2_IRQn, 0, 0);
+        HAL_NVIC_SetPriority(DMA2_Channel2_IRQn, 1, 0);
         HAL_NVIC_EnableIRQ(DMA2_Channel2_IRQn);
 
       /* USER CODE BEGIN SPI3_MspInit 1 */
