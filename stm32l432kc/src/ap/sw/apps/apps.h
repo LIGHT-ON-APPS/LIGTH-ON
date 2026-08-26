@@ -96,7 +96,7 @@ extern "C" {
  * the driver could never request full torque. 32112 is about 98%.
  */
 // apps에서 토크 컷오프 설정 값
-#define APPS_TORQUE_CUTOFF                 0
+#define APPS_TORQUE_CUTOFF                 1500
 #define APPS_TORQUE_CUTOFF_HIGH            32767
 
 typedef enum
