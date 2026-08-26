@@ -39,10 +39,10 @@ extern "C" {
  */
 
 // apps에서 adc 컷오프 설정 값
-#define APPS_SIGNAL1_RAW_MIN_DEFAULT       346U       //0.279v
-#define APPS_SIGNAL1_RAW_MAX_DEFAULT       2879U      //2.320v
-#define APPS_SIGNAL2_RAW_MIN_DEFAULT       472U       //0.380v
-#define APPS_SIGNAL2_RAW_MAX_DEFAULT       3785U      //3.050v
+#define APPS_SIGNAL1_RAW_MIN_DEFAULT       121U       //0.085v
+#define APPS_SIGNAL1_RAW_MAX_DEFAULT       2740U      //2.208v
+#define APPS_SIGNAL2_RAW_MIN_DEFAULT       83U        //0.064v
+#define APPS_SIGNAL2_RAW_MAX_DEFAULT       2070U      //1.672v
 
 /*
  * Independent electrical plausibility limits. A reading outside this window
@@ -53,31 +53,24 @@ extern "C" {
  */
 
 //apps에서 adc상에서 유효하게 찍히는 전압의 최대 최솟값
-#define APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT 346U			// 0.279v
-#define APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT 2879U		// 2.320v
-#define APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT 472U			// 0.380v
-#define APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT 3785U		// 3.050v
+#define APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT 0U
+#define APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT 3685U
+#define APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT 0U
+#define APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT 2792U
 
 /* Max allowed APPS1/APPS2 difference. Unit: per-mille, 100 = 10.0%. */
 #define APPS_DIFF_MAX                      100U
 
 /* APPS control loop period. Unit: ms. */
 #define APPS_RUN_MS                        10U
-#define APPS_ADC_SAMPLE_PERIOD_US           (1000000U / ADC_SAMPLE_HZ)
-#define APPS_ADC_STALE_US                   (APPS_ADC_SAMPLE_PERIOD_US * 5U)
+#define APPS_ADC_STALE_MS                  APPS_RUN_MS
 
-/* Required continuous APPS implausibility duration. Unit: ms. */
+/* Regulatory maximum for continuous APPS implausibility. Unit: ms. */
 #define APPS_FAULT_MS                      100U
-#define APPS_FAULT_US                      (APPS_FAULT_MS * 1000U)
 
-/*
- * Nominal diagnostic sample count for the timestamp window. The decision is
- * made from TIM2 elapsed time, not this count.
- */
-#define APPS_DIFF_CONFIRM_INTERVALS        \
-  (((APPS_FAULT_US * ADC_SAMPLE_HZ) + 999999U) / 1000000U)
+/* Number of consecutive 1 kHz ADC samples spanning the 100 ms rule window. */
 #define APPS_DIFF_CONFIRM_SAMPLES          \
-  (APPS_DIFF_CONFIRM_INTERVALS + 1U)
+  (((APPS_FAULT_MS * ADC_SAMPLE_HZ) + 999U) / 1000U)
 
 /* Torque command sent at 100% pedal. Unit: Bamocar raw command. */
 #define APPS_TORQUE_MAX                    BAMOCAR_TORQUE_CMD_MAX
@@ -104,7 +97,7 @@ extern "C" {
  */
 // apps에서 토크 컷오프 설정 값
 #define APPS_TORQUE_CUTOFF                 1500
-#define APPS_TORQUE_CUTOFF_HIGH            32767
+#define APPS_TORQUE_CUTOFF_HIGH            32112
 
 typedef enum
 {

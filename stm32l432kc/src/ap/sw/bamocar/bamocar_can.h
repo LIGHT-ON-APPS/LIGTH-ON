@@ -48,9 +48,6 @@ void bamocarCanMakeReadRequest(uint32_t rx_id, uint8_t reg_id,
 /* Send a torque command immediately through the selected CAN channel. */
 bool bamocarCanSendTorqueCmd(uint8_t can_ch, int16_t torque_cmd);
 
-/* Bounded mailbox enqueue; does not wait for transmission completion. */
-bool bamocarCanSendTorqueCmdNoWait(uint8_t can_ch, int16_t torque_cmd);
-
 #ifdef __cplusplus
 }
 #endif

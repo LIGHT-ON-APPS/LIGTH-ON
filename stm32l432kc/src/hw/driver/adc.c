@@ -16,17 +16,6 @@
 #define ADC_REFERENCE_MV             3300U
 #define ADC_REFERENCE_VOLTAGE        3.3f
 #define ADC_TIM_BASE_HZ              1000000U
-#define ADC_DMA_PAIR_COUNT           2U
-#define ADC_DMA_BUFFER_LEN           (ADC_MAX_CH * ADC_DMA_PAIR_COUNT)
-#define ADC_SAMPLE_PERIOD_US         (ADC_TIM_BASE_HZ / ADC_SAMPLE_HZ)
-#define ADC_SAMPLE_GAP_MIN_US        (ADC_SAMPLE_PERIOD_US / 2U)
-#define ADC_SAMPLE_GAP_MAX_US        ((ADC_SAMPLE_PERIOD_US * 3U) / 2U)
-
-_Static_assert(ADC_MAX_CH == 2U,
-               "ADC ping-pong DMA layout requires exactly two channels");
-_Static_assert(ADC_SAMPLE_HZ > 0U, "ADC sample frequency must be non-zero");
-_Static_assert((ADC_TIM_BASE_HZ % ADC_SAMPLE_HZ) == 0U,
-               "ADC sample period must divide the 1 MHz TIM6 timebase exactly");
 
 
 typedef struct
@@ -46,8 +35,6 @@ static bool adcOpen(void);
 static bool adcConfigChannels(void);
 static bool adcTim6Init(void);
 static uint32_t adcTim6GetClockHz(void);
-static void adcProcessDmaPair(uint32_t buffer_offset);
-static void adcRecordRuntimeFault(void);
 
 
 static ADC_HandleTypeDef hadc1;
@@ -55,14 +42,8 @@ DMA_HandleTypeDef hdma_adc1;
 static TIM_HandleTypeDef htim6;
 
 static adc_update_callback_t adc_update_callback = NULL;
-static volatile uint16_t adc_dma_buf[ADC_DMA_BUFFER_LEN];
+static uint16_t adc_dma_buf[ADC_MAX_CH];
 static volatile bool adc_sample_ready = false;
-static volatile bool adc_runtime_healthy = false;
-static volatile bool adc_have_last_sample = false;
-static volatile uint32_t adc_last_sample_us = 0U;
-static volatile uint32_t adc_sample_sequence = 0U;
-static volatile uint32_t adc_timing_fault_count = 0U;
-static volatile uint32_t adc_callback_max_cycles = 0U;
 static const char *adc_channel_label[ADC_MAX_CH] = {NULL,};
 
 static adc_t adc_tbl[ADC_MAX_CH] =
@@ -74,30 +55,17 @@ static adc_t adc_tbl[ADC_MAX_CH] =
 
 bool adcInit(void)
 {
-  bool ret = false;
+  bool ret;
 
   for (int i = 0; i < ADC_MAX_CH; i++)
   {
     adc_tbl[i].is_open = false;
     adc_tbl[i].data = 0;
+    adc_dma_buf[i] = 0;
   }
-  for (uint32_t i = 0U; i < ADC_DMA_BUFFER_LEN; i++)
-  {
-    adc_dma_buf[i] = 0U;
-  }
-
   adc_sample_ready = false;
-  adc_runtime_healthy = false;
-  adc_have_last_sample = false;
-  adc_last_sample_us = 0U;
-  adc_sample_sequence = 0U;
-  adc_timing_fault_count = 0U;
-  adc_callback_max_cycles = 0U;
 
-  if (microsIsInit() == true)
-  {
-    ret = adcOpen();
-  }
+  ret = adcOpen();
 
 #ifdef _USE_HW_CLI
   cliAdd("adc", cliAdc);
@@ -152,9 +120,15 @@ static bool adcOpen(void)
 
   if (ret == true)
   {
-    if (HAL_ADC_Start_DMA(&hadc1,
-                          (uint32_t *)adc_dma_buf,
-                          ADC_DMA_BUFFER_LEN) != HAL_OK)
+    if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_dma_buf, ADC_MAX_CH) != HAL_OK)
+    {
+      ret = false;
+    }
+  }
+
+  if (ret == true)
+  {
+    if (HAL_TIM_Base_Start(&htim6) != HAL_OK)
     {
       ret = false;
     }
@@ -165,17 +139,6 @@ static bool adcOpen(void)
     for (int i = 0; i < ADC_MAX_CH; i++)
     {
       adc_tbl[i].is_open = true;
-    }
-    adc_runtime_healthy = true;
-
-    if (HAL_TIM_Base_Start(&htim6) != HAL_OK)
-    {
-      adc_runtime_healthy = false;
-      for (int i = 0; i < ADC_MAX_CH; i++)
-      {
-        adc_tbl[i].is_open = false;
-      }
-      ret = false;
     }
   }
 
@@ -248,30 +211,22 @@ static bool adcTim6Init(void)
   uint32_t period_tick;
 
   tim_clk = adcTim6GetClockHz();
-  if ((tim_clk < ADC_TIM_BASE_HZ) ||
-      ((tim_clk % ADC_TIM_BASE_HZ) != 0U))
+  if (tim_clk == 0U)
   {
     return false;
   }
 
-  prescaler_div = tim_clk / ADC_TIM_BASE_HZ;
-  if ((prescaler_div == 0U) ||
-      (prescaler_div > ((uint32_t)UINT16_MAX + 1U)))
+  prescaler_div = (tim_clk + ADC_TIM_BASE_HZ - 1U) / ADC_TIM_BASE_HZ;
+  if (prescaler_div == 0U)
   {
-    return false;
+    prescaler_div = 1U;
   }
 
   tick_hz = tim_clk / prescaler_div;
-  if ((tick_hz % ADC_SAMPLE_HZ) != 0U)
-  {
-    return false;
-  }
-
   period_tick = tick_hz / ADC_SAMPLE_HZ;
-  if ((period_tick == 0U) ||
-      (period_tick > ((uint32_t)UINT16_MAX + 1U)))
+  if (period_tick == 0U)
   {
-    return false;
+    period_tick = 1U;
   }
 
   __HAL_RCC_TIM6_CLK_ENABLE();
@@ -310,32 +265,7 @@ bool adcUpdate(void)
     return false;
   }
 
-  return adcIsRuntimeHealthy();
-}
-
-bool adcIsRuntimeHealthy(void)
-{
-  return (adc_runtime_healthy == true) && (microsIsInit() == true);
-}
-
-uint32_t adcGetLastSampleUs(void)
-{
-  return adc_last_sample_us;
-}
-
-uint32_t adcGetSampleSequence(void)
-{
-  return adc_sample_sequence;
-}
-
-uint32_t adcGetTimingFaultCount(void)
-{
-  return adc_timing_fault_count;
-}
-
-uint32_t adcGetCallbackMaxCycles(void)
-{
-  return adc_callback_max_cycles;
+  return true;
 }
 
 void adcSetUpdateCallback(adc_update_callback_t callback)
@@ -353,102 +283,24 @@ void adcSetChannelLabel(uint8_t ch, const char *label)
   adc_channel_label[ch] = label;
 }
 
-static void adcRecordRuntimeFault(void)
-{
-  adc_runtime_healthy = false;
-  adc_timing_fault_count++;
-}
-
-static void adcProcessDmaPair(uint32_t buffer_offset)
-{
-  uint32_t callback_start_cycles;
-  uint32_t callback_cycles;
-  uint32_t now_us;
-
-  callback_start_cycles = DWT->CYCCNT;
-
-  if ((buffer_offset + ADC_MAX_CH) > ADC_DMA_BUFFER_LEN)
-  {
-    return;
-  }
-
-  for (int i = 0; i < ADC_MAX_CH; i++)
-  {
-    adc_tbl[i].data = adc_dma_buf[buffer_offset + (uint32_t)i];
-  }
-
-  if (microsIsInit() == true)
-  {
-    now_us = micros();
-
-    if (adc_have_last_sample == true)
-    {
-      uint32_t gap_us = now_us - adc_last_sample_us;
-
-      if ((gap_us < ADC_SAMPLE_GAP_MIN_US) ||
-          (gap_us > ADC_SAMPLE_GAP_MAX_US))
-      {
-        adcRecordRuntimeFault();
-      }
-    }
-
-    adc_last_sample_us = now_us;
-    adc_have_last_sample = true;
-  }
-  else
-  {
-    adcRecordRuntimeFault();
-  }
-
-  adc_sample_ready = true;
-  adc_sample_sequence++;
-
-  if (adc_update_callback != NULL)
-  {
-    adc_update_callback();
-  }
-
-  callback_cycles = DWT->CYCCNT - callback_start_cycles;
-  if (callback_cycles > adc_callback_max_cycles)
-  {
-    adc_callback_max_cycles = callback_cycles;
-  }
-}
-
-void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *p_hadc)
-{
-  if (p_hadc->Instance == ADC1)
-  {
-    adcProcessDmaPair(0U);
-  }
-}
-
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *p_hadc)
-{
-  if (p_hadc->Instance == ADC1)
-  {
-    adcProcessDmaPair(ADC_MAX_CH);
-  }
-}
-
-void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *p_hadc)
 {
   if (p_hadc->Instance != ADC1)
   {
     return;
   }
 
-  adcRecordRuntimeFault();
+  for (int i = 0; i < ADC_MAX_CH; i++)
+  {
+    adc_tbl[i].data = adc_dma_buf[i];
+  }
+
+  adc_sample_ready = true;
 
   if (adc_update_callback != NULL)
   {
     adc_update_callback();
   }
-}
-
-void ADC1_IRQHandler(void)
-{
-  HAL_ADC_IRQHandler(&hadc1);
 }
 
 void HAL_ADC_MspInit(ADC_HandleTypeDef *p_hadc)
@@ -490,8 +342,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *p_hadc)
     hdma_adc1.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
     hdma_adc1.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
     hdma_adc1.Init.Mode = DMA_CIRCULAR;
-    /* APPS acquisition must win DMA arbitration over non-safety telemetry. */
-    hdma_adc1.Init.Priority = DMA_PRIORITY_HIGH;
+    hdma_adc1.Init.Priority = DMA_PRIORITY_LOW;
 
     if (HAL_DMA_Init(&hdma_adc1) != HAL_OK)
     {
@@ -500,11 +351,8 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *p_hadc)
 
     __HAL_LINKDMA(p_hadc, DMA_Handle, hdma_adc1);
 
-    /* APPS sampling preempts CAN/SPI service; callbacks never transmit CAN. */
-    HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-    HAL_NVIC_SetPriority(ADC1_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(ADC1_IRQn);
   }
 }
 
@@ -521,22 +369,14 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *p_hadc)
 
     HAL_DMA_DeInit(p_hadc->DMA_Handle);
     HAL_NVIC_DisableIRQ(DMA1_Channel1_IRQn);
-    HAL_NVIC_DisableIRQ(ADC1_IRQn);
   }
 }
 
 int32_t adcRead(uint8_t ch)
 {
-  if (ch >= ADC_MAX_CH)
+  if ((ch >= ADC_MAX_CH) || (adc_tbl[ch].is_open != true))
   {
     return 0;
-  }
-
-  if ((adc_tbl[ch].is_open != true) ||
-      (adc_sample_ready != true) ||
-      (adcIsRuntimeHealthy() != true))
-  {
-    return -1;
   }
 
   return adc_tbl[ch].data;

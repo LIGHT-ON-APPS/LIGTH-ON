@@ -17,10 +17,8 @@
 
 #define APPS_TIMED_FAULT_MASK      APPS_STATUS_DIFF_FAULT
 
-_Static_assert(APPS_DIFF_CONFIRM_SAMPLES > 1U,
-               "APPS DIFF timestamp window needs at least two ADC samples");
-_Static_assert((1000000U % ADC_SAMPLE_HZ) == 0U,
-               "APPS ADC rate must have an exact microsecond period");
+_Static_assert(APPS_DIFF_CONFIRM_SAMPLES > 0U,
+               "APPS DIFF confirmation needs at least one ADC sample");
 _Static_assert((APPS_IMMEDIATE_FAULT_MASK & APPS_TIMED_FAULT_MASK) == 0U,
                "APPS immediate and timed fault masks must not overlap");
 
@@ -48,15 +46,15 @@ typedef enum
 } apps_cutoff_t;
 
 /*
- * The ADC completion ISR normally owns this policy. Main-loop ADC watchdog
- * failures join the same episode only while IRQs are masked. The DIFF window
- * is measured from the first bad pair with the 1 MHz TIM2 timebase.
+ * The 1 kHz ADC completion ISR normally owns this policy. Main-loop ADC
+ * watchdog failures join the same episode only while IRQs are masked.
+ * Counting consecutive samples avoids the 10 ms cooperative-main-loop
+ * quantisation that previously led to an internal timing compensation.
  */
 typedef struct
 {
-  uint32_t first_bad_us;
-  uint32_t elapsed_us;
-  uint32_t confirmed_elapsed_us;
+  uint32_t bad_sample_count;
+  uint32_t elapsed_ms;
   uint32_t pending_status;
   uint32_t confirmed_status;
   uint32_t active_status;
@@ -69,7 +67,6 @@ typedef struct
   uint32_t observed_status;
   uint32_t effective_status;
   uint32_t actionable_events;
-  uint32_t confirmed_elapsed_us;
 } apps_isr_fault_snapshot_t;
 
 typedef struct
@@ -91,13 +88,14 @@ typedef struct
   volatile uint32_t isr_fault_status;
   volatile uint32_t isr_effective_fault_status;
   volatile uint32_t isr_actionable_fault_events;
-  volatile uint32_t isr_confirmed_elapsed_event_us;
+  volatile uint32_t isr_adc_sequence;
   volatile bool     isr_output_inhibit;
 
   volatile apps_fault_policy_t fault_policy;
+  uint32_t adc_sequence_seen;
+  uint32_t adc_sequence_seen_ms;
   uint32_t observed_status;
   uint32_t fault_latched_status;
-  uint32_t fault_confirmed_elapsed_us;
   bool     fault_latched;
 
   bool     initialized;
@@ -116,9 +114,8 @@ static void appsUpdateReadyGpio(void);
 
 static void appsFaultPolicyClearDelayed(volatile apps_fault_policy_t *p_policy)
 {
-  p_policy->first_bad_us = 0U;
-  p_policy->elapsed_us = 0U;
-  p_policy->confirmed_elapsed_us = 0U;
+  p_policy->bad_sample_count = 0U;
+  p_policy->elapsed_ms = 0U;
   p_policy->pending_status = APPS_STATUS_OK;
   p_policy->confirmed_status = APPS_STATUS_OK;
   p_policy->timer_active = false;
@@ -131,10 +128,9 @@ static void appsFaultPolicyReset(volatile apps_fault_policy_t *p_policy)
   p_policy->failure_active = false;
 }
 
-/* Called once per coherent ADC pair from the 10 kHz DMA completion ISR. */
+/* Called once per coherent ADC pair from the 1 kHz DMA completion ISR. */
 static uint32_t appsFaultPolicyUpdate(volatile apps_fault_policy_t *p_policy,
-                                      uint32_t observed_status,
-                                      uint32_t sample_time_us)
+                                      uint32_t observed_status)
 {
   uint32_t immediate_status = observed_status & APPS_IMMEDIATE_FAULT_MASK;
   uint32_t delayed_status = observed_status & APPS_TIMED_FAULT_MASK;
@@ -148,24 +144,26 @@ static uint32_t appsFaultPolicyUpdate(volatile apps_fault_policy_t *p_policy,
   {
     if (p_policy->timer_active != true)
     {
-      p_policy->first_bad_us = sample_time_us;
-      p_policy->elapsed_us = 0U;
+      p_policy->bad_sample_count = 1U;
       p_policy->pending_status = delayed_status;
       p_policy->confirmed_status = APPS_STATUS_OK;
       p_policy->timer_active = true;
     }
     else
     {
+      if (p_policy->bad_sample_count < APPS_DIFF_CONFIRM_SAMPLES)
+      {
+        p_policy->bad_sample_count++;
+      }
       p_policy->pending_status |= delayed_status;
-      p_policy->elapsed_us =
-          (uint32_t)(sample_time_us - p_policy->first_bad_us);
     }
 
-    if ((p_policy->elapsed_us >= APPS_FAULT_US) &&
-        (p_policy->confirmed_status == APPS_STATUS_OK))
+    p_policy->elapsed_ms =
+        (p_policy->bad_sample_count * 1000U) / ADC_SAMPLE_HZ;
+
+    if (p_policy->bad_sample_count >= APPS_DIFF_CONFIRM_SAMPLES)
     {
       p_policy->confirmed_status = p_policy->pending_status;
-      p_policy->confirmed_elapsed_us = p_policy->elapsed_us;
     }
   }
 
@@ -258,37 +256,20 @@ static void appsTakeIsrFaultSnapshot(apps_isr_fault_snapshot_t *p_snapshot)
   p_snapshot->observed_status = apps.isr_fault_status;
   p_snapshot->effective_status = apps.isr_effective_fault_status;
   p_snapshot->actionable_events = apps.isr_actionable_fault_events;
-  p_snapshot->confirmed_elapsed_us =
-      apps.isr_confirmed_elapsed_event_us;
-  if (p_snapshot->confirmed_elapsed_us == 0U)
-  {
-    p_snapshot->confirmed_elapsed_us =
-        apps.fault_policy.confirmed_elapsed_us;
-  }
   apps.isr_actionable_fault_events = APPS_STATUS_OK;
-  apps.isr_confirmed_elapsed_event_us = 0U;
   if (primask == 0U)
   {
     __enable_irq();
   }
 }
 
-static void appsPublishAdcFaultStatus(uint32_t status,
-                                      uint32_t sample_time_us)
+static void appsPublishAdcFaultStatus(uint32_t status)
 {
   uint32_t effective_status;
 
-  effective_status = appsFaultPolicyUpdate(&apps.fault_policy,
-                                            status,
-                                            sample_time_us);
+  effective_status = appsFaultPolicyUpdate(&apps.fault_policy, status);
   apps.isr_fault_status = status;
   apps.isr_effective_fault_status = effective_status;
-
-  if ((apps.fault_policy.confirmed_status & APPS_STATUS_DIFF_FAULT) != 0U)
-  {
-    apps.isr_confirmed_elapsed_event_us =
-        apps.fault_policy.confirmed_elapsed_us;
-  }
 
   if (effective_status != APPS_STATUS_OK)
   {
@@ -299,6 +280,8 @@ static void appsPublishAdcFaultStatus(uint32_t status,
     gpioPinWrite(APPS_READY_GPIO_CH, false);
   }
 
+  /* Publish sequence last so a main-loop snapshot never sees half an update. */
+  apps.isr_adc_sequence++;
 }
 
 static bool appsTryReleaseIsrOutputInhibit(void)
@@ -387,32 +370,20 @@ static uint16_t appsRawToDigital(uint8_t signal, uint16_t raw, bool *p_range_ok)
 
 static void appsAdcCallback(void)
 {
-  bool signal1_range_ok = false;
-  bool signal2_range_ok = false;
+  bool signal1_range_ok 	= false;
+  bool signal2_range_ok 	= false;
   uint16_t signal1_per_mille;
   uint16_t signal2_per_mille;
   uint16_t difference_per_mille;
   int32_t raw_signal1;
   int32_t raw_signal2;
-  uint32_t status = APPS_STATUS_OK;
-  uint32_t sample_time_us = adcGetLastSampleUs();
-
-  /*
-   * A DMA timing/ADC error is an immediate failure. The driver publishes the
-   * timestamp before this callback, so acquisition and signal faults share the
-   * same coherent ISR-to-main handoff.
-   */
-  if ((microsIsInit() != true) || (adcIsRuntimeHealthy() != true))
-  {
-    appsPublishAdcFaultStatus(APPS_STATUS_ADC_READ_FAULT, sample_time_us);
-    return;
-  }
+  uint32_t status 			= APPS_STATUS_OK;
 
   /* Callback is registered only after apps.initialized is set, so it is
    * always true here; only calibration validity can still be missing. */
   if (apps.configured != true)
   {
-    appsPublishAdcFaultStatus(APPS_STATUS_NOT_CONFIGURED, sample_time_us);
+    appsPublishAdcFaultStatus(APPS_STATUS_NOT_CONFIGURED);
     return;
   }
 
@@ -422,16 +393,12 @@ static void appsAdcCallback(void)
   if ((raw_signal1 < 0) || (raw_signal1 > UINT16_MAX) ||
       (raw_signal2 < 0) || (raw_signal2 > UINT16_MAX))
   {
-    appsPublishAdcFaultStatus(APPS_STATUS_ADC_READ_FAULT, sample_time_us);
+    appsPublishAdcFaultStatus(APPS_STATUS_ADC_READ_FAULT);
     return;
   }
 
-  signal1_per_mille = appsRawToDigital(APPS_SIGNAL1,
-                                       (uint16_t)raw_signal1,
-                                       &signal1_range_ok);
-  signal2_per_mille = appsRawToDigital(APPS_SIGNAL2,
-                                       (uint16_t)raw_signal2,
-                                       &signal2_range_ok);
+  signal1_per_mille 		= appsRawToDigital(APPS_SIGNAL1, (uint16_t)raw_signal1, &signal1_range_ok);
+  signal2_per_mille 		= appsRawToDigital(APPS_SIGNAL2, (uint16_t)raw_signal2, &signal2_range_ok);
 
   if (signal1_range_ok != true)
   {
@@ -456,7 +423,7 @@ static void appsAdcCallback(void)
     status |= APPS_STATUS_DIFF_FAULT;
   }
 
-  appsPublishAdcFaultStatus(status, sample_time_us);
+  appsPublishAdcFaultStatus(status);
 }
 
 static void appsSetFaultState(uint32_t observed_status,
@@ -576,16 +543,6 @@ static bool appsEvaluate(uint16_t raw_signal1, uint16_t raw_signal2)
   effective_status = isr_snapshot.effective_status |
                      isr_snapshot.actionable_events |
                      (instant_status & APPS_IMMEDIATE_FAULT_MASK);
-  if (((effective_status & APPS_STATUS_DIFF_FAULT) != 0U) &&
-      (isr_snapshot.confirmed_elapsed_us != 0U))
-  {
-    apps.fault_confirmed_elapsed_us =
-        isr_snapshot.confirmed_elapsed_us;
-  }
-  else if ((effective_status & APPS_STATUS_DIFF_FAULT) == 0U)
-  {
-    apps.fault_confirmed_elapsed_us = 0U;
-  }
   appsSetFaultState(instant_status, effective_status);
 
   if ((effective_status == APPS_STATUS_OK) &&
@@ -656,7 +613,6 @@ static void appsResetFaultState(void)
   apps.isr_fault_status = APPS_STATUS_OK;
   apps.isr_effective_fault_status = APPS_STATUS_OK;
   apps.isr_actionable_fault_events = APPS_STATUS_OK;
-  apps.isr_confirmed_elapsed_event_us = 0U;
   apps.isr_output_inhibit = false;
   if (primask == 0U)
   {
@@ -664,7 +620,6 @@ static void appsResetFaultState(void)
   }
 
   apps.observed_status = APPS_STATUS_OK;
-  apps.fault_confirmed_elapsed_us = 0U;
   apps.valid = false;
   apps.command_sent = 0;
   apps.can_tx_ok = false;
@@ -739,10 +694,8 @@ static bool appsUpdate(void)
 {
   int32_t raw_signal1;
   int32_t raw_signal2;
-  uint32_t primask;
-  uint32_t now_us;
-  uint32_t last_sample_us;
-  bool adc_snapshot_ok;
+  uint32_t adc_sequence;
+  uint32_t now_ms;
 
   if (apps.initialized != true)     return false;
 
@@ -761,23 +714,27 @@ static bool appsUpdate(void)
     return false;
   }
 
-  /* Snapshot timestamp, health and both channels from one DMA publication. */
-  primask = __get_PRIMASK();
-  __disable_irq();
-  last_sample_us = adcGetLastSampleUs();
-  now_us = micros();
-  adc_snapshot_ok = (microsIsInit() == true) &&
-                    (adcIsRuntimeHealthy() == true);
-  raw_signal1 = adcRead(APPS_SIGNAL1_ADC_CH);
-  raw_signal2 = adcRead(APPS_SIGNAL2_ADC_CH);
-  if (primask == 0U)
+  now_ms = millis();
+  adc_sequence = apps.isr_adc_sequence;
+  if (adc_sequence == apps.adc_sequence_seen)
   {
-    __enable_irq();
+    if ((uint32_t)(now_ms - apps.adc_sequence_seen_ms) >= APPS_ADC_STALE_MS)
+    {
+      appsClearLastResult();
+      appsPublishMainImmediateFault(APPS_STATUS_ADC_READ_FAULT);
+      return false;
+    }
+  }
+  else
+  {
+    apps.adc_sequence_seen = adc_sequence;
+    apps.adc_sequence_seen_ms = now_ms;
   }
 
-  if ((adc_snapshot_ok != true) ||
-      ((uint32_t)(now_us - last_sample_us) >= APPS_ADC_STALE_US) ||
-      (raw_signal1 < 0) || (raw_signal1 > UINT16_MAX) ||
+  raw_signal1 = adcRead(APPS_SIGNAL1_ADC_CH);
+  raw_signal2 = adcRead(APPS_SIGNAL2_ADC_CH);
+
+  if ((raw_signal1 < 0) || (raw_signal1 > UINT16_MAX) ||
       (raw_signal2 < 0) || (raw_signal2 > UINT16_MAX))
   {
     appsClearLastResult();
@@ -791,7 +748,6 @@ static bool appsUpdate(void)
 static bool appsSendCommand(int16_t prepared_command)
 {
   int16_t command_to_send;
-  uint32_t primask;
 
   if (apps.initialized != true)
   {
@@ -852,28 +808,10 @@ static bool appsSendCommand(int16_t prepared_command)
     (void)canOpen(APPS_CAN_CH, CAN_NORMAL, CAN_CLASSIC, CAN_500K, CAN_500K);
   }
 
-  /*
-   * Make the final inhibit decision and the bounded mailbox enqueue one
-   * ordered commit.  The no-wait path contains no millisecond polling, so this
-   * critical section remains short enough for the 10 kHz ADC deadline.
-   */
-  primask = __get_PRIMASK();
-  __disable_irq();
-  if (apps.isr_output_inhibit == true)
-  {
-    command_to_send = 0;
-    apps.valid = false;
-    apps.cutoff = APPS_CUTOFF_NONE;
-  }
-
   apps.command_sent = command_to_send;
   apps.can_tx_muted = false;
-  apps.can_tx_ok = bamocarCanSendTorqueCmdNoWait(APPS_CAN_CH,
-                                                 command_to_send);
-  if (primask == 0U)
-  {
-    __enable_irq();
-  }
+  apps.can_tx_ok = bamocarCanSendTorqueCmd(APPS_CAN_CH,
+                                           command_to_send);
 
   if (apps.can_tx_ok != true)
   {
@@ -953,15 +891,15 @@ static const char *appsCliStateName(void)
   return "OK";
 }
 
-/* Freeze the actual first-bad elapsed duration once DIFF is confirmed. */
-static uint32_t appsCliFaultTimerUs(void)
+/* The fault timer never reads past the confirm time once the fault is latched. */
+static uint32_t appsCliFaultTimerMs(void)
 {
-  if (apps.fault_confirmed_elapsed_us != 0U)
+  if (apps.fault_policy.elapsed_ms > APPS_FAULT_MS)
   {
-    return apps.fault_confirmed_elapsed_us;
+    return APPS_FAULT_MS;
   }
 
-  return apps.fault_policy.elapsed_us;
+  return apps.fault_policy.elapsed_ms;
 }
 
 static const char *appsCliDiffStateName(void)
@@ -1041,7 +979,6 @@ static void appsCli(cli_args_t *args)
   {
     uint32_t status;
     uint32_t input_status;
-    uint32_t fault_timer_us;
     uint16_t difference_per_mille;
     uint16_t signal1_mv;
     uint16_t signal2_mv;
@@ -1050,7 +987,6 @@ static void appsCli(cli_args_t *args)
 
     status               = apps.status;
     input_status         = apps.observed_status;
-    fault_timer_us       = appsCliFaultTimerUs();
     difference_per_mille = appsCliDiffPerMille();
     signal1_mv           = (uint16_t)adcConvMillivolts(APPS_SIGNAL1_ADC_CH,
                                                        apps.raw[APPS_SIGNAL1]);
@@ -1082,9 +1018,8 @@ static void appsCli(cli_args_t *args)
     appsCliPrintFaultNames(input_status, "               ");
     cliPrintf("INHIBIT CAUSE: ");
     appsCliPrintFaultNames(apps.fault_latched_status, "               ");
-    cliPrintf("FAULT TIMER  : %lu.%03lu / %lu.000 ms\n",
-              (unsigned long)(fault_timer_us / 1000U),
-              (unsigned long)(fault_timer_us % 1000U),
+    cliPrintf("FAULT TIMER  : %lu / %lu ms\n",
+              (unsigned long)appsCliFaultTimerMs(),
               (unsigned long)APPS_FAULT_MS);
     cliPrintf("FAILURE      : %s\n", apps.fault_latched ? "ACTIVE" : "NONE");
     cliPrintf("STATUS       : 0x%08lX\n", (unsigned long)status);
@@ -1105,20 +1040,18 @@ static void appsCli(cli_args_t *args)
 	// 100ms 마다 반복
     cliPrintf("APPS MONITOR - press any key to stop\n");
     cliPrintf("--------------------------------------------------------------------------------\n");
-    cliPrintf("STATE       S1       S2      DIFF       TIMER(ms)  VALID     CMD  READY   CAN\n");
+    cliPrintf("STATE       S1       S2      DIFF      TIMER  VALID     CMD  READY   CAN\n");
     cliPrintf("--------------------------------------------------------------------------------\n");
 
     while (cliKeepLoop() == true)
     {
-      uint32_t fault_timer_us;
       uint16_t difference_per_mille;
 
       (void)appsRunPedalCommand();
 
       difference_per_mille = appsCliDiffPerMille();
-      fault_timer_us = appsCliFaultTimerUs();
 
-      cliPrintf("%-9s %4u.%u%% %6u.%u%% %6u.%u%% %3lu.%03lu/%-3lu %4s %7d %6s %5s\n",
+      cliPrintf("%-9s %4u.%u%% %6u.%u%% %6u.%u%% %6lu/%-4lu %4s %7d %6s %5s\n",
                 appsCliStateName(),
                 apps.percent_per_mille[APPS_SIGNAL1] / 10U,
                 apps.percent_per_mille[APPS_SIGNAL1] % 10U,
@@ -1126,8 +1059,7 @@ static void appsCli(cli_args_t *args)
                 apps.percent_per_mille[APPS_SIGNAL2] % 10U,
                 difference_per_mille / 10U,
                 difference_per_mille % 10U,
-                (unsigned long)(fault_timer_us / 1000U),
-                (unsigned long)(fault_timer_us % 1000U),
+                (unsigned long)appsCliFaultTimerMs(),
                 (unsigned long)APPS_FAULT_MS,
                 apps.valid ? "YES" : "NO",
                 apps.command_sent,
@@ -1139,10 +1071,6 @@ static void appsCli(cli_args_t *args)
            wait_ms++)
       {
         delay(1);
-        if (((wait_ms + 1U) % APPS_RUN_MS) == 0U)
-        {
-          (void)appsRunPedalCommand();
-        }
       }
     }
     return;
@@ -1162,9 +1090,7 @@ static void appsCli(cli_args_t *args)
     bool     seen_ready_low        = false;
     bool     seen_recovered        = false;
     bool     can_ok                = true;
-    uint32_t pending_us            = 0U;
-    uint32_t diff_confirm_us       = 0U;
-    bool     diff_timestamp_ok     = false;
+    uint32_t pending_ms            = 0U;
 
     cliPrintf("========================================\n");
     cliPrintf(" APPS PLAUSIBILITY VERIFICATION\n");
@@ -1172,15 +1098,10 @@ static void appsCli(cli_args_t *args)
     cliPrintf("Diff limit      : %u.%u %%\n",
               APPS_DIFF_MAX / 10U, APPS_DIFF_MAX % 10U);
     cliPrintf("Diff rule limit : %lu ms\n", (unsigned long)APPS_FAULT_MS);
-    cliPrintf("ADC sampling    : %lu Hz\n", (unsigned long)ADC_SAMPLE_HZ);
-    cliPrintf("DIFF timestamp  : first bad + %lu us\n",
-              (unsigned long)APPS_FAULT_US);
-    cliPrintf("Nominal boundary: %lu intervals / %lu samples\n",
-              (unsigned long)APPS_DIFF_CONFIRM_INTERVALS,
-              (unsigned long)APPS_DIFF_CONFIRM_SAMPLES);
-    cliPrintf("Range/reported ADC fault : immediate\n");
-    cliPrintf("Silent ADC halt : next APPS control pass (stale >= %lu us)\n",
-              (unsigned long)APPS_ADC_STALE_US);
+    cliPrintf("ISR confirm     : %lu samples @ %lu Hz\n",
+              (unsigned long)APPS_DIFF_CONFIRM_SAMPLES,
+              (unsigned long)ADC_SAMPLE_HZ);
+    cliPrintf("Range/ADC fault : immediate\n");
     cliPrintf("CAN channel     : %u\n", APPS_CAN_CH);
     cliPrintf("\n");
     cliPrintf("Disconnect or short an APPS signal to begin test.\n");
@@ -1269,18 +1190,13 @@ static void appsCli(cli_args_t *args)
       if (((effective_status & APPS_STATUS_DIFF_FAULT) != 0U) &&
           ((prev_effective_status & APPS_STATUS_DIFF_FAULT) == 0U))
       {
-        uint32_t fault_timer_us = appsCliFaultTimerUs();
-
         seen_diff_confirmed = true;
         new_actionable_fault = true;
-        diff_confirm_us = fault_timer_us;
-        diff_timestamp_ok = (fault_timer_us >= APPS_FAULT_US);
 
-        cliPrintf("[%06lu ms CLI] DIFF FAILURE OBSERVED\n",
+        cliPrintf("[%06lu ms] DIFF FAILURE CONFIRMED\n",
                   (unsigned long)now_ms);
-        cliPrintf("            elapsed=%lu.%03lu ms\n",
-                  (unsigned long)(fault_timer_us / 1000U),
-                  (unsigned long)(fault_timer_us % 1000U));
+        cliPrintf("            elapsed=%lu ms\n",
+                  (unsigned long)appsCliFaultTimerMs());
       }
 
       if (new_actionable_fault == true)
@@ -1319,10 +1235,9 @@ static void appsCli(cli_args_t *args)
 
         if ((prev_effective_status & APPS_STATUS_DIFF_FAULT) == 0U)
         {
-          cliPrintf("[%06lu ms] DIFF TIMER RESET (%lu.%03lu / %lu.000 ms)\n",
+          cliPrintf("[%06lu ms] DIFF TIMER RESET (%lu / %lu ms)\n",
                     (unsigned long)now_ms,
-                    (unsigned long)(pending_us / 1000U),
-                    (unsigned long)(pending_us % 1000U),
+                    (unsigned long)pending_ms,
                     (unsigned long)APPS_FAULT_MS);
           cliPrintf("            DIFF FAILURE NOT CONFIRMED\n\n");
         }
@@ -1357,7 +1272,7 @@ static void appsCli(cli_args_t *args)
 
       if (apps.fault_policy.timer_active == true)
       {
-        pending_us = appsCliFaultTimerUs();
+        pending_ms = appsCliFaultTimerMs();
       }
       prev_pending = apps.fault_policy.timer_active;
       prev_effective_status = effective_status;
@@ -1377,16 +1292,10 @@ static void appsCli(cli_args_t *args)
               seen_immediate ? "PASS" : "NOT SEEN");
     cliPrintf("DIFF pending detected        : %s\n",
               seen_diff_pending ? "PASS" : "NOT SEEN");
-    cliPrintf("DIFF elapsed >= %lu.000 ms   : %s\n",
+    cliPrintf("DIFF confirmed >= %lu ms     : %s\n",
               (unsigned long)APPS_FAULT_MS,
               (seen_diff_pending != true) ? "NOT SEEN" :
-              ((seen_diff_confirmed && diff_timestamp_ok) ? "PASS" : "FAIL"));
-    if (seen_diff_confirmed == true)
-    {
-      cliPrintf("DIFF confirm elapsed         : %lu.%03lu ms\n",
-                (unsigned long)(diff_confirm_us / 1000U),
-                (unsigned long)(diff_confirm_us % 1000U));
-    }
+              (seen_diff_confirmed ? "PASS" : "FAIL"));
     cliPrintf("Torque command inhibited     : %s\n",
               seen_torque_zero ? "PASS" : "FAIL");
     cliPrintf("READY GPIO LOW               : %s\n",
@@ -1402,9 +1311,7 @@ static void appsCli(cli_args_t *args)
     {
       cliPrintf("RESULT                       : NO FAULT INJECTED\n");
     }
-    else if (((seen_immediate == true) || (seen_diff_pending == true)) &&
-             ((seen_diff_pending != true) ||
-              ((seen_diff_confirmed == true) && (diff_timestamp_ok == true))) &&
+    else if (((seen_immediate == true) || (seen_diff_confirmed == true)) &&
              (seen_torque_zero == true) && (seen_ready_low == true) &&
              (can_ok == true))
     {
@@ -1420,17 +1327,6 @@ static void appsCli(cli_args_t *args)
 
   if ((args->argc == 1) && args->isStr(0, "config"))
   {
-    uint32_t callback_max_cycles = adcGetCallbackMaxCycles();
-    uint32_t callback_max_us = 0U;
-
-    if (SystemCoreClock != 0U)
-    {
-      callback_max_us = (uint32_t)
-          ((((uint64_t)callback_max_cycles * 1000000ULL) +
-            (uint64_t)SystemCoreClock - 1ULL) /
-           (uint64_t)SystemCoreClock);
-    }
-
     cliPrintf("initialized : %s\n",
               apps.initialized ? "true" : "false");
     cliPrintf("configured  : %s\n",
@@ -1454,26 +1350,10 @@ static void appsCli(cli_args_t *args)
               APPS_DIFF_MAX / 10U,
               APPS_DIFF_MAX % 10U);
     cliPrintf("diff rule limit : %lums\n", (unsigned long)APPS_FAULT_MS);
-    cliPrintf("diff timestamp : first bad + %luus\n",
-              (unsigned long)APPS_FAULT_US);
-    cliPrintf("adc sampling : %luHz, %lu intervals / %lu samples nominal\n",
-              (unsigned long)ADC_SAMPLE_HZ,
-              (unsigned long)APPS_DIFF_CONFIRM_INTERVALS,
-              (unsigned long)APPS_DIFF_CONFIRM_SAMPLES);
-    cliPrintf("adc timebase : TIM2 1MHz, %s\n",
-              microsIsInit() ? "OK" : "FAIL");
-    cliPrintf("adc runtime : %s, sequence=%lu, last=%luus\n",
-              adcIsRuntimeHealthy() ? "OK" : "FAULT",
-              (unsigned long)adcGetSampleSequence(),
-              (unsigned long)adcGetLastSampleUs());
-    cliPrintf("adc timing faults : %lu\n",
-              (unsigned long)adcGetTimingFaultCount());
-    cliPrintf("adc callback max : %lu cycles (~%luus)\n",
-              (unsigned long)callback_max_cycles,
-              (unsigned long)callback_max_us);
-    cliPrintf("range/reported adc action : immediate\n");
-    cliPrintf("silent adc halt : next control pass, stale >= %luus\n",
-              (unsigned long)APPS_ADC_STALE_US);
+    cliPrintf("diff isr confirm : %lu samples @ %luHz\n",
+              (unsigned long)APPS_DIFF_CONFIRM_SAMPLES,
+              (unsigned long)ADC_SAMPLE_HZ);
+    cliPrintf("range/adc action : immediate\n");
     cliPrintf("torque cutoff : <=%d, full >=%d, max %d\n",
               APPS_TORQUE_CUTOFF, APPS_TORQUE_CUTOFF_HIGH, APPS_TORQUE_MAX);
     return;
@@ -1577,10 +1457,6 @@ static void appsCli(cli_args_t *args)
            wait_ms++)
       {
         delay(1);
-        if (((wait_ms + 1U) % APPS_RUN_MS) == 0U)
-        {
-          (void)appsRunPedalCommand();
-        }
       }
     }
 

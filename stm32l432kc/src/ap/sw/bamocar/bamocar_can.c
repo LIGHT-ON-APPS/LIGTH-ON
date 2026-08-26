@@ -43,9 +43,7 @@ void bamocarCanMakeReadRequest(uint32_t rx_id, uint8_t reg_id, uint8_t interval_
   p_frame->data[7] = 0;
 }
 
-static bool bamocarCanSendTorqueCmdWithTimeout(uint8_t can_ch,
-                                               int16_t torque_cmd,
-                                               uint32_t timeout_ms)
+bool bamocarCanSendTorqueCmd(uint8_t can_ch, int16_t torque_cmd)
 {
   bamocar_can_frame_t frame;
   can_msg_t msg;
@@ -63,15 +61,6 @@ static bool bamocarCanSendTorqueCmdWithTimeout(uint8_t can_ch,
   msg.data[1] = frame.data[1];
   msg.data[2] = frame.data[2];
 
-  return canMsgWrite(can_ch, &msg, timeout_ms);
-}
-
-bool bamocarCanSendTorqueCmd(uint8_t can_ch, int16_t torque_cmd)
-{
-  return bamocarCanSendTorqueCmdWithTimeout(can_ch, torque_cmd, 1U);
-}
-
-bool bamocarCanSendTorqueCmdNoWait(uint8_t can_ch, int16_t torque_cmd)
-{
-  return bamocarCanSendTorqueCmdWithTimeout(can_ch, torque_cmd, 0U);
+  /* Usually returns immediately; waits at most 1 ms if all mailboxes are busy. */
+  return canMsgWrite(can_ch, &msg, 1U);
 }
