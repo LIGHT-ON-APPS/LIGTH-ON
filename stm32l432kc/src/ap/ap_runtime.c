@@ -419,42 +419,20 @@ void apDiagCanGetStats(uint32_t *p_tx_total, uint32_t *p_tx_fail)
  * RPM도 온도도 버스에 나오지 않으므로 주기적으로 재무장한다. CAN 채널이
  * 닫혀 있으면 APPS 안전 인터록을 되돌리지 않고 이번 주기를 건너뛴다.
  *
- * 0x8F 아래로는 APPS 자신이 쓰지 않고 계기판만 쓰는 것들이다. 지우지 말 것.
- *
- * 주기 송신 슬롯은 최대 8개다(CAN-BUS 매뉴얼 2024/V2 15쪽:
- * "max. 8 state values which send their status cyclically").
- * 지금 7개를 쓰므로 한 칸 남는다.
- *
- * 0xA8(REGID_SPEED_ACTUAL_FILT)을 뺀 자리다. 오래 실토크로 알고 요청했지만
- * 실은 드라이브가 필터를 먹인 실회전수라(NDrive settings/regid.txt) 0x30 과
- * 같은 값이었다. 계기판은 0x30 을 쓰므로 잃는 정보가 없다.
- *
- * interval 이 0 이면 1회만 보낸다(매뉴얼 5.2절, Byte 2 = 0x00). 값이 변하지
- * 않는 설정 레지스터는 이쪽을 쓴다 — 슬롯을 먹지 않고, 재무장 주기마다 한 번씩
- * 다시 와서 스스로 복구된다.
+ * 목록의 0x8F(에러/경고 워드)와 0xA8(실토크)은 APPS 자신은 쓰지 않는다.
+ * 계기판이 인버터 고장 표시와 derating 판별에 쓰므로 지우지 말 것.
  */
 static void apBamocarRequestTelemetry(void)
 {
-  static const struct
+  static const uint8_t request_regs[] =
   {
-    uint8_t reg;
-    uint8_t interval_ms;   /* 0 = 단발 */
-  } request_regs[] =
-  {
-    /* --- 주기 송신 7/8 (한 칸 여유) --- */
-    { 0x30U, BAMOCAR_REQUEST_INTERVAL_MS },   /* 실제 모터 회전수 */
-    { 0x49U, BAMOCAR_REQUEST_INTERVAL_MS },   /* 모터 온도        */
-    { 0x4AU, BAMOCAR_REQUEST_INTERVAL_MS },   /* IGBT 온도        */
-    { 0xEBU, BAMOCAR_REQUEST_INTERVAL_MS },   /* DC 버스 전압     */
-    { 0x40U, BAMOCAR_REQUEST_INTERVAL_MS },   /* 인버터 상태      */
-    { 0x8FU, BAMOCAR_REQUEST_INTERVAL_MS },   /* 에러/경고 워드   */
-    { 0xA0U, BAMOCAR_REQUEST_INTERVAL_MS },   /* 실제 출력 토크   */
-
-    /* --- 단발 (슬롯을 쓰지 않는다) --- */
-    /* 회전수 정규화의 분모. 계기판이 ±32767 을 rpm 으로 바꿀 때 쓴다. 설정값
-     * 이라 한 번만 오면 되고, 없으면 계기판은 EMRAX 228 의 limiting speed
-     * 6500 으로 가정한다. */
-    { 0xCEU, 0U },                            /* 설정된 NMAX      */
+    0x30U,   /* 실제 모터 회전수 */
+    0x49U,   /* 모터 온도        */
+    0x4AU,   /* IGBT 온도        */
+    0xEBU,   /* DC 버스 전압     */
+    0x40U,   /* 인버터 상태      */
+    0x8FU,   /* 에러/경고 워드   */
+    0xA8U,   /* 실제 출력 토크   */
   };
   bamocar_can_frame_t frame;
   can_msg_t msg;
@@ -467,8 +445,8 @@ static void apBamocarRequestTelemetry(void)
   for (size_t i = 0U; i < (sizeof(request_regs) / sizeof(request_regs[0])); i++)
   {
     bamocarCanMakeReadRequest(BAMOCAR_CAN_DEFAULT_RX_ID,
-                              request_regs[i].reg,
-                              request_regs[i].interval_ms,
+                              request_regs[i],
+                              BAMOCAR_REQUEST_INTERVAL_MS,
                               &frame);
 
     if (canMsgInit(&msg, CAN_CLASSIC, CAN_STD, CAN_DLC_3) != true)
