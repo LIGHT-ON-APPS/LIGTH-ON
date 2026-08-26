@@ -39,10 +39,10 @@ extern "C" {
  */
 
 // apps에서 adc 컷오프 설정 값
-#define APPS_SIGNAL1_RAW_MIN_DEFAULT       121U       //0.085v
-#define APPS_SIGNAL1_RAW_MAX_DEFAULT       2740U      //2.208v
-#define APPS_SIGNAL2_RAW_MIN_DEFAULT       83U        //0.064v
-#define APPS_SIGNAL2_RAW_MAX_DEFAULT       2070U      //1.672v
+#define APPS_SIGNAL1_RAW_MIN_DEFAULT       610U       //0.419v
+#define APPS_SIGNAL1_RAW_MAX_DEFAULT       3700U      //3.050v
+#define APPS_SIGNAL2_RAW_MIN_DEFAULT       458U        //0.322v
+#define APPS_SIGNAL2_RAW_MAX_DEFAULT       2812U      //2.320v
 
 /*
  * Independent electrical plausibility limits. A reading outside this window
@@ -53,10 +53,10 @@ extern "C" {
  */
 
 //apps에서 adc상에서 유효하게 찍히는 전압의 최대 최솟값
-#define APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT 0U
-#define APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT 3685U
-#define APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT 0U
-#define APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT 2792U
+#define APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT 	200U
+#define APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT 	4050U		// 3.15v
+#define APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT 	200U
+#define APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT 	4050U		// 2.4v
 
 /* Max allowed APPS1/APPS2 difference. Unit: per-mille, 100 = 10.0%. */
 #define APPS_DIFF_MAX                      100U
@@ -96,8 +96,8 @@ extern "C" {
  * the driver could never request full torque. 32112 is about 98%.
  */
 // apps에서 토크 컷오프 설정 값
-#define APPS_TORQUE_CUTOFF                 1500
-#define APPS_TORQUE_CUTOFF_HIGH            32112
+#define APPS_TORQUE_CUTOFF                 0
+#define APPS_TORQUE_CUTOFF_HIGH            32767
 
 typedef enum
 {

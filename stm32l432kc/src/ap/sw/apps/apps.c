@@ -537,8 +537,15 @@ static bool appsEvaluate(uint16_t raw_signal1, uint16_t raw_signal2)
   instant_status |= isr_snapshot.observed_status;
   instant_status |= isr_snapshot.actionable_events;
 
-  apps.pedal_per_mille = (uint16_t)(((uint32_t)apps.percent_per_mille[APPS_SIGNAL1] +
-                		 (uint32_t)apps.percent_per_mille[APPS_SIGNAL2]) / APPS_ADC_MAX);
+  /*
+   * Send the lower of the two channels, not their average. A channel that
+   * reads high on its own can then never lift the torque request above what
+   * the other channel still supports; DIFF_FAULT bounds how far apart they
+   * are allowed to sit while this runs.
+   */
+  apps.pedal_per_mille =
+      (apps.percent_per_mille[APPS_SIGNAL1] < apps.percent_per_mille[APPS_SIGNAL2]) ?
+      apps.percent_per_mille[APPS_SIGNAL1] : apps.percent_per_mille[APPS_SIGNAL2];
 
   effective_status = isr_snapshot.effective_status |
                      isr_snapshot.actionable_events |
