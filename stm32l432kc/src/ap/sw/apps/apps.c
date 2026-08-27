@@ -24,9 +24,11 @@
  * class as a >10% channel disagreement, so both are held to the same 100 ms
  * window instead of tripping on a single noisy sample.
  */
-#define APPS_TIMED_FAULT_MASK      (APPS_STATUS_DIFF_FAULT          | \
-                                    APPS_STATUS_SIGNAL1_RANGE_FAULT | \
+#define APPS_RANGE_FAULT_MASK      (APPS_STATUS_SIGNAL1_RANGE_FAULT | \
                                     APPS_STATUS_SIGNAL2_RANGE_FAULT)
+
+#define APPS_TIMED_FAULT_MASK      (APPS_STATUS_DIFF_FAULT | \
+                                    APPS_RANGE_FAULT_MASK)
 
 _Static_assert(APPS_DIFF_CONFIRM_SAMPLES > 0U,
                "APPS DIFF confirmation needs at least one ADC sample");
@@ -1101,8 +1103,9 @@ static void appsCli(cli_args_t *args)
     uint32_t prev_effective_status = APPS_STATUS_OK;
     bool     first_sample          = true;
     bool     prev_pending          = false;
-    bool     seen_diff_pending     = false;
+    bool     seen_pending          = false;
     bool     seen_diff_confirmed   = false;
+    bool     seen_range_confirmed  = false;
     bool     seen_immediate        = false;
     bool     seen_torque_zero      = false;
     bool     seen_ready_low        = false;
@@ -1115,11 +1118,18 @@ static void appsCli(cli_args_t *args)
     cliPrintf("========================================\n");
     cliPrintf("Diff limit      : %u.%u %%\n",
               APPS_DIFF_MAX / 10U, APPS_DIFF_MAX % 10U);
-    cliPrintf("Diff rule limit : %lu ms\n", (unsigned long)APPS_FAULT_MS);
+    cliPrintf("Valid raw S1    : %u .. %u\n",
+              apps.valid_raw_min[APPS_SIGNAL1],
+              apps.valid_raw_max[APPS_SIGNAL1]);
+    cliPrintf("Valid raw S2    : %u .. %u\n",
+              apps.valid_raw_min[APPS_SIGNAL2],
+              apps.valid_raw_max[APPS_SIGNAL2]);
+    cliPrintf("Rule limit      : %lu ms (DIFF and RANGE)\n",
+              (unsigned long)APPS_FAULT_MS);
     cliPrintf("ISR confirm     : %lu samples @ %lu Hz\n",
               (unsigned long)APPS_DIFF_CONFIRM_SAMPLES,
               (unsigned long)ADC_SAMPLE_HZ);
-    cliPrintf("Range/ADC fault : immediate\n");
+    cliPrintf("ADC/cfg fault   : immediate\n");
     cliPrintf("CAN channel     : %u\n", APPS_CAN_CH);
     cliPrintf("\n");
     cliPrintf("Disconnect or short an APPS signal to begin test.\n");
@@ -1151,7 +1161,9 @@ static void appsCli(cli_args_t *args)
         can_ok = false;
       }
 
-      if (((seen_diff_confirmed == true) || (seen_immediate == true)) &&
+      if (((seen_diff_confirmed == true) ||
+           (seen_range_confirmed == true) ||
+           (seen_immediate == true)) &&
           (apps.valid == true) &&
           (gpioPinRead(APPS_READY_GPIO_CH) == true))
       {
@@ -1175,9 +1187,9 @@ static void appsCli(cli_args_t *args)
 
       if ((apps.fault_policy.timer_active == true) && (prev_pending != true))
       {
-        seen_diff_pending = true;
+        seen_pending = true;
 
-        cliPrintf("[%06lu ms] DIFF >= LIMIT DETECTED\n",
+        cliPrintf("[%06lu ms] IMPLAUSIBILITY DETECTED\n",
                   (unsigned long)now_ms);
         cliPrintf("            S1=%u.%u%%%s\n",
                   apps.percent_per_mille[APPS_SIGNAL1] / 10U,
@@ -1190,7 +1202,8 @@ static void appsCli(cli_args_t *args)
         cliPrintf("            DIFF=%u.%u%%%s\n",
                   difference_per_mille / 10U, difference_per_mille % 10U,
                   ((status & APPS_STATUS_DIFF_FAULT) != 0U) ? " [PENDING]" : "");
-        cliPrintf("[%06lu ms] DIFF TIMER START\n\n", (unsigned long)now_ms);
+        cliPrintf("[%06lu ms] %lu ms TIMER START\n\n",
+                  (unsigned long)now_ms, (unsigned long)APPS_FAULT_MS);
       }
 
       if ((immediate_status != APPS_STATUS_OK) &&
@@ -1199,7 +1212,7 @@ static void appsCli(cli_args_t *args)
         seen_immediate = true;
         new_actionable_fault = true;
 
-        cliPrintf("[%06lu ms] IMMEDIATE RANGE/ADC FAILURE\n",
+        cliPrintf("[%06lu ms] IMMEDIATE ADC/CONFIG FAILURE\n",
                   (unsigned long)now_ms);
         cliPrintf("            ");
         appsCliPrintFaultNames(immediate_status, "            ");
@@ -1213,6 +1226,21 @@ static void appsCli(cli_args_t *args)
 
         cliPrintf("[%06lu ms] DIFF FAILURE CONFIRMED\n",
                   (unsigned long)now_ms);
+        cliPrintf("            elapsed=%lu ms\n",
+                  (unsigned long)appsCliFaultTimerMs());
+      }
+
+      if (((effective_status & APPS_RANGE_FAULT_MASK) != 0U) &&
+          ((prev_effective_status & APPS_RANGE_FAULT_MASK) == 0U))
+      {
+        seen_range_confirmed = true;
+        new_actionable_fault = true;
+
+        cliPrintf("[%06lu ms] RANGE FAILURE CONFIRMED\n",
+                  (unsigned long)now_ms);
+        cliPrintf("            ");
+        appsCliPrintFaultNames(effective_status & APPS_RANGE_FAULT_MASK,
+                               "            ");
         cliPrintf("            elapsed=%lu ms\n",
                   (unsigned long)appsCliFaultTimerMs());
       }
@@ -1237,10 +1265,10 @@ static void appsCli(cli_args_t *args)
                   (unsigned long)now_ms, appsCliCanText());
       }
 
-      /* DIFF alone controls the 100 ms timer and its recovery. */
+      /* DIFF and RANGE share the 100 ms timer and its recovery. */
       if ((apps.fault_policy.timer_active != true) && (prev_pending == true))
       {
-        cliPrintf("[%06lu ms] DIFF RETURNED WITHIN LIMIT\n",
+        cliPrintf("[%06lu ms] IMPLAUSIBILITY RETURNED WITHIN LIMIT\n",
                   (unsigned long)now_ms);
         cliPrintf("            S1=%u.%u%%\n",
                   apps.percent_per_mille[APPS_SIGNAL1] / 10U,
@@ -1251,13 +1279,13 @@ static void appsCli(cli_args_t *args)
         cliPrintf("            DIFF=%u.%u%%\n",
                   difference_per_mille / 10U, difference_per_mille % 10U);
 
-        if ((prev_effective_status & APPS_STATUS_DIFF_FAULT) == 0U)
+        if ((prev_effective_status & APPS_TIMED_FAULT_MASK) == 0U)
         {
-          cliPrintf("[%06lu ms] DIFF TIMER RESET (%lu / %lu ms)\n",
+          cliPrintf("[%06lu ms] TIMER RESET (%lu / %lu ms)\n",
                     (unsigned long)now_ms,
                     (unsigned long)pending_ms,
                     (unsigned long)APPS_FAULT_MS);
-          cliPrintf("            DIFF FAILURE NOT CONFIRMED\n\n");
+          cliPrintf("            FAILURE NOT CONFIRMED\n\n");
         }
         else
         {
@@ -1280,7 +1308,7 @@ static void appsCli(cli_args_t *args)
       if ((immediate_status == APPS_STATUS_OK) &&
           ((prev_effective_status & APPS_IMMEDIATE_FAULT_MASK) != APPS_STATUS_OK))
       {
-        cliPrintf("[%06lu ms] RANGE/ADC FAILURE CLEARED\n",
+        cliPrintf("[%06lu ms] ADC/CONFIG FAILURE CLEARED\n",
                   (unsigned long)now_ms);
         if ((effective_status != APPS_STATUS_OK) || (apps.valid != true))
         {
@@ -1306,14 +1334,16 @@ static void appsCli(cli_args_t *args)
     cliPrintf("\n========================================\n");
     cliPrintf(" TEST RESULT\n");
     cliPrintf("========================================\n");
-    cliPrintf("Immediate RANGE/ADC failure  : %s\n",
+    cliPrintf("Immediate ADC/config failure : %s\n",
               seen_immediate ? "PASS" : "NOT SEEN");
-    cliPrintf("DIFF pending detected        : %s\n",
-              seen_diff_pending ? "PASS" : "NOT SEEN");
+    cliPrintf("Implausibility pending       : %s\n",
+              seen_pending ? "PASS" : "NOT SEEN");
     cliPrintf("DIFF confirmed >= %lu ms     : %s\n",
               (unsigned long)APPS_FAULT_MS,
-              (seen_diff_pending != true) ? "NOT SEEN" :
-              (seen_diff_confirmed ? "PASS" : "FAIL"));
+              (seen_diff_confirmed == true) ? "PASS" : "NOT SEEN");
+    cliPrintf("RANGE confirmed >= %lu ms    : %s\n",
+              (unsigned long)APPS_FAULT_MS,
+              (seen_range_confirmed == true) ? "PASS" : "NOT SEEN");
     cliPrintf("Torque command inhibited     : %s\n",
               seen_torque_zero ? "PASS" : "FAIL");
     cliPrintf("READY GPIO LOW               : %s\n",
@@ -1321,15 +1351,19 @@ static void appsCli(cli_args_t *args)
     cliPrintf("CAN transmission             : %s\n",
               can_ok ? "PASS" : "FAIL");
     cliPrintf("Recovered after fault clears : %s\n",
-              ((seen_immediate != true) && (seen_diff_confirmed != true)) ?
+              ((seen_immediate != true) &&
+               (seen_diff_confirmed != true) &&
+               (seen_range_confirmed != true)) ?
               "NOT TESTED" : (seen_recovered ? "PASS" : "NOT OBSERVED"));
     cliPrintf("\n");
 
-    if ((seen_immediate != true) && (seen_diff_pending != true))
+    if ((seen_immediate != true) && (seen_pending != true))
     {
       cliPrintf("RESULT                       : NO FAULT INJECTED\n");
     }
-    else if (((seen_immediate == true) || (seen_diff_confirmed == true)) &&
+    else if (((seen_immediate == true) ||
+              (seen_diff_confirmed == true) ||
+              (seen_range_confirmed == true)) &&
              (seen_torque_zero == true) && (seen_ready_low == true) &&
              (can_ok == true))
     {
