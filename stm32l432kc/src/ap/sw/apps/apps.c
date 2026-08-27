@@ -10,12 +10,23 @@
 #endif
 
 
+/*
+ * Faults that inhibit the output on the first bad sample. Only the cases
+ * where no trustworthy pedal value exists at all stay here: a missing
+ * calibration and a failed ADC read.
+ */
 #define APPS_IMMEDIATE_FAULT_MASK  (APPS_STATUS_NOT_CONFIGURED      | \
-                                    APPS_STATUS_ADC_READ_FAULT      | \
+                                    APPS_STATUS_ADC_READ_FAULT)
+
+/*
+ * Faults confirmed only after APPS_FAULT_MS of continuous presence. The
+ * rules class a shorted sensor line as an APPS implausibility, the same
+ * class as a >10% channel disagreement, so both are held to the same 100 ms
+ * window instead of tripping on a single noisy sample.
+ */
+#define APPS_TIMED_FAULT_MASK      (APPS_STATUS_DIFF_FAULT          | \
                                     APPS_STATUS_SIGNAL1_RANGE_FAULT | \
                                     APPS_STATUS_SIGNAL2_RANGE_FAULT)
-
-#define APPS_TIMED_FAULT_MASK      APPS_STATUS_DIFF_FAULT
 
 _Static_assert(APPS_DIFF_CONFIRM_SAMPLES > 0U,
                "APPS DIFF confirmation needs at least one ADC sample");

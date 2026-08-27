@@ -53,10 +53,10 @@ extern "C" {
  */
 
 //apps에서 adc상에서 유효하게 찍히는 전압의 최대 최솟값
-#define APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT 	200U
-#define APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT 	4050U		// 3.15v
-#define APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT 	200U
-#define APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT 	4050U		// 2.4v
+#define APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT 	200U		// 0.16v
+#define APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT 	4050U		// 3.26v
+#define APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT 	200U		// 0.16v
+#define APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT 	4050U		// 3.26v
 
 /* Max allowed APPS1/APPS2 difference. Unit: per-mille, 100 = 10.0%. */
 #define APPS_DIFF_MAX                      100U
