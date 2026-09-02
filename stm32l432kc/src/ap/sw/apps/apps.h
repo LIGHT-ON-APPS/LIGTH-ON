@@ -27,30 +27,11 @@ extern "C" {
 /* High only while APPS plausibility is valid and the latest CAN TX succeeds. */
 #define APPS_READY_GPIO_CH                 _DEF_GPIO1
 
-/*
- * Pedal-travel scaling, both ends measured on the car 2026-08-07.
- * Released: signal1 106..109 (0.088 V), signal2 79..80 (0.064 V).
- * Fully pressed: signal1 2740 (2.208 V), signal2 2075 (1.672 V).
- *
- * Readings outside raw_min..raw_max clamp to 0% / 100%, so no extra deadband
- * is needed at either end. Signal1 swings about 1.32x signal2; each channel is
- * normalised to per-mille before the plausibility comparison, so the differing
- * gains are expected and do not raise DIFF_FAULT.
- */
-
 // apps에서 adc 컷오프 설정 값
 #define APPS_SIGNAL1_RAW_MIN_DEFAULT       610U       //0.419v
 #define APPS_SIGNAL1_RAW_MAX_DEFAULT       3700U      //3.050v
 #define APPS_SIGNAL2_RAW_MIN_DEFAULT       458U        //0.322v
 #define APPS_SIGNAL2_RAW_MAX_DEFAULT       2812U      //2.320v
-
-/*
- * Independent electrical plausibility limits. A reading outside this window
- * raises SIGNALn_RANGE_FAULT, which is how an open or shorted sensor line is
- * caught. The lower limit must sit below the released-pedal reading above, so
- * a sensor that rests near 0 V leaves almost no room to detect a short to
- * ground. Raise these once the sensor's real rest offset is confirmed.
- */
 
 //apps에서 adc상에서 유효하게 찍히는 전압의 최대 최솟값
 #define APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT 	200U		// 0.16v
@@ -75,26 +56,11 @@ extern "C" {
 /* Torque command sent at 100% pedal. Unit: Bamocar raw command. */
 #define APPS_TORQUE_MAX                    BAMOCAR_TORQUE_CMD_MAX
 
-/*
- * Installed drivetrain command direction. Keep the pedal and cutoff math as a
- * positive magnitude, then apply this sign only to the command sent on CAN.
- * Use -1 to reverse the motor direction, or +1 for the original direction.
- */
+
 #define APPS_TORQUE_COMMAND_SIGN           (-1)
 #define APPS_TORQUE_FULL_COMMAND           \
   (APPS_TORQUE_COMMAND_SIGN * APPS_TORQUE_MAX)
 
-/*
- * Anything at or below this is sent as 0. Unit: Bamocar raw command.
- * 1500 is about 4.6% of APPS_TORQUE_MAX, so ADC noise around a released pedal
- * cannot leave a standing torque request on the bus.
- */
-/*
- * Anything at or above this is sent as APPS_TORQUE_MAX. Unit: Bamocar raw
- * command. Mechanical stop tolerance and sensor spread keep a fully pressed
- * pedal from reaching the calibrated maximum (measured 99.1%), so without this
- * the driver could never request full torque. 32112 is about 98%.
- */
 // apps에서 토크 컷오프 설정 값
 #define APPS_TORQUE_CUTOFF                 1500
 #define APPS_TORQUE_CUTOFF_HIGH            32767
@@ -107,14 +73,14 @@ typedef enum
 
 typedef enum
 {
-  APPS_STATUS_OK                  = 0x00000000U,
-  APPS_STATUS_NOT_CONFIGURED      = 0x00000001U,
-  APPS_STATUS_ADC_READ_FAULT      = 0x00000002U,
-  APPS_STATUS_SIGNAL1_RANGE_FAULT = 0x00000004U,
-  APPS_STATUS_SIGNAL2_RANGE_FAULT = 0x00000008U,
-  APPS_STATUS_DIFF_FAULT          = 0x00000010U,
-  APPS_STATUS_FAULT_LATCHED       = 0x00000020U,
-  APPS_STATUS_CAN_TX_FAULT        = 0x00000040U,
+  APPS_STATUS_OK                  = 0x00000000U, // 고장이 없는 정상 상태
+  APPS_STATUS_NOT_CONFIGURED      = 0x00000001U, // APPS 설정값이 준비되지 않은 상태
+  APPS_STATUS_ADC_READ_FAULT      = 0x00000002U, // ADC 값을 읽지 못했거나 갱신이 멈춘 상태
+  APPS_STATUS_SIGNAL1_RANGE_FAULT = 0x00000004U, // 1번 센서 ADC 값이 허용 범위를 벗어난 상태
+  APPS_STATUS_SIGNAL2_RANGE_FAULT = 0x00000008U, // 2번 센서 ADC 값이 허용 범위를 벗어난 상태
+  APPS_STATUS_DIFF_FAULT          = 0x00000010U, // 두 센서 값의 차이가 허용치를 넘은 상태
+  APPS_STATUS_FAULT_LATCHED       = 0x00000020U, // 확정된 고장이 현재 적용 중인 상태
+  APPS_STATUS_CAN_TX_FAULT        = 0x00000040U, // 토크 명령 CAN 전송에 실패한 상태
 } apps_status_t;
 
 typedef struct
@@ -130,16 +96,11 @@ typedef struct
   bool     can_tx_ok;
   bool     can_tx_muted;
   bool     fault_latched;
-  bool     configured;
 } apps_snapshot_t;
 
 
 bool appsInit(void);
-bool appsSetConfig(uint16_t signal1_raw_min,
-                   uint16_t signal1_raw_max,
-                   uint16_t signal2_raw_min,
-                   uint16_t signal2_raw_max);
-void appsClearFault(void);
+
 bool appsGetSnapshot(apps_snapshot_t *p_snapshot);
 
 bool appsRunPedalCommand(void);

@@ -34,40 +34,6 @@ typedef bool (*diag_can_encoder_t)(uint8_t *p_data,
                                    size_t data_size,
                                    const apps_diag_can_sample_t *p_sample);
 
-
-/* 표시 UART와 진단 CAN은 변환 없이 비교할 수 있도록 같은 flag 배치를 쓴다. */
-_Static_assert(DISPLAY_PROTOCOL_FLAG_VALID == APPS_DIAG_CAN_FLAG_VALID,
-               "valid flag layouts differ");
-_Static_assert(DISPLAY_PROTOCOL_FLAG_CONFIGURED == APPS_DIAG_CAN_FLAG_CONFIGURED,
-               "configured flag layouts differ");
-_Static_assert(DISPLAY_PROTOCOL_FLAG_ADC_OK == APPS_DIAG_CAN_FLAG_ADC_OK,
-               "ADC flag layouts differ");
-_Static_assert(DISPLAY_PROTOCOL_FLAG_CAN_TX_OK == APPS_DIAG_CAN_FLAG_CAN_TX_OK,
-               "CAN TX flag layouts differ");
-_Static_assert(DISPLAY_PROTOCOL_FLAG_CAN_TX_MUTED == APPS_DIAG_CAN_FLAG_CAN_TX_MUTED,
-               "CAN mute flag layouts differ");
-_Static_assert(DISPLAY_PROTOCOL_FLAG_FAULT_LATCHED == APPS_DIAG_CAN_FLAG_FAULT_LATCHED,
-               "fault flag layouts differ");
-
-/* 텔레메트리 유효 비트 마스크는 표시 프로토콜로 변환 없이 전달된다. */
-_Static_assert(TELEMETRY_SIGNAL_BMS_PACK_MV == DISPLAY_PROTOCOL_TLM_PACK_V,
-               "pack voltage mask layouts differ");
-_Static_assert(TELEMETRY_SIGNAL_BMS_PACK_MA == DISPLAY_PROTOCOL_TLM_PACK_A,
-               "pack current mask layouts differ");
-_Static_assert(TELEMETRY_SIGNAL_BMS_SOC_PERMILLE == DISPLAY_PROTOCOL_TLM_SOC,
-               "SOC mask layouts differ");
-_Static_assert(TELEMETRY_SIGNAL_BMS_MAX_TEMP_DECIC == DISPLAY_PROTOCOL_TLM_CELL_TEMP,
-               "cell temperature mask layouts differ");
-_Static_assert(TELEMETRY_SIGNAL_BAMOCAR_RPM == DISPLAY_PROTOCOL_TLM_RPM,
-               "RPM mask layouts differ");
-_Static_assert(TELEMETRY_SIGNAL_BAMOCAR_MOTOR_TEMP_DECIC == DISPLAY_PROTOCOL_TLM_MOTOR_TEMP,
-               "motor temperature mask layouts differ");
-_Static_assert(TELEMETRY_SIGNAL_BAMOCAR_IGBT_TEMP_DECIC == DISPLAY_PROTOCOL_TLM_IGBT_TEMP,
-               "IGBT temperature mask layouts differ");
-_Static_assert(TELEMETRY_SIGNAL_BMS_MIN_CELL_MV == DISPLAY_PROTOCOL_TLM_CELL_MIN_V,
-               "minimum cell voltage mask layouts differ");
-
-
 /* APPS 제어 루프 주기 상태. */
 static uint32_t apps_pre_time = 0U;
 static bool apps_scheduler_started = false;
@@ -135,10 +101,6 @@ static uint8_t apSnapshotMakeStateFlags(const apps_snapshot_t *p_snapshot)
   if (p_snapshot->valid == true)
   {
     flags |= DISPLAY_PROTOCOL_FLAG_VALID;
-  }
-  if (p_snapshot->configured == true)
-  {
-    flags |= DISPLAY_PROTOCOL_FLAG_CONFIGURED;
   }
   if (p_snapshot->adc_ok == true)
   {

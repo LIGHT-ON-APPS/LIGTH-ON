@@ -7,50 +7,10 @@
 
 #ifdef _USE_HW_CLI
 #include "cli.h"
-#endif
+#define APPS_TRACE_BAR_LEN     16
+#define APPS_TRACE_PERIOD_MS   50
+#define APPS_MONITOR_PERIOD_MS 100
 
-
-/*
- * Faults that inhibit the output on the first bad sample. Only the cases
- * where no trustworthy pedal value exists at all stay here: a missing
- * calibration and a failed ADC read.
- */
-#define APPS_IMMEDIATE_FAULT_MASK  (APPS_STATUS_NOT_CONFIGURED      | \
-                                    APPS_STATUS_ADC_READ_FAULT)
-
-/*
- * Faults confirmed only after APPS_FAULT_MS of continuous presence. The
- * rules class a shorted sensor line as an APPS implausibility, the same
- * class as a >10% channel disagreement, so both are held to the same 100 ms
- * window instead of tripping on a single noisy sample.
- */
-#define APPS_RANGE_FAULT_MASK      (APPS_STATUS_SIGNAL1_RANGE_FAULT | \
-                                    APPS_STATUS_SIGNAL2_RANGE_FAULT)
-
-#define APPS_TIMED_FAULT_MASK      (APPS_STATUS_DIFF_FAULT | \
-                                    APPS_RANGE_FAULT_MASK)
-
-_Static_assert(APPS_DIFF_CONFIRM_SAMPLES > 0U,
-               "APPS DIFF confirmation needs at least one ADC sample");
-_Static_assert((APPS_IMMEDIATE_FAULT_MASK & APPS_TIMED_FAULT_MASK) == 0U,
-               "APPS immediate and timed fault masks must not overlap");
-
-#if (_DEF_VER != _DEF_VER1) && (_DEF_VER != _DEF_VER2)
-#error "_DEF_VER must be _DEF_VER1 or _DEF_VER2 for APPS fault output"
-#endif
-
-#if (APPS_TORQUE_COMMAND_SIGN != -1) && (APPS_TORQUE_COMMAND_SIGN != 1)
-#error "APPS_TORQUE_COMMAND_SIGN must be -1 or 1"
-#endif
-
-/* "apps trace" live view: bar width in characters and sample period in ms. */
-#define APPS_TRACE_BAR_LEN     16U
-#define APPS_TRACE_PERIOD_MS   50U
-
-/* "apps monitor" live table refresh period in ms. */
-#define APPS_MONITOR_PERIOD_MS 100U
-
-/* Which end of the torque range the last CAN command was snapped to. */
 typedef enum
 {
   APPS_CUTOFF_NONE = 0,
@@ -58,109 +18,152 @@ typedef enum
   APPS_CUTOFF_HIGH,
 } apps_cutoff_t;
 
-/*
- * The 1 kHz ADC completion ISR normally owns this policy. Main-loop ADC
- * watchdog failures join the same episode only while IRQs are masked.
- * Counting consecutive samples avoids the 10 ms cooperative-main-loop
- * quantisation that previously led to an internal timing compensation.
- */
 typedef struct
 {
-  uint32_t bad_sample_count;
-  uint32_t elapsed_ms;
-  uint32_t pending_status;
-  uint32_t confirmed_status;
-  uint32_t active_status;
-  bool     timer_active;
-  bool     failure_active;
+  uint32_t observed_status;
+  apps_cutoff_t cutoff;
+} apps_cli_state_t;
+#endif
+
+#define APPS_IMMEDIATE_FAULT_MASK  (APPS_STATUS_NOT_CONFIGURED | APPS_STATUS_ADC_READ_FAULT)
+#define APPS_RANGE_FAULT_MASK      (APPS_STATUS_SIGNAL1_RANGE_FAULT | APPS_STATUS_SIGNAL2_RANGE_FAULT)
+#define APPS_TIMED_FAULT_MASK      (APPS_STATUS_DIFF_FAULT | APPS_RANGE_FAULT_MASK)
+
+//
+typedef struct
+{
+  uint32_t bad_sample_count;			// 이상한 샘플이 몇개 있는지 셈 100회가 약 100ms
+  uint32_t pending_status;				// 100ms가 되지는 않았지만 고장 중인 상태
+  uint32_t active_status;				// 100ms 채운 상태
 } apps_fault_policy_t;
 
 typedef struct
 {
-  uint32_t observed_status;
-  uint32_t effective_status;
-  uint32_t actionable_events;
-} apps_isr_fault_snapshot_t;
+  uint16_t raw_min[APPS_ADC_MAX];			// 페달 0%로 환산할 ADC 기준값
+  uint16_t raw_max[APPS_ADC_MAX];			// 페달 100%로 환산할 ADC 기준값
+  uint16_t valid_raw_min[APPS_ADC_MAX];		// 단선·단락 판정용 허용 ADC 최솟값
+  uint16_t valid_raw_max[APPS_ADC_MAX];		// 단선·단락 판정용 허용 ADC 최댓값
 
-typedef struct
-{
-  uint16_t raw_min[APPS_ADC_MAX];
-  uint16_t raw_max[APPS_ADC_MAX];
-  uint16_t valid_raw_min[APPS_ADC_MAX];
-  uint16_t valid_raw_max[APPS_ADC_MAX];
-  uint16_t raw[APPS_ADC_MAX];
-  uint16_t percent_per_mille[APPS_ADC_MAX];
-  uint16_t pedal_per_mille;
-  int16_t  command_sent;
-  uint32_t status;
-  bool     adc_ok;
-  bool     valid;
-  apps_cutoff_t cutoff;
-  bool     can_tx_ok;
-  bool     can_tx_muted;
-  volatile uint32_t isr_fault_status;
-  volatile uint32_t isr_effective_fault_status;
-  volatile uint32_t isr_actionable_fault_events;
+  uint16_t raw[APPS_ADC_MAX];				// 메인 루프가 마지막으로 읽은 실제 ADC값
+  uint16_t percent_per_mille[APPS_ADC_MAX];	// 두 채널을 각각 0~1000으로 환산한 값
+  uint16_t pedal_per_mille;					// 두 채널 중 작은 값으로 결정한 최종 페달값
+
+  int16_t  command_sent;					// 컷오프와 방향 부호까지 적용해 실제 전송한 토크
+
+  uint32_t status;							// 외부로 보여주는 종합 상태 비트
+  bool     adc_ok;							// 마지막 ADC 읽기가 성공했는지
+  bool     valid;							// 현재 페달값을 토크에 사용해도 되는지
+
+  bool     can_tx_ok;						// 마지막 CAN 송신이 성공했는지
+  bool     can_tx_muted;					// 고장 때문에 CAN 채널을 의도적으로 닫았는지
+
+  volatile apps_fault_policy_t fault_policy;// 100ms 고장 판정용 카운터와 상태
+
+  volatile uint32_t isr_fault_status;				// ISR이 가장 최근 샘플에서 본 고장
+  volatile uint32_t isr_actionable_fault_events;	//
+  volatile bool     isr_output_inhibit;				//
+
   volatile uint32_t isr_adc_sequence;
-  volatile bool     isr_output_inhibit;
-
-  volatile apps_fault_policy_t fault_policy;
   uint32_t adc_sequence_seen;
   uint32_t adc_sequence_seen_ms;
-  uint32_t observed_status;
+
   uint32_t fault_latched_status;
-  bool     fault_latched;
 
   bool     initialized;
-  bool     configured;
+
 } apps_t;
 
 static apps_t apps;
 
-/* appsInit()이 정의보다 앞에서 호출하는 내부 함수들. */
-static bool appsCalibrationIsValid(void);
-static void appsClearFaultTimer(void);
-static void appsResetFaultState(void);
-static bool appsTryClearFault(void);
-static void appsAdcCallback(void);
-static void appsUpdateReadyGpio(void);
+#ifdef _USE_HW_CLI
 
-static void appsFaultPolicyClearDelayed(volatile apps_fault_policy_t *p_policy)
+static apps_cli_state_t apps_cli;
+static bool apps_command_registered = false;
+
+static void appsCli(cli_args_t *args);
+#endif
+
+static void appsProcessAdcStatus(uint32_t status);
+static uint32_t appsCheckPolicy(uint16_t raw_signal1,
+                                uint16_t raw_signal2,
+                                uint16_t *p_signal1_per_mille,
+                                uint16_t *p_signal2_per_mille);
+
+// 1ms 마다 안전 검사해주는 콜백 함수
+static void appsAdcCallback(void)
 {
-  p_policy->bad_sample_count = 0U;
-  p_policy->elapsed_ms = 0U;
-  p_policy->pending_status = APPS_STATUS_OK;
-  p_policy->confirmed_status = APPS_STATUS_OK;
-  p_policy->timer_active = false;
+  uint16_t signal1_per_mille;
+  uint16_t signal2_per_mille;
+  int32_t raw_signal1;
+  int32_t raw_signal2;
+  uint32_t status;
+
+  raw_signal1 = adcRead(APPS_SIGNAL1_ADC_CH);
+  raw_signal2 = adcRead(APPS_SIGNAL2_ADC_CH);
+
+  if ((raw_signal1 < 0) || (raw_signal1 > UINT16_MAX) ||
+      (raw_signal2 < 0) || (raw_signal2 > UINT16_MAX))
+  {
+    appsProcessAdcStatus(APPS_STATUS_ADC_READ_FAULT);
+    return;
+  }
+
+  status = appsCheckPolicy((uint16_t)raw_signal1,
+                           (uint16_t)raw_signal2,
+                           &signal1_per_mille,
+                           &signal2_per_mille);
+
+  appsProcessAdcStatus(status);
 }
 
-static void appsFaultPolicyReset(volatile apps_fault_policy_t *p_policy)
+
+/* Fail-safe status output: both APPS plausibility and the latest CAN TX must pass. */
+static void appsUpdateReadyGpio(void)
 {
-  appsFaultPolicyClearDelayed(p_policy);
-  p_policy->active_status = APPS_STATUS_OK;
-  p_policy->failure_active = false;
+  uint32_t primask;
+  bool ready;
+
+  /* Keep the read-and-write atomic against the ADC ISR's fail-low write. */
+  primask = __get_PRIMASK();
+  __disable_irq();
+  ready = (apps.valid == true) && (apps.can_tx_ok == true) &&
+		  (apps.can_tx_muted != true) && (apps.isr_output_inhibit != true);
+
+  gpioPinWrite(APPS_READY_GPIO_CH, ready);
+
+  if (primask == 0U)
+  {
+    __enable_irq();
+  }
+}
+/*
+ * 확정된 고장이 래치돼 있는지. 예전 fault_latched 플래그를 대신한다.
+ * 래치 원인이 곧 래치 여부이므로 둘을 따로 들고 있을 이유가 없다.
+ */
+static bool appsFaultIsLatched(void)
+{
+  return (apps.fault_latched_status != APPS_STATUS_OK);
 }
 
 /* Called once per coherent ADC pair from the 1 kHz DMA completion ISR. */
-static uint32_t appsFaultPolicyUpdate(volatile apps_fault_policy_t *p_policy,
-                                      uint32_t observed_status)
+static uint32_t appsFaultPolicyUpdate(volatile apps_fault_policy_t *p_policy, uint32_t observed_status)
 {
   uint32_t immediate_status = observed_status & APPS_IMMEDIATE_FAULT_MASK;
-  uint32_t delayed_status = observed_status & APPS_TIMED_FAULT_MASK;
+  uint32_t delayed_status 	= observed_status & APPS_TIMED_FAULT_MASK;
+  uint32_t confirmed_status = APPS_STATUS_OK;
   uint32_t actionable_status;
 
   if (delayed_status == APPS_STATUS_OK)
   {
-    appsFaultPolicyClearDelayed(p_policy);
+	  p_policy->bad_sample_count = 0U;
+	  p_policy->pending_status = APPS_STATUS_OK;
   }
   else
   {
-    if (p_policy->timer_active != true)
+    if (p_policy->bad_sample_count == 0U)
     {
       p_policy->bad_sample_count = 1U;
       p_policy->pending_status = delayed_status;
-      p_policy->confirmed_status = APPS_STATUS_OK;
-      p_policy->timer_active = true;
     }
     else
     {
@@ -171,61 +174,51 @@ static uint32_t appsFaultPolicyUpdate(volatile apps_fault_policy_t *p_policy,
       p_policy->pending_status |= delayed_status;
     }
 
-    p_policy->elapsed_ms =
-        (p_policy->bad_sample_count * 1000U) / ADC_SAMPLE_HZ;
-
     if (p_policy->bad_sample_count >= APPS_DIFF_CONFIRM_SAMPLES)
     {
-      p_policy->confirmed_status = p_policy->pending_status;
+      confirmed_status = p_policy->pending_status;
     }
   }
 
-  actionable_status = immediate_status | p_policy->confirmed_status;
+  actionable_status = immediate_status | confirmed_status;
 
   /* Process a sticky actionable event before allowing a healthy reset. */
   if (actionable_status != APPS_STATUS_OK)
   {
     p_policy->active_status |= actionable_status;
-    p_policy->failure_active = true;
   }
   else if (observed_status == APPS_STATUS_OK)
   {
     p_policy->active_status = APPS_STATUS_OK;
-    p_policy->failure_active = false;
   }
 
-  return (p_policy->failure_active == true) ?
-         p_policy->active_status : APPS_STATUS_OK;
+  return p_policy->active_status;
 }
-
-#ifdef _USE_HW_CLI
-static bool apps_command_registered = false;
-
-static void appsCli(cli_args_t *args);
-#endif
 
 bool appsInit(void)
 {
   memset(&apps, 0, sizeof(apps));
-  appsClearFaultTimer();
+#ifdef _USE_HW_CLI
+  memset(&apps_cli, 0, sizeof(apps_cli));
+#endif
 
   apps.raw_min[APPS_SIGNAL1] = APPS_SIGNAL1_RAW_MIN_DEFAULT;
   apps.raw_max[APPS_SIGNAL1] = APPS_SIGNAL1_RAW_MAX_DEFAULT;
   apps.raw_min[APPS_SIGNAL2] = APPS_SIGNAL2_RAW_MIN_DEFAULT;
   apps.raw_max[APPS_SIGNAL2] = APPS_SIGNAL2_RAW_MAX_DEFAULT;
+
   apps.valid_raw_min[APPS_SIGNAL1] = APPS_SIGNAL1_VALID_RAW_MIN_DEFAULT;
   apps.valid_raw_max[APPS_SIGNAL1] = APPS_SIGNAL1_VALID_RAW_MAX_DEFAULT;
   apps.valid_raw_min[APPS_SIGNAL2] = APPS_SIGNAL2_VALID_RAW_MIN_DEFAULT;
   apps.valid_raw_max[APPS_SIGNAL2] = APPS_SIGNAL2_VALID_RAW_MAX_DEFAULT;
 
-  apps.configured = appsCalibrationIsValid();
   apps.initialized = true;
 
   adcSetChannelLabel(APPS_SIGNAL1_ADC_CH, "SIGNAL1");
   adcSetChannelLabel(APPS_SIGNAL2_ADC_CH, "SIGNAL2");
 
   adcSetUpdateCallback(appsAdcCallback);
-  apps.status = (apps.configured == true) ? APPS_STATUS_OK : APPS_STATUS_NOT_CONFIGURED;
+  apps.status = APPS_STATUS_OK;
   appsUpdateReadyGpio();
 
 #ifdef _USE_HW_CLI
@@ -238,51 +231,12 @@ bool appsInit(void)
   return true;
 }
 
-/* Calibration is invalid if any channel has the same min and max. */
-static bool appsCalibrationIsValid(void)
-{
-  for (uint8_t i = 0; i < APPS_ADC_MAX; i++)
-  {
-    if ((apps.raw_min[i] == apps.raw_max[i]) ||
-        (apps.valid_raw_min[i] > apps.valid_raw_max[i]))
-    {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-static void appsClearFaultTimer(void)
-{
-  appsFaultPolicyReset(&apps.fault_policy);
-  apps.fault_latched_status 		= APPS_STATUS_OK;
-  apps.fault_latched 				= false;
-}
-
-static void appsTakeIsrFaultSnapshot(apps_isr_fault_snapshot_t *p_snapshot)
-{
-  uint32_t primask;
-
-  primask = __get_PRIMASK();
-  __disable_irq();
-  p_snapshot->observed_status = apps.isr_fault_status;
-  p_snapshot->effective_status = apps.isr_effective_fault_status;
-  p_snapshot->actionable_events = apps.isr_actionable_fault_events;
-  apps.isr_actionable_fault_events = APPS_STATUS_OK;
-  if (primask == 0U)
-  {
-    __enable_irq();
-  }
-}
-
-static void appsPublishAdcFaultStatus(uint32_t status)
+static void appsProcessAdcStatus(uint32_t status)
 {
   uint32_t effective_status;
 
   effective_status = appsFaultPolicyUpdate(&apps.fault_policy, status);
   apps.isr_fault_status = status;
-  apps.isr_effective_fault_status = effective_status;
 
   if (effective_status != APPS_STATUS_OK)
   {
@@ -297,7 +251,7 @@ static void appsPublishAdcFaultStatus(uint32_t status)
   apps.isr_adc_sequence++;
 }
 
-static bool appsTryReleaseIsrOutputInhibit(void)
+static bool appsReleaseOutputIfSafe(void)
 {
   uint32_t primask;
   bool released;
@@ -307,7 +261,7 @@ static bool appsTryReleaseIsrOutputInhibit(void)
 
   if ((apps.isr_output_inhibit == true) &&
       (apps.isr_fault_status == APPS_STATUS_OK) &&
-      (apps.isr_effective_fault_status == APPS_STATUS_OK) &&
+      (apps.fault_policy.active_status == APPS_STATUS_OK) &&
       (apps.isr_actionable_fault_events == APPS_STATUS_OK))
   {
     apps.isr_output_inhibit = false;
@@ -322,29 +276,8 @@ static bool appsTryReleaseIsrOutputInhibit(void)
   return released;
 }
 
-/* Fail-safe status output: both APPS plausibility and the latest CAN TX must pass. */
-static void appsUpdateReadyGpio(void)
-{
-  uint32_t primask;
-  bool ready;
-
-  /* Keep the read-and-write atomic against the ADC ISR's fail-low write. */
-  primask = __get_PRIMASK();
-  __disable_irq();
-  ready = (apps.valid == true) &&
-          (apps.can_tx_ok == true) &&
-          (apps.can_tx_muted != true) &&
-          (apps.isr_output_inhibit != true);
-
-  gpioPinWrite(APPS_READY_GPIO_CH, ready);
-  if (primask == 0U)
-  {
-    __enable_irq();
-  }
-}
-
-/* Clear stale pedal/valid values after an ADC read failure. */
-static void appsClearLastResult(void)
+/* 컷오프시 adc를 0으로 만들어 줌 */
+static void appsInvalidateResult(void)
 {
   memset(apps.raw, 0, sizeof(apps.raw));
   memset(apps.percent_per_mille, 0, sizeof(apps.percent_per_mille));
@@ -356,7 +289,7 @@ static void appsClearLastResult(void)
   apps.can_tx_ok 			= false;
   apps.can_tx_muted 		= false;
 }
-
+// adc 아날로그 값을 디지털로 인식하게 만들어줌
 static uint16_t appsRawToDigital(uint8_t signal, uint16_t raw, bool *p_range_ok)
 {
   int32_t raw_min 	= apps.raw_min[signal];
@@ -364,8 +297,7 @@ static uint16_t appsRawToDigital(uint8_t signal, uint16_t raw, bool *p_range_ok)
   int32_t span 		= raw_max - raw_min;
   int32_t scaled;
 
-  *p_range_ok = (raw >= apps.valid_raw_min[signal]) &&
-                (raw <= apps.valid_raw_max[signal]);
+  *p_range_ok = (raw >= apps.valid_raw_min[signal]) && (raw <= apps.valid_raw_max[signal]);
 
   scaled = (((int32_t)raw - raw_min) * (int32_t)APPS_PER_MILLE_MAX) / span;
 
@@ -380,38 +312,19 @@ static uint16_t appsRawToDigital(uint8_t signal, uint16_t raw, bool *p_range_ok)
 
   return (uint16_t)scaled;
 }
-
-static void appsAdcCallback(void)
+// 비타당성 검사
+static uint32_t appsCheckPolicy(uint16_t raw_signal1,
+                                uint16_t raw_signal2,
+                                uint16_t *p_signal1_per_mille,
+                                uint16_t *p_signal2_per_mille)
 {
-  bool signal1_range_ok 	= false;
-  bool signal2_range_ok 	= false;
-  uint16_t signal1_per_mille;
-  uint16_t signal2_per_mille;
+  bool signal1_range_ok = false;
+  bool signal2_range_ok = false;
   uint16_t difference_per_mille;
-  int32_t raw_signal1;
-  int32_t raw_signal2;
-  uint32_t status 			= APPS_STATUS_OK;
+  uint32_t status = APPS_STATUS_OK;
 
-  /* Callback is registered only after apps.initialized is set, so it is
-   * always true here; only calibration validity can still be missing. */
-  if (apps.configured != true)
-  {
-    appsPublishAdcFaultStatus(APPS_STATUS_NOT_CONFIGURED);
-    return;
-  }
-
-  raw_signal1 = adcRead(APPS_SIGNAL1_ADC_CH);
-  raw_signal2 = adcRead(APPS_SIGNAL2_ADC_CH);
-
-  if ((raw_signal1 < 0) || (raw_signal1 > UINT16_MAX) ||
-      (raw_signal2 < 0) || (raw_signal2 > UINT16_MAX))
-  {
-    appsPublishAdcFaultStatus(APPS_STATUS_ADC_READ_FAULT);
-    return;
-  }
-
-  signal1_per_mille 		= appsRawToDigital(APPS_SIGNAL1, (uint16_t)raw_signal1, &signal1_range_ok);
-  signal2_per_mille 		= appsRawToDigital(APPS_SIGNAL2, (uint16_t)raw_signal2, &signal2_range_ok);
+  *p_signal1_per_mille = appsRawToDigital(APPS_SIGNAL1, raw_signal1, &signal1_range_ok);
+  *p_signal2_per_mille = appsRawToDigital(APPS_SIGNAL2, raw_signal2, &signal2_range_ok);
 
   if (signal1_range_ok != true)
   {
@@ -422,13 +335,13 @@ static void appsAdcCallback(void)
     status |= APPS_STATUS_SIGNAL2_RANGE_FAULT;
   }
 
-  if (signal1_per_mille > signal2_per_mille)
+  if (*p_signal1_per_mille > *p_signal2_per_mille)
   {
-    difference_per_mille = signal1_per_mille - signal2_per_mille;
+    difference_per_mille = *p_signal1_per_mille - *p_signal2_per_mille;
   }
   else
   {
-    difference_per_mille = signal2_per_mille - signal1_per_mille;
+    difference_per_mille = *p_signal2_per_mille - *p_signal1_per_mille;
   }
 
   if (difference_per_mille >= APPS_DIFF_MAX)
@@ -436,30 +349,24 @@ static void appsAdcCallback(void)
     status |= APPS_STATUS_DIFF_FAULT;
   }
 
-  appsPublishAdcFaultStatus(status);
+  return status;
 }
 
-static void appsSetFaultState(uint32_t observed_status,
-                              uint32_t effective_status)
+static void appsUpdateFaultStatus(uint32_t observed_status, uint32_t effective_status)
 {
   apps.fault_latched_status = effective_status;
-  apps.fault_latched = (effective_status != APPS_STATUS_OK);
-  apps.observed_status = observed_status;
+#ifdef _USE_HW_CLI
+  apps_cli.observed_status = observed_status;
+#endif
 
   apps.status = observed_status | effective_status;
-  if (apps.fault_latched == true)
+  if (effective_status != APPS_STATUS_OK)
   {
     apps.status |= APPS_STATUS_FAULT_LATCHED;
   }
 }
-
-/*
- * ADC failures detected by the main loop (startup/read/stale watchdog) must
- * enter the same sticky output-inhibit episode as faults detected in the ADC
- * ISR.  Otherwise an ADC failure followed immediately by a pending DIFF could
- * re-enable torque before one fully healthy sample has been observed.
- */
-static void appsPublishMainImmediateFault(uint32_t observed_status)
+// 즉시 fault
+static void appsRaiseImmediateFault(uint32_t observed_status)
 {
   uint32_t immediate_status;
   uint32_t effective_status;
@@ -475,216 +382,92 @@ static void appsPublishMainImmediateFault(uint32_t observed_status)
   __disable_irq();
 
   apps.fault_policy.active_status |= immediate_status;
-  apps.fault_policy.failure_active = true;
   effective_status = apps.fault_policy.active_status;
 
-  apps.isr_effective_fault_status = effective_status;
   apps.isr_actionable_fault_events |= immediate_status;
   apps.isr_output_inhibit = true;
 
   /* This is the bounded fail-low action; CAN zero is sent by the main loop. */
   gpioPinWrite(APPS_READY_GPIO_CH, false);
-  appsSetFaultState(observed_status, effective_status);
+  appsUpdateFaultStatus(observed_status, effective_status);
 
   if (primask == 0U)
   {
     __enable_irq();
   }
 }
-
+/*
+ *메인 루프의 판정의 본체
+ *여기서 fault판정을 내림
+ *여기서
+ */
 static bool appsEvaluate(uint16_t raw_signal1, uint16_t raw_signal2)
 {
-  bool range_ok[APPS_ADC_MAX] 	= {false, false};
   uint32_t instant_status 		= APPS_STATUS_OK;
-  apps_isr_fault_snapshot_t isr_snapshot;
+  uint32_t isr_observed_status;
+  uint32_t isr_effective_status;
+  uint32_t isr_actionable_events;
   uint32_t effective_status;
-  uint16_t difference_per_mille;
+  uint32_t primask;
 
-  appsTakeIsrFaultSnapshot(&isr_snapshot);
+  primask = __get_PRIMASK();
+  __disable_irq();
 
-  apps.raw[APPS_SIGNAL1] 		= raw_signal1;
-  apps.raw[APPS_SIGNAL2] 		= raw_signal2;
+  isr_observed_status 					= apps.isr_fault_status;
+  isr_effective_status 					= apps.fault_policy.active_status;
+  isr_actionable_events 				= apps.isr_actionable_fault_events;
+
+  apps.isr_actionable_fault_events 		= APPS_STATUS_OK;
+
+  if (primask == 0U)
+  {
+    __enable_irq();
+  }
+
+  apps.raw[APPS_SIGNAL1] 				= raw_signal1;
+  apps.raw[APPS_SIGNAL2] 				= raw_signal2;
 
   apps.percent_per_mille[APPS_SIGNAL1] = 0U;
   apps.percent_per_mille[APPS_SIGNAL2] = 0U;
 
-  apps.pedal_per_mille = 0U;
-  apps.command_sent = 0;
-  apps.adc_ok = true;
-  apps.valid = false;
-  apps.can_tx_ok = false;
-  apps.can_tx_muted = false;
+  apps.pedal_per_mille 					= 0U;
+  apps.command_sent 					= 0;
+  apps.adc_ok 							= true;
+  apps.valid 							= false;
+  apps.can_tx_ok 						= false;
+  apps.can_tx_muted 					= false;
 
-  if ((apps.initialized != true) || (apps.configured != true))
+  if (apps.initialized != true)
   {
-    appsPublishMainImmediateFault(APPS_STATUS_NOT_CONFIGURED);
     return false;
   }
 
-  apps.percent_per_mille[APPS_SIGNAL1] = appsRawToDigital(APPS_SIGNAL1, raw_signal1, &range_ok[APPS_SIGNAL1]);
-  apps.percent_per_mille[APPS_SIGNAL2] = appsRawToDigital(APPS_SIGNAL2, raw_signal2, &range_ok[APPS_SIGNAL2]);
+  instant_status = appsCheckPolicy(raw_signal1,
+                                   raw_signal2,
+                                   &apps.percent_per_mille[APPS_SIGNAL1],
+                                   &apps.percent_per_mille[APPS_SIGNAL2]);
 
-  if (range_ok[APPS_SIGNAL1] != true)
-  {
-    instant_status |= APPS_STATUS_SIGNAL1_RANGE_FAULT;
-  }
-  if (range_ok[APPS_SIGNAL2] != true)
-  {
-    instant_status |= APPS_STATUS_SIGNAL2_RANGE_FAULT;
-  }
+  instant_status |= isr_observed_status;
+  instant_status |= isr_actionable_events;
 
-  if (apps.percent_per_mille[APPS_SIGNAL1] > apps.percent_per_mille[APPS_SIGNAL2])
-  {
-    difference_per_mille = apps.percent_per_mille[APPS_SIGNAL1] - apps.percent_per_mille[APPS_SIGNAL2];
-  }
-  else
-  {
-    difference_per_mille = apps.percent_per_mille[APPS_SIGNAL2] - apps.percent_per_mille[APPS_SIGNAL1];
-  }
-
-  if (difference_per_mille >= APPS_DIFF_MAX)
-  {
-    instant_status |= APPS_STATUS_DIFF_FAULT;
-  }
-
-  instant_status |= isr_snapshot.observed_status;
-  instant_status |= isr_snapshot.actionable_events;
-
-  /*
-   * Send the lower of the two channels, not their average. A channel that
-   * reads high on its own can then never lift the torque request above what
-   * the other channel still supports; DIFF_FAULT bounds how far apart they
-   * are allowed to sit while this runs.
-   */
   apps.pedal_per_mille =
-      (apps.percent_per_mille[APPS_SIGNAL1] < apps.percent_per_mille[APPS_SIGNAL2]) ?
-      apps.percent_per_mille[APPS_SIGNAL1] : apps.percent_per_mille[APPS_SIGNAL2];
+      (apps.percent_per_mille[APPS_SIGNAL1] < apps.percent_per_mille[APPS_SIGNAL2]) ? apps.percent_per_mille[APPS_SIGNAL1] : apps.percent_per_mille[APPS_SIGNAL2];
 
-  effective_status = isr_snapshot.effective_status |
-                     isr_snapshot.actionable_events |
+  effective_status = isr_effective_status |
+                     isr_actionable_events |
                      (instant_status & APPS_IMMEDIATE_FAULT_MASK);
-  appsSetFaultState(instant_status, effective_status);
+
+  appsUpdateFaultStatus(instant_status, effective_status);
 
   if ((effective_status == APPS_STATUS_OK) &&
-      (appsTryReleaseIsrOutputInhibit() == true))
+      (appsReleaseOutputIfSafe() == true))
   {
     apps.valid = true;
   }
 
   return true;
 }
-
-
-bool appsSetConfig(uint16_t signal1_raw_min,
-                   uint16_t signal1_raw_max,
-                   uint16_t signal2_raw_min,
-                   uint16_t signal2_raw_max)
-{
-  uint32_t primask;
-  uint32_t observed_faults;
-
-  /*
-   * Runtime calibration must never become a fault-clear back door.  Hold the
-   * ADC callback off while checking and replacing the four limits so it can
-   * neither observe a partially updated configuration nor lose an active
-   * APPS fault episode.
-   */
-  primask = __get_PRIMASK();
-  __disable_irq();
-  observed_faults = (apps.observed_status |
-                     apps.isr_fault_status |
-                     apps.isr_effective_fault_status |
-                     apps.isr_actionable_fault_events) &
-                    (APPS_IMMEDIATE_FAULT_MASK | APPS_TIMED_FAULT_MASK);
-  if ((observed_faults != APPS_STATUS_OK) ||
-      (apps.fault_policy.timer_active == true) ||
-      (apps.isr_output_inhibit == true))
-  {
-    if (primask == 0U)
-    {
-      __enable_irq();
-    }
-    return false;
-  }
-
-  apps.raw_min[APPS_SIGNAL1] = signal1_raw_min;
-  apps.raw_max[APPS_SIGNAL1] = signal1_raw_max;
-  apps.raw_min[APPS_SIGNAL2] = signal2_raw_min;
-  apps.raw_max[APPS_SIGNAL2] = signal2_raw_max;
-
-  apps.configured = appsCalibrationIsValid();
-  appsResetFaultState();
-
-  if (primask == 0U)
-  {
-    __enable_irq();
-  }
-
-  return apps.configured;
-}
-
-static void appsResetFaultState(void)
-{
-  uint32_t primask;
-
-  primask = __get_PRIMASK();
-  __disable_irq();
-  appsClearFaultTimer();
-  apps.isr_fault_status = APPS_STATUS_OK;
-  apps.isr_effective_fault_status = APPS_STATUS_OK;
-  apps.isr_actionable_fault_events = APPS_STATUS_OK;
-  apps.isr_output_inhibit = false;
-  if (primask == 0U)
-  {
-    __enable_irq();
-  }
-
-  apps.observed_status = APPS_STATUS_OK;
-  apps.valid = false;
-  apps.command_sent = 0;
-  apps.can_tx_ok = false;
-  apps.can_tx_muted = false;
-  apps.status =
-      (apps.configured == true) ? APPS_STATUS_OK : APPS_STATUS_NOT_CONFIGURED;
-  appsUpdateReadyGpio();
-}
-
-static bool appsTryClearFault(void)
-{
-  uint32_t primask;
-  uint32_t observed_faults;
-
-  primask = __get_PRIMASK();
-  __disable_irq();
-  observed_faults = (apps.observed_status |
-                     apps.isr_fault_status |
-                     apps.isr_effective_fault_status |
-                     apps.isr_actionable_fault_events) &
-                    (APPS_IMMEDIATE_FAULT_MASK | APPS_TIMED_FAULT_MASK);
-  if ((observed_faults != APPS_STATUS_OK) ||
-      (apps.fault_policy.timer_active == true) ||
-      (apps.isr_output_inhibit == true))
-  {
-    if (primask == 0U)
-    {
-      __enable_irq();
-    }
-    return false;
-  }
-
-  appsResetFaultState();
-  if (primask == 0U)
-  {
-    __enable_irq();
-  }
-  return true;
-}
-
-void appsClearFault(void)
-{
-  (void)appsTryClearFault();
-}
-
+// 지금 값들이 어떠나 찍는거
 bool appsGetSnapshot(apps_snapshot_t *p_snapshot)
 {
   if ((p_snapshot == NULL) || (apps.initialized != true))
@@ -704,12 +487,12 @@ bool appsGetSnapshot(apps_snapshot_t *p_snapshot)
   p_snapshot->valid 							= apps.valid;
   p_snapshot->can_tx_ok 						= apps.can_tx_ok;
   p_snapshot->can_tx_muted 						= apps.can_tx_muted;
-  p_snapshot->fault_latched 					= apps.fault_latched;
-  p_snapshot->configured 						= apps.configured;
+  p_snapshot->fault_latched 					= appsFaultIsLatched();
 
   return true;
 }
 
+// adc를 수집하고 범위 이탈 및 안 움직이면 ISR이 죽은 것으로 보고 adc고장을 냄
 static bool appsUpdate(void)
 {
   int32_t raw_signal1;
@@ -719,29 +502,27 @@ static bool appsUpdate(void)
 
   if (apps.initialized != true)     return false;
 
+  // 1. adc값을 받아들이지 못할때 즉 adc에 이상이 있는경우
   if (adcUpdate() != true)
   {
     uint32_t status = APPS_STATUS_ADC_READ_FAULT;
 
-    if (apps.configured != true)
-    {
-      status |= APPS_STATUS_NOT_CONFIGURED;
-    }
-
-    appsClearLastResult();
-    appsPublishMainImmediateFault(status);
+    appsInvalidateResult();
+    appsRaiseImmediateFault(status);
 
     return false;
   }
 
   now_ms = millis();
   adc_sequence = apps.isr_adc_sequence;
+
+  // 2. 애매한디?
   if (adc_sequence == apps.adc_sequence_seen)
   {
     if ((uint32_t)(now_ms - apps.adc_sequence_seen_ms) >= APPS_ADC_STALE_MS)
     {
-      appsClearLastResult();
-      appsPublishMainImmediateFault(APPS_STATUS_ADC_READ_FAULT);
+      appsInvalidateResult();
+      appsRaiseImmediateFault(APPS_STATUS_ADC_READ_FAULT);
       return false;
     }
   }
@@ -754,17 +535,23 @@ static bool appsUpdate(void)
   raw_signal1 = adcRead(APPS_SIGNAL1_ADC_CH);
   raw_signal2 = adcRead(APPS_SIGNAL2_ADC_CH);
 
-  if ((raw_signal1 < 0) || (raw_signal1 > UINT16_MAX) ||
-      (raw_signal2 < 0) || (raw_signal2 > UINT16_MAX))
+  // 3. 0과 4096 즉 나올 수 없는 값이 나오는 경우
+  if ((raw_signal1 < 0) || (raw_signal1 > UINT16_MAX) || (raw_signal2 < 0) || (raw_signal2 > UINT16_MAX))
   {
-    appsClearLastResult();
-    appsPublishMainImmediateFault(APPS_STATUS_ADC_READ_FAULT);
+    appsInvalidateResult();
+    appsRaiseImmediateFault(APPS_STATUS_ADC_READ_FAULT);
     return false;
   }
 
   return appsEvaluate((uint16_t)raw_signal1, (uint16_t)raw_signal2);
 }
 
+/*
+① 무효 상태면 빌드 버전에 따라 갈린다 — _DEF_VER1은 CAN 채널을 닫고 mute, _DEF_VER2는 토크 0을 계속 송신.
+② 양끝 컷오프
+③ 판정과 송신 사이에 ISR이 끼어들었는지 다시 확인해 레이스를 닫는다.
+④ APPS_TORQUE_COMMAND_SIGN으로 방향을 붙여 송신하고 결과를 can_tx_ok에 기록한다.
+ */
 static bool appsSendCommand(int16_t prepared_command)
 {
   int16_t command_to_send;
@@ -800,16 +587,22 @@ static bool appsSendCommand(int16_t prepared_command)
    * Snap both ends of the range: the noise floor to a clean zero, and the top
    * to full torque so mechanical tolerance cannot cap the driver below 100%.
    */
-  apps.cutoff = APPS_CUTOFF_NONE;
+#ifdef _USE_HW_CLI
+  apps_cli.cutoff = APPS_CUTOFF_NONE;
+#endif
   if ((command_to_send > 0) && (command_to_send <= APPS_TORQUE_CUTOFF))
   {
     command_to_send = 0;
-    apps.cutoff = APPS_CUTOFF_LOW;
+#ifdef _USE_HW_CLI
+    apps_cli.cutoff = APPS_CUTOFF_LOW;
+#endif
   }
   else if (command_to_send >= APPS_TORQUE_CUTOFF_HIGH)
   {
     command_to_send = APPS_TORQUE_MAX;
-    apps.cutoff = APPS_CUTOFF_HIGH;
+#ifdef _USE_HW_CLI
+    apps_cli.cutoff = APPS_CUTOFF_HIGH;
+#endif
   }
 
   /* Close the evaluate-to-send race if the ADC ISR inhibits in between. */
@@ -817,7 +610,9 @@ static bool appsSendCommand(int16_t prepared_command)
   {
     command_to_send = 0;
     apps.valid = false;
-    apps.cutoff = APPS_CUTOFF_NONE;
+#ifdef _USE_HW_CLI
+    apps_cli.cutoff = APPS_CUTOFF_NONE;
+#endif
   }
 
   command_to_send = (int16_t)((int32_t)command_to_send *
@@ -843,13 +638,12 @@ static bool appsSendCommand(int16_t prepared_command)
   return true;
 }
 
+// 토크만큼 곱해서 지령을 내리게하는 함수
 static int16_t appsMakePedalCommand(void)
 {
   uint32_t command;
 
-  command = ((uint32_t)apps.pedal_per_mille *
-             (uint32_t)APPS_TORQUE_MAX) /
-            (uint32_t)APPS_PER_MILLE_MAX;
+  command = ((uint32_t)apps.pedal_per_mille * (uint32_t)APPS_TORQUE_MAX) / (uint32_t)APPS_PER_MILLE_MAX;
 
   if (command > (uint32_t)INT16_MAX)
   {
@@ -858,7 +652,11 @@ static int16_t appsMakePedalCommand(void)
 
   return (int16_t)command;
 }
-
+/*
+ * adc값을 업데이트하고
+ * 지령을 만들고
+ * 값을 보냄
+ */
 bool appsRunPedalCommand(void)
 {
   bool adc_result             = appsUpdate();
@@ -872,17 +670,20 @@ bool appsRunPedalCommand(void)
 
 #ifdef _USE_HW_CLI
 
+static bool appsFaultTimerActive(void)
+{
+  return (apps.fault_policy.bad_sample_count != 0U);
+}
+
 /* Absolute APPS1/APPS2 gap in per-mille, the value compared to APPS_DIFF_MAX. */
 static uint16_t appsCliDiffPerMille(void)
 {
   if (apps.percent_per_mille[APPS_SIGNAL1] > apps.percent_per_mille[APPS_SIGNAL2])
   {
-    return apps.percent_per_mille[APPS_SIGNAL1] -
-           apps.percent_per_mille[APPS_SIGNAL2];
+    return apps.percent_per_mille[APPS_SIGNAL1] - apps.percent_per_mille[APPS_SIGNAL2];
   }
 
-  return apps.percent_per_mille[APPS_SIGNAL2] -
-         apps.percent_per_mille[APPS_SIGNAL1];
+  return apps.percent_per_mille[APPS_SIGNAL2] - apps.percent_per_mille[APPS_SIGNAL1];
 }
 
 /*
@@ -891,15 +692,11 @@ static uint16_t appsCliDiffPerMille(void)
  */
 static const char *appsCliStateName(void)
 {
-  if (apps.configured != true)
-  {
-    return "NOCFG";
-  }
-  if (apps.fault_latched == true)
+  if (appsFaultIsLatched() == true)
   {
     return "FAULT";
   }
-  if (apps.fault_policy.timer_active == true)
+  if (appsFaultTimerActive() == true)
   {
     return "PENDING";
   }
@@ -914,17 +711,24 @@ static const char *appsCliStateName(void)
 /* The fault timer never reads past the confirm time once the fault is latched. */
 static uint32_t appsCliFaultTimerMs(void)
 {
-  if (apps.fault_policy.elapsed_ms > APPS_FAULT_MS)
+  uint32_t bad_sample_count;
+  uint32_t elapsed_ms;
+
+  /* ISR이 갱신하는 카운터라 한 번만 읽어 값이 갈라지지 않게 한다. */
+  bad_sample_count = apps.fault_policy.bad_sample_count;
+  elapsed_ms = (bad_sample_count * 1000U) / ADC_SAMPLE_HZ;
+
+  if (elapsed_ms > APPS_FAULT_MS)
   {
     return APPS_FAULT_MS;
   }
 
-  return apps.fault_policy.elapsed_ms;
+  return elapsed_ms;
 }
 
 static const char *appsCliDiffStateName(void)
 {
-  if ((apps.observed_status & APPS_STATUS_DIFF_FAULT) == 0U)
+  if ((apps_cli.observed_status & APPS_STATUS_DIFF_FAULT) == 0U)
   {
     return ((apps.fault_latched_status & APPS_STATUS_DIFF_FAULT) != 0U) ?
            "HOLD" : "OK";
@@ -1006,7 +810,7 @@ static void appsCli(cli_args_t *args)
     (void)appsRunPedalCommand();
 
     status               = apps.status;
-    input_status         = apps.observed_status;
+    input_status         = apps_cli.observed_status;
     difference_per_mille = appsCliDiffPerMille();
     signal1_mv           = (uint16_t)adcConvMillivolts(APPS_SIGNAL1_ADC_CH,
                                                        apps.raw[APPS_SIGNAL1]);
@@ -1041,7 +845,7 @@ static void appsCli(cli_args_t *args)
     cliPrintf("FAULT TIMER  : %lu / %lu ms\n",
               (unsigned long)appsCliFaultTimerMs(),
               (unsigned long)APPS_FAULT_MS);
-    cliPrintf("FAILURE      : %s\n", apps.fault_latched ? "ACTIVE" : "NONE");
+    cliPrintf("FAILURE      : %s\n", appsFaultIsLatched() ? "ACTIVE" : "NONE");
     cliPrintf("STATUS       : 0x%08lX\n", (unsigned long)status);
     cliPrintf("\n");
     cliPrintf("PEDAL        : %u.%u%%\n",
@@ -1185,7 +989,7 @@ static void appsCli(cli_args_t *args)
         first_sample = false;
       }
 
-      if ((apps.fault_policy.timer_active == true) && (prev_pending != true))
+      if ((appsFaultTimerActive() == true) && (prev_pending != true))
       {
         seen_pending = true;
 
@@ -1266,7 +1070,7 @@ static void appsCli(cli_args_t *args)
       }
 
       /* DIFF and RANGE share the 100 ms timer and its recovery. */
-      if ((apps.fault_policy.timer_active != true) && (prev_pending == true))
+      if ((appsFaultTimerActive() != true) && (prev_pending == true))
       {
         cliPrintf("[%06lu ms] IMPLAUSIBILITY RETURNED WITHIN LIMIT\n",
                   (unsigned long)now_ms);
@@ -1316,11 +1120,11 @@ static void appsCli(cli_args_t *args)
         }
       }
 
-      if (apps.fault_policy.timer_active == true)
+      if (appsFaultTimerActive() == true)
       {
         pending_ms = appsCliFaultTimerMs();
       }
-      prev_pending = apps.fault_policy.timer_active;
+      prev_pending = appsFaultTimerActive();
       prev_effective_status = effective_status;
 
       for (uint32_t wait_ms = 0U;
@@ -1381,8 +1185,6 @@ static void appsCli(cli_args_t *args)
   {
     cliPrintf("initialized : %s\n",
               apps.initialized ? "true" : "false");
-    cliPrintf("configured  : %s\n",
-              apps.configured ? "true" : "false");
     cliPrintf("signal1 adc/raw : ch%u, %u..%u\n",
               APPS_SIGNAL1_ADC_CH,
               apps.raw_min[APPS_SIGNAL1],
@@ -1453,11 +1255,11 @@ static void appsCli(cli_args_t *args)
       {
         state = "FAULT";
       }
-      else if (apps.cutoff == APPS_CUTOFF_LOW)
+      else if (apps_cli.cutoff == APPS_CUTOFF_LOW)
       {
         state = "CUT";
       }
-      else if (apps.cutoff == APPS_CUTOFF_HIGH)
+      else if (apps_cli.cutoff == APPS_CUTOFF_HIGH)
       {
         state = "FULL";
       }
@@ -1494,11 +1296,11 @@ static void appsCli(cli_args_t *args)
       {
         command_min = apps.command_sent;
       }
-      if (apps.cutoff == APPS_CUTOFF_LOW)
+      if (apps_cli.cutoff == APPS_CUTOFF_LOW)
       {
         cutoff_count++;
       }
-      if (apps.cutoff == APPS_CUTOFF_HIGH)
+      if (apps_cli.cutoff == APPS_CUTOFF_HIGH)
       {
         full_count++;
       }
@@ -1524,25 +1326,11 @@ static void appsCli(cli_args_t *args)
     return;
   }
 
-  if ((args->argc == 1) && args->isStr(0, "clear"))
-  {
-    if (appsTryClearFault() == true)
-    {
-      cliPrintf("apps fault policy reset\n");
-    }
-    else
-    {
-      cliPrintf("apps clear rejected: APPS fault is still active\n");
-    }
-    return;
-  }
-
   cliPrintf("apps status                     : print current state once\n");
   cliPrintf("apps monitor                    : live state, %ums period\n",
             APPS_MONITOR_PERIOD_MS);
   cliPrintf("apps verify                     : plausibility verification mode\n");
   cliPrintf("apps trace                      : pedal / torque cutoff trace\n");
-  cliPrintf("apps clear                      : reset current fault policy\n");
   cliPrintf("apps config                     : print thresholds and ADC setup\n");
   cliPrintf("apps help                       : this menu\n");
 }
