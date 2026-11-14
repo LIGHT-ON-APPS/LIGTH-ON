@@ -8,11 +8,11 @@
 현재 프로젝트의 목표는 다음과 같다.
 
 - 논리 채널 `_DEF_UART1`: 실제 USART2, CLI, blocking TX 유지
-- 논리 채널 `_DEF_UART2`: 실제 USART1, F411 표시 패킷, DMA TX 사용
+- 논리 채널 `_DEF_UART2`: 실제 USART1, 이전 F411 표시 링크용 패킷 송신, DMA TX 사용. 현재 DISPLAY 저장소는 CAN 직접 수신 방식입니다.
 - USART2 CLI RX만 기존 `HAL_UART_Receive_IT()` 방식 유지
 - USART1 표시 링크는 단방향 TX 전용이며 RX 핀과 RX DMA를 사용하지 않음
 
-주의: `_DEF_UART1` service CLI를 열면 PA2가 USART2 TX alternate function으로 바뀐다. PA2를 PCB GPIO로 사용하는 하드웨어에서는 GPIO 방향과 초기값을 확정하기 전까지 service mode를 활성화하지 않는다. 현재 애플리케이션은 service mode 기본값이 `false`이고 외부 진입 호출자를 아직 연결하지 않았다.
+주의: 현재 `apInit()`은 `_USE_HW_CLI`가 활성화된 빌드에서 `_DEF_UART1` CLI를 직접 엽니다. 이때 PA2는 USART2 TX alternate function으로 설정됩니다. 별도의 service mode 진입 절차가 있다고 가정하지 말고, PA2를 PCB GPIO로 사용하는 보드에서는 실제 핀 용도와 펌웨어 설정의 충돌을 확인해야 합니다.
 
 아래 순서는 CubeMX에서 USART1 TX DMA를 새로 추가했다고 가정한 실제 작업 순서다.
 
