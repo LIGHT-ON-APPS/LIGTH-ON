@@ -95,7 +95,6 @@ typedef struct
   bool     valid;
   bool     can_tx_ok;
   bool     can_tx_muted;
-  bool     fault_latched;
 } apps_snapshot_t;
 
 

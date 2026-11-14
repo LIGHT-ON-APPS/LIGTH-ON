@@ -114,7 +114,7 @@ static uint8_t apSnapshotMakeStateFlags(const apps_snapshot_t *p_snapshot)
   {
     flags |= DISPLAY_PROTOCOL_FLAG_CAN_TX_MUTED;
   }
-  if (p_snapshot->fault_latched == true)
+  if (p_snapshot->fault_latched_status != APPS_STATUS_OK)
   {
     flags |= DISPLAY_PROTOCOL_FLAG_FAULT_LATCHED;
   }

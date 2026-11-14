@@ -32,9 +32,9 @@ typedef struct
 //
 typedef struct
 {
-  uint32_t bad_sample_count;			// 이상한 샘플이 몇개 있는지 셈 100회가 약 100ms
-  uint32_t pending_status;				// 100ms가 되지는 않았지만 고장 중인 상태
-  uint32_t active_status;				// 100ms 채운 상태
+  uint32_t bad_sample_count;				// 이상한 샘플이 몇개 있는지 셈 100회가 약 100ms
+  uint32_t pending_status;					// 100ms가 되지는 않았지만 고장 중인 상태
+  uint32_t active_status;					// 100ms 채운 상태
 } apps_fault_policy_t;
 
 typedef struct
@@ -60,16 +60,16 @@ typedef struct
   volatile apps_fault_policy_t fault_policy;// 100ms 고장 판정용 카운터와 상태
 
   volatile uint32_t isr_fault_status;				// ISR이 가장 최근 샘플에서 본 고장
-  volatile uint32_t isr_actionable_fault_events;	//
-  volatile bool     isr_output_inhibit;				//
+  volatile uint32_t isr_actionable_fault_events;	// 메인이 아직 처리하지 않은 확정 고장 이벤트
+  volatile bool     isr_output_inhibit;				// ISR이 즉시 설정하는 토크 출력 금지
 
-  volatile uint32_t isr_adc_sequence;
-  uint32_t adc_sequence_seen;
-  uint32_t adc_sequence_seen_ms;
+  volatile uint32_t isr_adc_sequence;		// ADC ISR이 돌 때마다 증가하는 생존 번호
+  uint32_t adc_sequence_seen;				// 메인이 마지막으로 확인한 생존 번호
+  uint32_t adc_sequence_seen_ms;			// 생존 번호를 마지막으로 확인한 시간
 
-  uint32_t fault_latched_status;
+  uint32_t fault_latched_status;			// 메인이 마지막으로 처리한 실효 고장 원인
 
-  bool     initialized;
+  bool     initialized;						// appsInit()이 실행됐는지
 
 } apps_t;
 
@@ -84,40 +84,35 @@ static void appsCli(cli_args_t *args);
 #endif
 
 static void appsProcessAdcStatus(uint32_t status);
-static uint32_t appsCheckPolicy(uint16_t raw_signal1,
-                                uint16_t raw_signal2,
-                                uint16_t *p_signal1_per_mille,
-                                uint16_t *p_signal2_per_mille);
+static uint32_t appsCheckPolicy(uint16_t raw_signal1, uint16_t raw_signal2, uint16_t *p_signal1_per_mille, uint16_t *p_signal2_per_mille);
 
 // 1ms 마다 안전 검사해주는 콜백 함수
 static void appsAdcCallback(void)
 {
   uint16_t signal1_per_mille;
   uint16_t signal2_per_mille;
+
   int32_t raw_signal1;
   int32_t raw_signal2;
+
   uint32_t status;
 
   raw_signal1 = adcRead(APPS_SIGNAL1_ADC_CH);
   raw_signal2 = adcRead(APPS_SIGNAL2_ADC_CH);
 
-  if ((raw_signal1 < 0) || (raw_signal1 > UINT16_MAX) ||
-      (raw_signal2 < 0) || (raw_signal2 > UINT16_MAX))
+  if ((raw_signal1 < 0) || (raw_signal1 > UINT16_MAX) || (raw_signal2 < 0) || (raw_signal2 > UINT16_MAX))
   {
     appsProcessAdcStatus(APPS_STATUS_ADC_READ_FAULT);
     return;
   }
 
-  status = appsCheckPolicy((uint16_t)raw_signal1,
-                           (uint16_t)raw_signal2,
-                           &signal1_per_mille,
-                           &signal2_per_mille);
+  status = appsCheckPolicy((uint16_t)raw_signal1, (uint16_t)raw_signal2, &signal1_per_mille, &signal2_per_mille);
 
   appsProcessAdcStatus(status);
 }
 
 
-/* Fail-safe status output: both APPS plausibility and the latest CAN TX must pass. */
+// 아날로그 사용시 사용하는 gpio핀 입출력
 static void appsUpdateReadyGpio(void)
 {
   uint32_t primask;
@@ -136,15 +131,6 @@ static void appsUpdateReadyGpio(void)
     __enable_irq();
   }
 }
-/*
- * 확정된 고장이 래치돼 있는지. 예전 fault_latched 플래그를 대신한다.
- * 래치 원인이 곧 래치 여부이므로 둘을 따로 들고 있을 이유가 없다.
- */
-static bool appsFaultIsLatched(void)
-{
-  return (apps.fault_latched_status != APPS_STATUS_OK);
-}
-
 /* Called once per coherent ADC pair from the 1 kHz DMA completion ISR. */
 static uint32_t appsFaultPolicyUpdate(volatile apps_fault_policy_t *p_policy, uint32_t observed_status)
 {
@@ -231,6 +217,7 @@ bool appsInit(void)
   return true;
 }
 
+// ISR의 ADC 상태 처리
 static void appsProcessAdcStatus(uint32_t status)
 {
   uint32_t effective_status;
@@ -487,7 +474,6 @@ bool appsGetSnapshot(apps_snapshot_t *p_snapshot)
   p_snapshot->valid 							= apps.valid;
   p_snapshot->can_tx_ok 						= apps.can_tx_ok;
   p_snapshot->can_tx_muted 						= apps.can_tx_muted;
-  p_snapshot->fault_latched 					= appsFaultIsLatched();
 
   return true;
 }
@@ -692,7 +678,7 @@ static uint16_t appsCliDiffPerMille(void)
  */
 static const char *appsCliStateName(void)
 {
-  if (appsFaultIsLatched() == true)
+  if (apps.fault_latched_status != APPS_STATUS_OK)
   {
     return "FAULT";
   }
@@ -845,7 +831,8 @@ static void appsCli(cli_args_t *args)
     cliPrintf("FAULT TIMER  : %lu / %lu ms\n",
               (unsigned long)appsCliFaultTimerMs(),
               (unsigned long)APPS_FAULT_MS);
-    cliPrintf("FAILURE      : %s\n", appsFaultIsLatched() ? "ACTIVE" : "NONE");
+    cliPrintf("FAILURE      : %s\n",
+              (apps.fault_latched_status != APPS_STATUS_OK) ? "ACTIVE" : "NONE");
     cliPrintf("STATUS       : 0x%08lX\n", (unsigned long)status);
     cliPrintf("\n");
     cliPrintf("PEDAL        : %u.%u%%\n",
